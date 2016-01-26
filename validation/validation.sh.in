@@ -1,0 +1,159 @@
+#!/bin/sh
+set -u
+
+usage_error ()
+{
+  echo "$0: $*" >&2
+  print_usage >&2
+  exit 2
+}
+
+print_usage ()
+{
+  cat <<END
+Usage:
+  test-driver --test-name=NAME --log-file=PATH --trs-file=PATH
+              [--expect-failure={yes|no}] [--color-tests={yes|no}]
+              [--enable-hard-errors={yes|no}] [--]
+              TEST-SCRIPT [TEST-SCRIPT-ARGUMENTS]
+The '--test-name', '--log-file' and '--trs-file' options are mandatory.
+END
+}
+
+run_test()
+{
+    if test "x$valgrind" != "x"; then
+        cmd="$valgrind --quiet --leak-check=full --show-reachable=yes$sup_file $cmd $1 2>valgrind.log"
+    else
+        cmd="$cmd $1"
+    fi
+
+    echo "CMD: $cmd" >> $log_file
+    eval "$cmd &"
+    
+    pid=$!
+    (sleep 5 && kill -9 $pid 1>/dev/null 2>&1) &
+    sleep_pid=$!
+    wait $pid
+    estatus=$?
+    kill $sleep_pid
+
+    if test $enable_hard_errors = no && test $estatus -eq 99; then
+        estatus=1
+    fi
+
+    if test $estatus -eq 0; then
+        if test -s "valgrind.log"; then
+            estatus=1
+        fi
+    fi
+}
+
+flush_valgrind()
+{
+    if test -s "valgrind.log"; then
+        echo "VALGRIND:" >> $log_file
+        cat valgrind.log >>$log_file
+    fi
+    rm -f valgrind.log
+}
+
+check_status()
+{
+    case $estatus in
+        0)   col=$grn res=PASS  ;;
+        77)  col=$blu res=SKIP  gcopy=yes;;
+        99)  col=$mgn res=ERROR gcopy=yes recheck=yes gres=FAIL;;
+        *)   col=$red res=FAIL  gcopy=yes recheck=yes gres=FAIL;;
+    esac
+
+    # Report outcome to console.
+    echo "${col}${res}${std}: $test_name"
+
+    # Register the test result, and other relevant metadata.
+    echo ":test-result: $res $test_name" >> $trs_file
+}
+
+test_name=
+log_file=
+trs_file=
+expect_failure=no
+color_tests=no
+enable_hard_errors=yes
+
+while test $# -gt 0; do
+  case $1 in
+  --help) print_usage; exit $?;;
+  --version) echo "test-driver $scriptversion"; exit $?;;
+  --test-name) test_name=$2; shift;;
+  --log-file) log_file=$2; shift;;
+  --trs-file) trs_file=$2; shift;;
+  --color-tests) color_tests=$2; shift;;
+  --expect-failure) expect_failure=$2; shift;;
+  --enable-hard-errors) enable_hard_errors=$2; shift;;
+  --) shift; break;;
+  -*) usage_error "invalid option: '$1'";;
+   *) break;;
+  esac
+  shift
+done
+
+recheck=no
+gcopy=no
+gres=PASS
+valgrind=@VALGRIND@
+sup_file=
+
+missing_opts=
+test x"$test_name" = x && missing_opts="$missing_opts --test-name"
+test x"$log_file"  = x && missing_opts="$missing_opts --log-file"
+test x"$trs_file"  = x && missing_opts="$missing_opts --trs-file"
+if test x"$missing_opts" != x; then
+  usage_error "the following mandatory options are missing:$missing_opts"
+fi
+
+if test $# -eq 0; then
+  usage_error "missing argument"
+fi
+test_file=$@
+
+if test $color_tests = yes; then
+  red='[0;31m' # Red.
+  grn='[0;32m' # Green.
+  lgn='[1;32m' # Light green.
+  blu='[1;34m' # Blue.
+  mgn='[0;35m' # Magenta.
+  std='[m'     # No color.
+else
+  red= grn= lgn= blu= mgn= std=
+fi
+
+do_exit='rm -f $log_file $trs_file *.txt; (exit $st); exit $st'
+trap "st=129; $do_exit" 1
+trap "st=130; $do_exit" 2
+trap "st=141; $do_exit" 13
+trap "st=143; $do_exit" 15
+
+if test -s "valgrind.supp"; then
+  sup_file=" --suppressions=valgrind.supp"
+fi  
+
+if test "x$test_name" != "xrun-outsider"; then
+    echo "Test “$test_name” unsupported!" >&2
+    exit 2
+fi
+
+./outsider | 
+{ 
+    while read line ; 
+    do
+        test_name="outsider-$line"
+        cmd="./outsider $line"
+        run_test ">>$log_file"
+        flush_valgrind
+        check_status
+    done
+    echo ":global-test-result: $gres" >> $trs_file
+    echo ":recheck: $recheck" >> $trs_file
+    echo ":copy-in-global-log: $gcopy" >> $trs_file
+}
