@@ -4,14 +4,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+
 int empty_test();
 
-#define TEST_ITEM(name) { #name, &name##_test, 0 }
 
+
+typedef int (* test_f)();
+
+struct test_item
+{
+    const char * name;
+    test_f func;
+};
+
+#define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
     { NULL, NULL }
 };
+#undef TEST_ITEM
+
+
 
 struct test_item * current_test;
 
@@ -19,13 +33,7 @@ void print_tests()
 {
     struct test_item * current = tests;
     for (; current->name != NULL; ++current) {
-        int might_be_printed = 0
-           || (!current->is_slow && opt_print_common)
-           || (current->is_slow && opt_print_slow)
-        ;
-        if (might_be_printed) {
-            printf("%s\n", current->name);
-        }
+        printf("%s\n", current->name);
     }
 }
 
