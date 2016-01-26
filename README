@@ -1,0 +1,9 @@
+This project is an implementation of finite state machine synthesis.
+
+To install application try following commands:
+    ./configure
+    make
+    sudo make install
+
+To install from GIT repository run before
+    autoreconf -vis
