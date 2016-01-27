@@ -3,7 +3,8 @@
 
 #include <stddef.h>
 
-typedef void build_script_func();
+typedef void build_script_func(void * script);
 
 int execute(int argc, char * argv[], build_script_func f);
+
 #endif
