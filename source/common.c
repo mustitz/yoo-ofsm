@@ -1,5 +1,6 @@
 #include <fsm.h>
 
-void execute(int argc, char * argv[], build_script_func f)
+int execute(int argc, char * argv[], build_script_func f)
 {
+    return 0;
 }
