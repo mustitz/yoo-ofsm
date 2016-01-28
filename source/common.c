@@ -41,15 +41,36 @@ static int parse_command_line(int argc, char * argv[])
 
 
 
+#define STEP__APPEND_COMBINATORIC          1
+
+struct step_data_append_combinatoric
+{
+    int n;
+    int m;
+};
+
+union step_data
+{
+    struct step_data_append_combinatoric append_combinatoric;
+};
+
+struct step
+{
+    int type;
+    struct step * next;
+    union step_data data;
+};
+
+
+
 struct script
 {
     struct mempool * restrict mempool;
     int status;
-    int nstep;
-    int qstep;
+    struct step * step;
 };
 
-struct script * create_script()
+static struct script * create_script()
 {
     struct mempool * restrict mempool = create_mempool(4000);
     if (mempool == NULL) {
@@ -68,11 +89,11 @@ struct script * create_script()
 
     script->mempool = mempool;
     script->status = STATUS__NEW;
-    script->nstep = script->qstep = 0;
+    script->step = NULL;
     return script;
 }
 
-void free_script(struct script * restrict me)
+static void free_script(struct script * restrict me)
 {
     free_mempool(me->mempool);
 }
@@ -90,9 +111,13 @@ static void run(struct script * restrict me)
     me->status = STATUS__EXECUTING;
 
     for (;;) {
-        if (me->nstep >= me->qstep) {
+        if (me->step == NULL) {
             me->status = STATUS__DONE;
             return;
+        }
+
+        if (opt_save_steps) {
+            save(me);
         }
 
         do_step(me);
@@ -106,11 +131,7 @@ static void run(struct script * restrict me)
             return;
         }
 
-        ++me->nstep;
-
-        if (opt_save_steps) {
-            save(me);
-        }
+        me->step = me->step->next;
     }
 }
 
@@ -140,6 +161,9 @@ int execute(int argc, char * argv[], build_script_func build)
     }
 
     build(script);
+    if (script->status == STATUS__FAILED) {
+        errmsg("build(script) failed. Terminate script execution.");
+    }
 
     run(script);
 
@@ -151,8 +175,43 @@ int execute(int argc, char * argv[], build_script_func build)
     return 0;
 }
 
+static struct step * create_step(struct script * restrict me)
+{
+    struct step * restrict step = mempool_alloc(me->mempool, sizeof(struct step));
+    if (step == NULL) {
+        ERRHEADER;
+        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct step));
+        return NULL;
+    }
+
+    step->next = me->step;
+    return me->step = step;
+}
+
+static void append_combinatoric(struct script * restrict me, int n, int m)
+{
+    if (me->status == STATUS__FAILED) {
+        /* One of previous step was failed. Ignore */
+        return;
+    }
+
+    struct step * restrict step = create_step(me);
+    if (step == NULL) {
+        ERRHEADER;
+        errmsg("create_step failed with NULL value. Terminate script execution.");
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+    step->type = STEP__APPEND_COMBINATORIC;
+    struct step_data_append_combinatoric * restrict data = &step->data.append_combinatoric;
+    data->n = n;
+    data->m = m;
+}
+
 void script_append_combinatoric(void * restrict script, int n, int m)
 {
+    append_combinatoric(script, n, m);
 }
 
 void script_pack(void * restrict script, pack_func pack)
