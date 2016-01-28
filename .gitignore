@@ -23,6 +23,6 @@ Makefile.in
 /validation/outsider
 /validation/validation.sh
 
-/source/yoo-fsm
-/yoo-fsm-0.1.tar.bz2
-/yoo-fsm-0.1.tar.gz
+/source/yoo-ofsm
+/yoo-ofsm-0.1.tar.bz2
+/yoo-ofsm-0.1.tar.gz

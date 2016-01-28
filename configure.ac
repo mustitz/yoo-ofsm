@@ -1,4 +1,4 @@
-AC_INIT([yoo-fsm], [0.1], [mustitz@gmail.com])
+AC_INIT([yoo-ofsm], [0.1], [mustitz@gmail.com])
 ${CFLAGS=""}
 
 AM_INIT_AUTOMAKE(dist-bzip2)

@@ -1,4 +1,4 @@
-#include <fsm.h>
+#include <ofsm.h>
 
 int64_t calc_rank(int64_t value)
 {

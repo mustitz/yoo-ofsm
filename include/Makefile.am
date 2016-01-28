@@ -1,1 +1,1 @@
-noinst_HEADERS = fsm.h
+noinst_HEADERS = ofsm.h

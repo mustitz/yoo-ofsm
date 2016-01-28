@@ -1,4 +1,4 @@
-#include "fsm.h"
+#include "ofsm.h"
 
 #include <stdio.h>
 #include <stdlib.h>

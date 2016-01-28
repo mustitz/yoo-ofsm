@@ -1,4 +1,4 @@
-#include <fsm.h>
+#include <ofsm.h>
 
 #include <yoo-stdlib.h>
 
