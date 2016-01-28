@@ -32,10 +32,21 @@ static void errmsg(const char * fmt, ...)
 
 
 
+int opt_save_steps = 0;
+
+static int parse_command_line(int argc, char * argv[])
+{
+    return 0;
+}
+
+
+
 struct script
 {
     struct mempool * restrict mempool;
     int status;
+    int nstep;
+    int qstep;
 };
 
 struct script * create_script()
@@ -57,6 +68,7 @@ struct script * create_script()
 
     script->mempool = mempool;
     script->status = STATUS__NEW;
+    script->nstep = script->qstep = 0;
     return script;
 }
 
@@ -65,13 +77,41 @@ void free_script(struct script * restrict me)
     free_mempool(me->mempool);
 }
 
-static int parse_command_line(int argc, char * argv[])
+static void save(struct script * restrict me)
 {
-    return 0;
+}
+
+static void do_step(struct script * restrict me)
+{
 }
 
 static void run(struct script * restrict me)
 {
+    me->status = STATUS__EXECUTING;
+
+    for (;;) {
+        if (me->nstep >= me->qstep) {
+            me->status = STATUS__DONE;
+            return;
+        }
+
+        do_step(me);
+
+        if (me->status == STATUS__INTERRUPTED) {
+            save(me);
+            return;
+        }
+
+        if (me->status == STATUS__FAILED) {
+            return;
+        }
+
+        ++me->nstep;
+
+        if (opt_save_steps) {
+            save(me);
+        }
+    }
 }
 
 static void print(struct script * restrict me)
