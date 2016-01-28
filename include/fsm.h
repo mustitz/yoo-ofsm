@@ -11,6 +11,6 @@ int execute(int argc, char * argv[], build_script_func build);
 
 void script_append_combinatoric(void * restrict script, int n, int m);
 void script_pack(void * restrict script, pack_func f);
-void script_optimize(void * restrict script, int layer);
+void script_optimize(void * restrict script, int nlayer);
 
 #endif

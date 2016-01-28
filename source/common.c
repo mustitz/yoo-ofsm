@@ -43,6 +43,7 @@ static int parse_command_line(int argc, char * argv[])
 
 #define STEP__APPEND_COMBINATORIC          1
 #define STEP__PACK                         2
+#define STEP__OPTIMIZE                     3
 
 struct step_data_append_combinatoric
 {
@@ -55,10 +56,16 @@ struct step_data_pack
     pack_func * f;
 };
 
+struct step_data_optimize
+{
+    int nlayer;
+};
+
 union step_data
 {
     struct step_data_append_combinatoric append_combinatoric;
     struct step_data_pack pack;
+    struct step_data_optimize optimize;
 };
 
 struct step
@@ -201,7 +208,7 @@ static struct step * append_step(struct script * restrict me)
     return me->step = step;
 }
 
-static void append_combinatoric(struct script * restrict me, int n, int m)
+static void add_step_append_combinatoric(struct script * restrict me, int n, int m)
 {
     struct step * restrict step = me->step;
     step->type = STEP__APPEND_COMBINATORIC;
@@ -210,7 +217,7 @@ static void append_combinatoric(struct script * restrict me, int n, int m)
     data->m = m;
 }
 
-static void pack(struct script * restrict me, pack_func f)
+static void add_step_pack(struct script * restrict me, pack_func f)
 {
     struct step * restrict step = me->step;
     step->type = STEP__PACK;
@@ -218,20 +225,31 @@ static void pack(struct script * restrict me, pack_func f)
     data->f = f;
 }
 
+static void add_step_optimize(struct script * restrict me, int nlayer)
+{
+    struct step * restrict step = me->step;
+    step->type = STEP__OPTIMIZE;
+    struct step_data_optimize * restrict data = data = &step->data.optimize;
+    data->nlayer = nlayer;
+}
+
 void script_append_combinatoric(void * restrict script, int n, int m)
 {
     if (append_step(script) != NULL) {
-        append_combinatoric(script, n, m);
+        add_step_append_combinatoric(script, n, m);
     }
 }
 
 void script_pack(void * restrict script, pack_func f)
 {
     if (append_step(script) != NULL) {
-        pack(script, f);
+        add_step_pack(script, f);
     }
 }
 
-void script_optimize(void * restrict script, int layer)
+void script_optimize(void * restrict script, int nlayer)
 {
+    if (append_step(script) != NULL) {
+        add_step_optimize(script, nlayer);
+    }
 }
