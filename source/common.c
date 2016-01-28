@@ -42,6 +42,7 @@ static int parse_command_line(int argc, char * argv[])
 
 
 #define STEP__APPEND_COMBINATORIC          1
+#define STEP__PACK                         2
 
 struct step_data_append_combinatoric
 {
@@ -49,9 +50,15 @@ struct step_data_append_combinatoric
     int m;
 };
 
+struct step_data_pack
+{
+    pack_func * f;
+};
+
 union step_data
 {
     struct step_data_append_combinatoric append_combinatoric;
+    struct step_data_pack pack;
 };
 
 struct step
@@ -175,12 +182,18 @@ int execute(int argc, char * argv[], build_script_func build)
     return 0;
 }
 
-static struct step * create_step(struct script * restrict me)
+static struct step * append_step(struct script * restrict me)
 {
+    if (me->status == STATUS__FAILED) {
+        /* One of previous step was failed. Ignore */
+        return NULL;
+    }
+
     struct step * restrict step = mempool_alloc(me->mempool, sizeof(struct step));
     if (step == NULL) {
         ERRHEADER;
         errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct step));
+        me->status = STATUS__FAILED;
         return NULL;
     }
 
@@ -190,32 +203,33 @@ static struct step * create_step(struct script * restrict me)
 
 static void append_combinatoric(struct script * restrict me, int n, int m)
 {
-    if (me->status == STATUS__FAILED) {
-        /* One of previous step was failed. Ignore */
-        return;
-    }
-
-    struct step * restrict step = create_step(me);
-    if (step == NULL) {
-        ERRHEADER;
-        errmsg("create_step failed with NULL value. Terminate script execution.");
-        me->status = STATUS__FAILED;
-        return;
-    }
-
+    struct step * restrict step = me->step;
     step->type = STEP__APPEND_COMBINATORIC;
     struct step_data_append_combinatoric * restrict data = &step->data.append_combinatoric;
     data->n = n;
     data->m = m;
 }
 
-void script_append_combinatoric(void * restrict script, int n, int m)
+static void pack(struct script * restrict me, pack_func f)
 {
-    append_combinatoric(script, n, m);
+    struct step * restrict step = me->step;
+    step->type = STEP__PACK;
+    struct step_data_pack * restrict data = data = &step->data.pack;
+    data->f = f;
 }
 
-void script_pack(void * restrict script, pack_func pack)
+void script_append_combinatoric(void * restrict script, int n, int m)
 {
+    if (append_step(script) != NULL) {
+        append_combinatoric(script, n, m);
+    }
+}
+
+void script_pack(void * restrict script, pack_func f)
+{
+    if (append_step(script) != NULL) {
+        pack(script, f);
+    }
 }
 
 void script_optimize(void * restrict script, int layer)
