@@ -2,6 +2,7 @@
 
 #include <yoo-stdlib.h>
 
+#include <getopt.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -13,6 +14,11 @@
 
 
 
+static void errmsg(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
+static void verbose(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
+
+
 #define ERRHEADER errmsg("Error in function “%s”, file %s:%d.", __FUNCTION__, __FILE__, __LINE__)
 
 static void verrmsg(const char * fmt, va_list args)
@@ -21,7 +27,6 @@ static void verrmsg(const char * fmt, va_list args)
     fprintf(stderr, "\n");
 }
 
-static void errmsg(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
 static void errmsg(const char * fmt, ...)
 {
     va_list args;
@@ -33,10 +38,66 @@ static void errmsg(const char * fmt, ...)
 
 
 int opt_save_steps = 0;
+int opt_verbose = 0;
+int opt_help = 0;
 FILE * verbose_stream = NULL;
+
+void usage()
+{
+    printf("%s",
+        "USAGE: yoo-ofsm [OPTIONS]\n"
+        "  --help, -h             Print usage and terminate.\n"
+        "  --save-steps, -s       Save OFSM after each step.\n"
+        "  --verbose, -v          Output an extended logging information to stderr.\n"
+    );
+}
 
 static int parse_command_line(int argc, char * argv[])
 {
+    static struct option long_options[] = {
+        { "help",  no_argument, &opt_help, 1},
+        { "save-steps", no_argument, &opt_save_steps, 1},
+        { "verbose", no_argument, &opt_verbose, 1 },
+        { NULL, 0, NULL, 0 }
+    };
+
+    for (;;) {
+        int index = 0;
+        int c = getopt_long(argc, argv, "ihsv", long_options, &index);
+        if (c == -1) break;
+
+        if (c != 0) {
+            switch (c) {
+                case 'h':
+                    opt_help = 1;
+                    break;
+                case 's':
+                    opt_save_steps = 1;
+                    break;
+                case 'v':
+                    opt_verbose = 1;
+                    break;
+                case '?':
+                    errmsg("Invalid option.");
+                    return 1;
+                default:
+                    errmsg("getopt_long returns unexpected char \\x%02X.", c);
+                    return 1;
+            }
+        }
+    }
+
+    if (opt_verbose) {
+        verbose_stream = stderr;
+    }
+
+    if (optind < argc) {
+        errmsg("Function “execute” do not expected any extra command line arguments except options.");
+        verbose("optind = %d, argc = %d.", optind, argc);
+        return 1;
+    }
+
+
     return 0;
 }
 
@@ -50,7 +111,6 @@ static void vverbose(const char * fmt, va_list args)
     fprintf(verbose_stream, "\n");
 }
 
-static void verbose(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
 static void verbose(const char * fmt, ...)
 {
     va_list args;
@@ -189,7 +249,8 @@ int execute(int argc, char * argv[], build_script_func build)
     }
 
     int errcode = parse_command_line(argc, argv);
-    if (errcode != 0) {
+    if (opt_help || errcode != 0) {
+        usage();
         return errcode;
     }
 
