@@ -33,10 +33,30 @@ static void errmsg(const char * fmt, ...)
 
 
 int opt_save_steps = 0;
+FILE * verbose_stream = NULL;
 
 static int parse_command_line(int argc, char * argv[])
 {
     return 0;
+}
+
+
+
+static void vverbose(const char * fmt, va_list args)
+{
+    if (verbose_stream == NULL) return;
+    fprintf(verbose_stream, "[%12.6f] ", get_app_age());
+    vfprintf(verbose_stream, fmt, args);
+    fprintf(verbose_stream, "\n");
+}
+
+static void verbose(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
+static void verbose(const char * fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vverbose(fmt, args);
+    va_end(args);
 }
 
 
@@ -125,23 +145,30 @@ static void run(struct script * restrict me)
     me->status = STATUS__EXECUTING;
 
     for (;;) {
+        verbose("New step.");
+
         if (me->step == NULL) {
             me->status = STATUS__DONE;
             return;
         }
 
         if (opt_save_steps) {
+            verbose("Start saving intermediate OFSM to file.");
             save(me);
+            verbose("DONE saving.");
         }
 
         do_step(me);
 
         if (me->status == STATUS__INTERRUPTED) {
+            verbose("Start saving current OFSM to file after interrupting.");
             save(me);
+            verbose("DONE saving.");
             return;
         }
 
         if (me->status == STATUS__FAILED) {
+            verbose("FAIL: current step turn status to error.");
             return;
         }
 
@@ -166,6 +193,8 @@ int execute(int argc, char * argv[], build_script_func build)
         return errcode;
     }
 
+    verbose("Start OFSM synthesis.");
+
     struct script * restrict script;
     script = create_script();
     if (script == NULL) {
@@ -178,14 +207,18 @@ int execute(int argc, char * argv[], build_script_func build)
     if (script->status == STATUS__FAILED) {
         errmsg("build(script) failed. Terminate script execution.");
     }
+    verbose("DONE: building script.");
 
     run(script);
+    verbose("DONE: running script.");
 
     if (script->status == STATUS__DONE) {
         print(script);
+        verbose("DONE: output final OFSM.");
     }
 
     free_script(script);
+    verbose("Exit function execute.");
     return 0;
 }
 
