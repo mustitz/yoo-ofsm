@@ -38,9 +38,9 @@ static int parse_command_line(int argc, char * argv[])
     return 0;
 }
 
-int execute(int argc, char * argv[], build_script_func f)
+int execute(int argc, char * argv[], build_script_func build)
 {
-    if (f == NULL) {
+    if (build == NULL) {
         errheader;
         errmsg("Invalid argument “f” = NULL (build script function). Not NULL value is expected.");
         return 1;
@@ -54,8 +54,20 @@ int execute(int argc, char * argv[], build_script_func f)
     struct script * restrict script;
     script = create_script();
 
-    f(script);
+    build(script);
 
     free_script(script);
     return 0;
+}
+
+void script_append_combinatoric(void * restrict script, int n, int m)
+{
+}
+
+void script_pack(void * restrict script, pack_func pack)
+{
+}
+
+void script_optimize(void * restrict script, int layer)
+{
 }
