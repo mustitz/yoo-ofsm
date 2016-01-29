@@ -129,6 +129,7 @@ struct flake
     input_t qinputs;
     state_t qstates;
     state_t * data;
+    input_t * paths;
 };
 
 struct ofsm
@@ -137,6 +138,33 @@ struct ofsm
     unsigned int max_flakes;
     struct flake * flakes;
 };
+
+struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_flakes)
+{
+    if (max_flakes == 0) {
+        max_flakes = 32;
+    }
+
+    struct ofsm * ofsm = mempool_alloc(mempool, sizeof(struct ofsm));
+    if (ofsm == NULL) {
+        ERRHEADER;
+        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct ofsm));
+        return NULL;
+    }
+
+    size_t sz = max_flakes * sizeof(struct flake);
+    struct flake * flakes = mempool_alloc(mempool, sz);
+    if (flakes == NULL) {
+        ERRHEADER;
+        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sz);
+        return NULL;
+    }
+
+    ofsm->qflakes = 0;
+    ofsm->max_flakes = max_flakes;
+    ofsm->flakes = flakes;
+    return ofsm;
+}
 
 
 
@@ -179,7 +207,7 @@ struct step
 struct script
 {
     struct mempool * restrict mempool;
-    struct ofsm * restrict fsm;
+    struct ofsm * restrict ofsm;
 
     int status;
     struct step * step;
@@ -203,7 +231,16 @@ static struct script * create_script()
         return NULL;
     }
 
+    struct ofsm * restrict ofsm = create_ofsm(mempool, 0);
+    if (ofsm == NULL) {
+        ERRHEADER;
+        errmsg("create_ofsm(mempool, 0) failed with NULL value. Terminate script execution.");
+        free_mempool(mempool);
+        return NULL;
+    }
+
     script->mempool = mempool;
+    script->ofsm = ofsm;
     script->status = STATUS__NEW;
     script->step = NULL;
     script->last = NULL;
