@@ -4,6 +4,7 @@
 
 #include <getopt.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #define input_t unsigned char
@@ -126,8 +127,10 @@ static void verbose(const char * fmt, ...)
 
 struct flake
 {
-    input_t qinputs;
-    state_t qstates;
+    void * ptr;
+    uint64_t qinputs;
+    uint64_t qoutputs;
+    uint64_t qstates;
     state_t * data;
     input_t * paths;
 };
@@ -152,7 +155,7 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
         return NULL;
     }
 
-    size_t sz = max_flakes * sizeof(struct flake);
+    size_t sz = max_flakes * sizeof(struct flake *);
     struct flake * flakes = mempool_alloc(mempool, sz);
     if (flakes == NULL) {
         ERRHEADER;
@@ -166,6 +169,16 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
     return ofsm;
 }
 
+void free_ofsm(struct ofsm * restrict me)
+{
+    for (unsigned int i=0; i<me->qflakes; ++i) {
+        void * ptr = me->flakes[i].ptr;
+        if (ptr != NULL) {
+            free(ptr);
+        }
+    }
+}
+
 
 
 #define STEP__APPEND_COMBINATORIC          1
@@ -174,8 +187,8 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
 
 struct step_data_append_combinatoric
 {
-    int n;
-    int m;
+    unsigned int n;
+    unsigned int m;
 };
 
 struct step_data_pack
@@ -249,6 +262,7 @@ static struct script * create_script()
 
 static void free_script(struct script * restrict me)
 {
+    free_ofsm(me->ofsm);
     free_mempool(me->mempool);
 }
 
@@ -259,6 +273,58 @@ static void save(struct script * restrict me)
 static void do_append_combinatoric(struct script * restrict me, const struct step_data_append_combinatoric * args)
 {
     verbose("START append combinatoric step, n = %d, m = %d.", args->n, args->m);
+
+    struct ofsm * restrict ofsm = me->ofsm;
+
+    uint64_t qbase = 1;
+    if (ofsm->qflakes != 0) {
+        const struct flake * prev_flake = ofsm->flakes + ofsm->qflakes - 1;
+        qbase = prev_flake->qoutputs;
+    }
+
+    uint64_t nn = args->n;
+    uint64_t dd = 1;
+    uint64_t qprev_outputs = 1;
+
+    for (int i=0; i<args->m; ++i) {
+
+        unsigned int nflake = ofsm->qflakes;
+        struct flake * restrict flake = ofsm->flakes + nflake;
+
+        flake->qinputs = args->n;
+        flake->qstates = qbase * qprev_outputs;
+        flake->qoutputs = flake->qstates * nn / dd;
+
+        verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu.", nflake, flake->qinputs, flake->qoutputs, flake->qstates);
+
+        size_t sizes[3];
+        sizes[0] = 0;
+        sizes[1] = flake->qinputs * flake->qstates * sizeof(state_t);
+        sizes[2] = flake->qoutputs * (nflake+1) * sizeof(input_t);
+
+        verbose("  Try allocate data for flake %u: data_sz = %lu, paths_sz = %lu.", nflake, sizes[1], sizes[2]);
+
+        void * ptrs[3];
+        multialloc(3, sizes, ptrs, 32);
+        if (ptrs[0] == NULL) {
+            ERRHEADER;
+            errmsg("multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed.", sizes[0], sizes[1], sizes[2]);
+            me->status = STATUS__FAILED;
+            return;
+        }
+
+        verbose("  Allocation OK, ptr = %p.", ptrs[0]);
+
+        flake->ptr = ptrs[0];
+        flake->data = ptrs[1];
+        flake->paths = ptrs[2];
+        ++ofsm->qflakes;
+
+        --nn;
+        ++dd;
+        qprev_outputs = flake->qoutputs;
+    }
+
     verbose("DONE append combinatoric step.");
 }
 
@@ -270,7 +336,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 static void do_optimize(struct script * restrict me, const struct step_data_optimize * args)
 {
-    verbose("START optimize step, nlayer = %d.", args->nlayer);
+    verbose("START optimize step, nlayer  %d.", args->nlayer);
     verbose("DONE optimize step.");
 }
 
@@ -406,7 +472,7 @@ static struct step * append_step(struct script * restrict me)
     return step;
 }
 
-static void add_step_append_combinatoric(struct script * restrict me, int n, int m)
+static void add_step_append_combinatoric(struct script * restrict me, unsigned int n, unsigned int m)
 {
     struct step * restrict step = me->last;
     step->type = STEP__APPEND_COMBINATORIC;
@@ -431,7 +497,7 @@ static void add_step_optimize(struct script * restrict me, int nlayer)
     data->nlayer = nlayer;
 }
 
-void script_append_combinatoric(void * restrict script, int n, int m)
+void script_append_combinatoric(void * restrict script, unsigned int n, unsigned int m)
 {
     if (append_step(script) != NULL) {
         add_step_append_combinatoric(script, n, m);
