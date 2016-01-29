@@ -6,6 +6,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#define input_t unsigned char
+#define state_t uint32_t
+
 #define STATUS__NEW           1
 #define STATUS__EXECUTING     2
 #define STATUS__FAILED        3
@@ -121,6 +124,22 @@ static void verbose(const char * fmt, ...)
 
 
 
+struct flake
+{
+    input_t qinputs;
+    state_t qstates;
+    state_t * data;
+};
+
+struct ofsm
+{
+    unsigned int qflakes;
+    unsigned int max_flakes;
+    struct flake * flakes;
+};
+
+
+
 #define STEP__APPEND_COMBINATORIC          1
 #define STEP__PACK                         2
 #define STEP__OPTIMIZE                     3
@@ -160,6 +179,8 @@ struct step
 struct script
 {
     struct mempool * restrict mempool;
+    struct ofsm * restrict fsm;
+
     int status;
     struct step * step;
     struct step * last;
