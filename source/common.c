@@ -162,6 +162,7 @@ struct script
     struct mempool * restrict mempool;
     int status;
     struct step * step;
+    struct step * last;
 };
 
 static struct script * create_script()
@@ -184,6 +185,7 @@ static struct script * create_script()
     script->mempool = mempool;
     script->status = STATUS__NEW;
     script->step = NULL;
+    script->last = NULL;
     return script;
 }
 
@@ -196,8 +198,44 @@ static void save(struct script * restrict me)
 {
 }
 
+static void do_append_combinatoric(struct script * restrict me, const struct step_data_append_combinatoric * args)
+{
+    verbose("START append combinatoric step, n = %d, m = %d.", args->n, args->m);
+    verbose("DONE append combinatoric step.");
+}
+
+static void do_pack(struct script * restrict me, const struct step_data_pack * args)
+{
+    verbose("START pack step, f = %p.", args->f);
+    verbose("DONE pack step.");
+}
+
+static void do_optimize(struct script * restrict me, const struct step_data_optimize * args)
+{
+    verbose("START optimize step, nlayer = %d.", args->nlayer);
+    verbose("DONE optimize step.");
+}
+
 static void do_step(struct script * restrict me)
 {
+    if (me->step->type == STEP__APPEND_COMBINATORIC) {
+        const struct step_data_append_combinatoric * args = &me->step->data.append_combinatoric;
+        return do_append_combinatoric(me, args);
+    }
+
+    if (me->step->type == STEP__PACK) {
+        const struct step_data_pack * args = &me->step->data.pack;
+        return do_pack(me, args);
+    }
+
+    if (me->step->type == STEP__OPTIMIZE) {
+        const struct step_data_optimize * args = &me->step->data.optimize;
+        return do_optimize(me, args);
+    }
+
+    ERRHEADER;
+    errmsg("Insupported step type: %d.", me->step->type);
+    me->status = STATUS__FAILED;
 }
 
 static void run(struct script * restrict me)
@@ -278,9 +316,10 @@ int execute(int argc, char * argv[], build_script_func build)
         verbose("DONE: output final OFSM.");
     }
 
+    int exit_code = script->status == STATUS__DONE || script->status == STATUS__INTERRUPTED ? 0 : 1;
     free_script(script);
     verbose("Exit function execute.");
-    return 0;
+    return exit_code;
 }
 
 static struct step * append_step(struct script * restrict me)
@@ -298,13 +337,20 @@ static struct step * append_step(struct script * restrict me)
         return NULL;
     }
 
-    step->next = me->step;
-    return me->step = step;
+    if (me->step == NULL) {
+        me->step = step;
+    } else {
+        me->last->next = step;
+    }
+
+    step->next = NULL;
+    me->last = step;
+    return step;
 }
 
 static void add_step_append_combinatoric(struct script * restrict me, int n, int m)
 {
-    struct step * restrict step = me->step;
+    struct step * restrict step = me->last;
     step->type = STEP__APPEND_COMBINATORIC;
     struct step_data_append_combinatoric * restrict data = &step->data.append_combinatoric;
     data->n = n;
@@ -313,7 +359,7 @@ static void add_step_append_combinatoric(struct script * restrict me, int n, int
 
 static void add_step_pack(struct script * restrict me, pack_func f)
 {
-    struct step * restrict step = me->step;
+    struct step * restrict step = me->last;
     step->type = STEP__PACK;
     struct step_data_pack * restrict data = data = &step->data.pack;
     data->f = f;
@@ -321,7 +367,7 @@ static void add_step_pack(struct script * restrict me, pack_func f)
 
 static void add_step_optimize(struct script * restrict me, int nlayer)
 {
-    struct step * restrict step = me->step;
+    struct step * restrict step = me->last;
     step->type = STEP__OPTIMIZE;
     struct step_data_optimize * restrict data = data = &step->data.optimize;
     data->nlayer = nlayer;
