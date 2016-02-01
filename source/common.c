@@ -278,6 +278,12 @@ static void save(struct script * restrict me)
 {
 }
 
+static void do_append_power(struct script * restrict me, const struct step_data_append_power * args)
+{
+    verbose("START append power step, n = %d, m = %d.", args->n, args->n);
+    verbose("DONE append power step.");
+}
+
 static void do_append_combinatoric(struct script * restrict me, const struct step_data_append_combinatoric * args)
 {
     verbose("START append combinatoric step, n = %d, m = %d.", args->n, args->m);
@@ -350,19 +356,14 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
 static void do_step(struct script * restrict me)
 {
-    if (me->step->type == STEP__APPEND_COMBINATORIC) {
-        const struct step_data_append_combinatoric * args = &me->step->data.append_combinatoric;
-        return do_append_combinatoric(me, args);
-    }
+    const void * args = &me->step->data;
 
-    if (me->step->type == STEP__PACK) {
-        const struct step_data_pack * args = &me->step->data.pack;
-        return do_pack(me, args);
-    }
-
-    if (me->step->type == STEP__OPTIMIZE) {
-        const struct step_data_optimize * args = &me->step->data.optimize;
-        return do_optimize(me, args);
+    switch (me->step->type) {
+        case STEP__APPEND_POWER:           return do_append_power(me, args);
+        case STEP__APPEND_COMBINATORIC:    return do_append_combinatoric(me, args);
+        case STEP__PACK:                   return do_pack(me, args);
+        case STEP__OPTIMIZE:               return do_optimize(me, args);
+        default: break;
     }
 
     ERRHEADER;
