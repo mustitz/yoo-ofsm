@@ -679,7 +679,7 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
 
     for (int i=0; i<n; ++i) {
         const struct flake * flake = me->flakes + i + 1;
-        if (n >= flake->qinputs) {
+        if (inputs[i] >= flake->qinputs) {
             ERRHEADER;
             errmsg("Invalid input, the inputs[%d] = %u, it increases flake qinputes (%lu).", i, inputs[i], flake->qinputs);
             return -1;

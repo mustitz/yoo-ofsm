@@ -10,6 +10,8 @@ int empty_test();
 int append_power_41_test();
 int append_power_42_test();
 int append_power_41_51_test();
+int append_combinatoric_42_test();
+int append_combinatoric_55_test();
 int append_power_41_combinatoric_52_test();
 
 
@@ -26,6 +28,8 @@ struct test_item
 struct test_item tests[] = {
     TEST_ITEM(empty),
     TEST_ITEM(append_power_41_combinatoric_52),
+    TEST_ITEM(append_combinatoric_55),
+    TEST_ITEM(append_combinatoric_42),
     TEST_ITEM(append_power_41_51),
     TEST_ITEM(append_power_42),
     TEST_ITEM(append_power_41),
@@ -218,6 +222,111 @@ int append_power_41_51_test()
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_append_power_41_51, check_append_power_41_51);
+}
+
+
+
+void build_append_combinatoric_42(void * script)
+{
+    script_append_combinatoric(script, 4, 2);
+}
+
+int check_append_combinatoric_42(const void * ofsm)
+{
+    static int stat[6];
+    memset(stat, 0, sizeof(stat));
+
+    int c[2];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<4; ++c[1]) {
+        int state = ofsm_execute(ofsm, 2, c);
+        if (c[0] == c[1]) {
+            if (state == -1) continue;
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
+        if (state < 0 || state >= 6) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 5.\n", state);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<5; ++i) {
+        if (stat[i] != 2) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is 2.\n", i, stat[i]);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int append_combinatoric_42_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_append_combinatoric_42, check_append_combinatoric_42);
+}
+
+
+
+void build_append_combinatoric_55(void * script)
+{
+    script_append_combinatoric(script, 5, 5);
+}
+
+int check_append_combinatoric_55(const void * ofsm)
+{
+    static int stat = 0;
+
+    int c[5];
+    for (c[0]=0; c[0]<5; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
+    for (c[2]=0; c[2]<5; ++c[2])
+    for (c[3]=0; c[3]<5; ++c[3])
+    for (c[4]=0; c[4]<5; ++c[4]) {
+        int state = ofsm_execute(ofsm, 5, c);
+
+        unsigned int mask = 0
+            | (1 << c[0])
+            | (1 << c[1])
+            | (1 << c[2])
+            | (1 << c[3])
+            | (1 << c[4])
+        ;
+
+        if (mask != 0x1F) {
+            if (state == -1) continue;
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            print_int_array("input =", c, 5);
+            return 1;
+        }
+
+        if (state != 0) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected 0.\n", state);
+            print_int_array("input =", c, 5);
+            return 1;
+        }
+
+        ++stat;
+    }
+
+    if (stat != 120) {
+        fprintf(stderr, "Invalid stat = %d, excpected value is .\n", stat);
+        return 1;
+    }
+
+    return 0;
+}
+
+int append_combinatoric_55_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_append_combinatoric_55, check_append_combinatoric_55);
 }
 
 
