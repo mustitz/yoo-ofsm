@@ -135,6 +135,8 @@ struct flake
     input_t * paths;
 };
 
+static const struct flake zero_flake = { NULL, 0, 1, 0, NULL, NULL };
+
 struct ofsm
 {
     unsigned int qflakes;
@@ -163,9 +165,10 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
         return NULL;
     }
 
-    ofsm->qflakes = 0;
+    ofsm->qflakes = 1;
     ofsm->max_flakes = max_flakes;
     ofsm->flakes = flakes;
+    ofsm->flakes[0] = zero_flake;
     return ofsm;
 }
 
@@ -278,9 +281,78 @@ static void save(struct script * restrict me)
 {
 }
 
+static struct flake * create_flake(struct script * restrict me, uint64_t qinputs, uint64_t qoutputs, uint64_t qstates)
+{
+    struct ofsm * restrict ofsm = me->ofsm;
+
+    unsigned int nflake = ofsm->qflakes;
+    if (nflake >= ofsm->max_flakes) {
+        ERRHEADER;
+        errmsg("Overflow maximum flake count (%u), qflakes = %u.", ofsm->max_flakes, ofsm->qflakes);
+        return NULL;
+    }
+
+    size_t sizes[3];
+    sizes[0] = 0;
+    sizes[1] = qinputs * qstates * sizeof(state_t);
+    sizes[2] = qoutputs * nflake * sizeof(input_t);
+
+    void * ptrs[3];
+    multialloc(3, sizes, ptrs, 32);
+    verbose("  Try allocate data for flake %u: data_sz = %lu, paths_sz = %lu.", nflake, sizes[1], sizes[2]);
+
+    if (ptrs[0] == NULL) {
+        ERRHEADER;
+        errmsg("multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed.", sizes[0], sizes[1], sizes[2]);
+        return NULL;
+    }
+
+    struct flake * restrict flake = ofsm->flakes + nflake;
+    verbose("  Allocation OK, ptr = %p.", ptrs[0]);
+
+    flake->qinputs = qinputs;
+    flake->qoutputs = qoutputs;
+    flake->qstates = qstates;
+    flake->ptr = ptrs[0];
+    flake->data = ptrs[1];
+    flake->paths = ptrs[2];
+    verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu.", nflake, qinputs, qoutputs, qstates);
+    
+    ++ofsm->qflakes;
+    return flake;
+}
+
+static void do_append_power_flake(struct script * restrict me, unsigned int n)
+{
+    verbose("  Append flake with %u inputs.", n);
+
+    struct ofsm * restrict ofsm = me->ofsm;
+    const struct flake * prev = ofsm->flakes + ofsm->qflakes - 1;
+
+    uint64_t qinputs = n;
+    uint64_t qstates = prev->qoutputs; 
+    uint64_t qoutputs = qstates * n;
+
+    struct flake * restrict flake = create_flake(me, qinputs, qoutputs, qstates);
+    if (flake == NULL) {
+        ERRHEADER;
+        errmsg("create_flake(me, %lu, %lu, %lu) faled with NULL as return value.", qinputs, qoutputs, qstates);
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+    /* Fill data */
+    
+}
+
 static void do_append_power(struct script * restrict me, const struct step_data_append_power * args)
 {
-    verbose("START append power step, n = %d, m = %d.", args->n, args->n);
+    verbose("START append power step, n = %u, m = %u.", args->n, args->n);
+
+    for (unsigned int i=0; i<args->m; ++i) {
+        do_append_power_flake(me, args->n);
+    }
+
     verbose("DONE append power step.");
 }
 
