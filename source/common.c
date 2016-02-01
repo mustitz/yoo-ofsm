@@ -341,8 +341,13 @@ static void do_append_power_flake(struct script * restrict me, unsigned int n)
         return;
     }
 
-    /* Fill data */
-    
+    state_t * restrict data = flake->data;
+    state_t output = 0;
+
+    for (uint64_t state=0; state<qstates; ++state)
+    for (uint64_t input=0; input < n; ++input) {
+        *data++ = output++;
+    }
 }
 
 static void do_append_power(struct script * restrict me, const struct step_data_append_power * args)
