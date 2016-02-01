@@ -181,9 +181,16 @@ void free_ofsm(struct ofsm * restrict me)
 
 
 
-#define STEP__APPEND_COMBINATORIC          1
-#define STEP__PACK                         2
-#define STEP__OPTIMIZE                     3
+#define STEP__APPEND_POWER                 1
+#define STEP__APPEND_COMBINATORIC          2
+#define STEP__PACK                         3
+#define STEP__OPTIMIZE                     4
+
+struct step_data_append_power
+{
+    unsigned int n;
+    unsigned int m;
+};
 
 struct step_data_append_combinatoric
 {
@@ -203,6 +210,7 @@ struct step_data_optimize
 
 union step_data
 {
+    struct step_data_append_power append_power;
     struct step_data_append_combinatoric append_combinatoric;
     struct step_data_pack pack;
     struct step_data_optimize optimize;
@@ -472,6 +480,15 @@ static struct step * append_step(struct script * restrict me)
     return step;
 }
 
+static void add_step_append_power(struct script * restrict me, unsigned int n, unsigned int m)
+{
+    struct step * restrict step = me->last;
+    step->type = STEP__APPEND_POWER;
+    struct step_data_append_power * restrict data = &step->data.append_power;
+    data->n = n;
+    data->m = m;
+}
+
 static void add_step_append_combinatoric(struct script * restrict me, unsigned int n, unsigned int m)
 {
     struct step * restrict step = me->last;
@@ -495,6 +512,13 @@ static void add_step_optimize(struct script * restrict me, int nlayer)
     step->type = STEP__OPTIMIZE;
     struct step_data_optimize * restrict data = data = &step->data.optimize;
     data->nlayer = nlayer;
+}
+
+void script_append_power(void * restrict script, unsigned int n, unsigned int m)
+{
+    if (append_step(script) != NULL) {
+        add_step_append_power(script, n, m);
+    }
 }
 
 void script_append_combinatoric(void * restrict script, unsigned int n, unsigned int m)
