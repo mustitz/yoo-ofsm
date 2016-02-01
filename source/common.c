@@ -157,7 +157,7 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
         return NULL;
     }
 
-    size_t sz = max_flakes * sizeof(struct flake *);
+    size_t sz = max_flakes * sizeof(struct flake);
     struct flake * flakes = mempool_alloc(mempool, sz);
     if (flakes == NULL) {
         ERRHEADER;
@@ -298,8 +298,8 @@ static struct flake * create_flake(struct script * restrict me, uint64_t qinputs
     sizes[2] = qoutputs * nflake * sizeof(input_t);
 
     void * ptrs[3];
-    multialloc(3, sizes, ptrs, 32);
     verbose("  Try allocate data for flake %u: data_sz = %lu, paths_sz = %lu.", nflake, sizes[1], sizes[2]);
+    multialloc(3, sizes, ptrs, 32);
 
     if (ptrs[0] == NULL) {
         ERRHEADER;
@@ -336,7 +336,7 @@ static void do_append_power_flake(struct script * restrict me, unsigned int n)
     struct flake * restrict flake = create_flake(me, qinputs, qoutputs, qstates);
     if (flake == NULL) {
         ERRHEADER;
-        errmsg("create_flake(me, %lu, %lu, %lu) faled with NULL as return value.", qinputs, qoutputs, qstates);
+        errmsg("  create_flake(me, %lu, %lu, %lu) faled with NULL as return value.", qinputs, qoutputs, qstates);
         me->status = STATUS__FAILED;
         return;
     }
@@ -361,54 +361,27 @@ static void do_append_combinatoric(struct script * restrict me, const struct ste
     verbose("START append combinatoric step, n = %d, m = %d.", args->n, args->m);
 
     struct ofsm * restrict ofsm = me->ofsm;
-
-    uint64_t qbase = 1;
-    if (ofsm->qflakes != 0) {
-        const struct flake * prev_flake = ofsm->flakes + ofsm->qflakes - 1;
-        qbase = prev_flake->qoutputs;
-    }
+    const struct flake * prev =  ofsm->flakes + ofsm->qflakes - 1;
 
     uint64_t nn = args->n;
     uint64_t dd = 1;
-    uint64_t qprev_outputs = 1;
 
     for (int i=0; i<args->m; ++i) {
 
-        unsigned int nflake = ofsm->qflakes;
-        struct flake * restrict flake = ofsm->flakes + nflake;
+        uint64_t qinputs = args->n;
+        uint64_t qstates = prev->qoutputs;
+        uint64_t qoutputs = qstates * nn / dd;
 
-        flake->qinputs = args->n;
-        flake->qstates = qbase * qprev_outputs;
-        flake->qoutputs = flake->qstates * nn / dd;
-
-        verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu.", nflake, flake->qinputs, flake->qoutputs, flake->qstates);
-
-        size_t sizes[3];
-        sizes[0] = 0;
-        sizes[1] = flake->qinputs * flake->qstates * sizeof(state_t);
-        sizes[2] = flake->qoutputs * (nflake+1) * sizeof(input_t);
-
-        verbose("  Try allocate data for flake %u: data_sz = %lu, paths_sz = %lu.", nflake, sizes[1], sizes[2]);
-
-        void * ptrs[3];
-        multialloc(3, sizes, ptrs, 32);
-        if (ptrs[0] == NULL) {
+        prev = create_flake(me, qinputs, qoutputs, qstates);
+        if (prev == NULL) {
             ERRHEADER;
-            errmsg("multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed.", sizes[0], sizes[1], sizes[2]);
+            errmsg("  create_flake(me, %lu, %lu, %lu) faled with NULL as return value.", qinputs, qoutputs, qstates);
             me->status = STATUS__FAILED;
             return;
         }
 
-        verbose("  Allocation OK, ptr = %p.", ptrs[0]);
-
-        flake->ptr = ptrs[0];
-        flake->data = ptrs[1];
-        flake->paths = ptrs[2];
-        ++ofsm->qflakes;
-
         --nn;
         ++dd;
-        qprev_outputs = flake->qoutputs;
     }
 
     verbose("DONE append combinatoric step.");
