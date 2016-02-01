@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define input_t unsigned char
 #define state_t uint32_t
@@ -317,9 +318,68 @@ static struct flake * create_flake(struct script * restrict me, uint64_t qinputs
     flake->data = ptrs[1];
     flake->paths = ptrs[2];
     verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu.", nflake, qinputs, qoutputs, qstates);
-    
+
     ++ofsm->qflakes;
     return flake;
+}
+
+static int calc_paths(struct flake * restrict flake, unsigned int nflake)
+{
+    const uint64_t qinputs = flake->qinputs;
+    const uint64_t qstates = flake->qstates;
+    const uint64_t qoutputs = flake->qoutputs;
+
+    {
+        // May be not required, this is just optimization.
+        // To catch errors we fill data
+
+        const input_t invalid_value = ~(input_t)0;
+        input_t * restrict ptr = flake->paths;
+        const input_t * end = ptr + nflake * qoutputs;
+        for (; ptr != end; ++ptr) {
+            *ptr = invalid_value;
+        }
+    }
+
+    if (nflake < 1) {
+        ERRHEADER;
+        errmsg("Assertion failed: invalid nflake value (%u). It should be positive (1, 2, 3...).", nflake);
+        return 1;
+    }
+
+    if (nflake == 1 && qstates != 1) {
+        ERRHEADER;
+        errmsg("Assertion failed: for nflake = 1 qstates (%lu) should be 1.", qstates);
+        return 1;
+    }
+
+    const struct flake * prev = flake - 1;
+    const state_t * data_ptr = flake->data;
+
+    if (nflake > 1) {
+
+        // Common version
+        for (uint64_t state=0; state<qstates; ++state) {
+            const input_t * base = prev->paths + state * (nflake-1);
+            for (input_t input=0; input < qinputs; ++input) {
+                state_t output = *data_ptr++;
+                input_t * restrict ptr = flake->paths + output * nflake;
+                memcpy(ptr, base, (nflake-1) * sizeof(input_t));
+                ptr[nflake-1] = input;
+            }
+        }
+
+    } else {
+
+        // Optimized version, only one state, no copying previous paths
+        for (input_t input=0; input < qinputs; ++input) {
+            state_t output = *data_ptr++;
+            input_t * restrict ptr = flake->paths + output;
+            *ptr = input;
+        }
+    }
+
+    return 1;
 }
 
 static void do_append_power_flake(struct script * restrict me, unsigned int n)
@@ -327,10 +387,11 @@ static void do_append_power_flake(struct script * restrict me, unsigned int n)
     verbose("  Append flake with %u inputs.", n);
 
     struct ofsm * restrict ofsm = me->ofsm;
-    const struct flake * prev = ofsm->flakes + ofsm->qflakes - 1;
+    unsigned int nflake = ofsm->qflakes;
+    const struct flake * prev = ofsm->flakes + nflake - 1;
 
     uint64_t qinputs = n;
-    uint64_t qstates = prev->qoutputs; 
+    uint64_t qstates = prev->qoutputs;
     uint64_t qoutputs = qstates * n;
 
     struct flake * restrict flake = create_flake(me, qinputs, qoutputs, qstates);
@@ -348,6 +409,15 @@ static void do_append_power_flake(struct script * restrict me, unsigned int n)
     for (uint64_t input=0; input < n; ++input) {
         *data++ = output++;
     }
+
+    int errcode = calc_paths(flake, nflake);
+    if (errcode != 0) {
+        ERRHEADER;
+        errmsg("  calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+        me->status = STATUS__FAILED;
+        return;
+    }
+
 }
 
 static void do_append_power(struct script * restrict me, const struct step_data_append_power * args)
@@ -355,7 +425,9 @@ static void do_append_power(struct script * restrict me, const struct step_data_
     verbose("START append power step, n = %u, m = %u.", args->n, args->n);
 
     for (unsigned int i=0; i<args->m; ++i) {
-        do_append_power_flake(me, args->n);
+        if (me->status != STATUS__FAILED) {
+            do_append_power_flake(me, args->n);
+        }
     }
 
     verbose("DONE append power step.");
