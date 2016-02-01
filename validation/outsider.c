@@ -10,6 +10,7 @@ int empty_test();
 int append_power_41_test();
 int append_power_42_test();
 int append_power_41_51_test();
+int append_power_41_combinatoric_52_test();
 
 
 
@@ -24,6 +25,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(append_power_41_combinatoric_52),
     TEST_ITEM(append_power_41_51),
     TEST_ITEM(append_power_42),
     TEST_ITEM(append_power_41),
@@ -202,4 +204,52 @@ int append_power_41_51_test()
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_append_power_41_51, check_append_power_41_51);
+}
+
+
+
+void build_append_power_41_combinatoric_52(void * script)
+{
+    script_append_power(script, 4, 1);
+    script_append_combinatoric(script, 5, 2);
+}
+
+int check_append_power_41_combinatoric_52(const void * ofsm)
+{
+    static int stat[40];
+    memset(stat, 0, sizeof(stat));
+
+    int c[3];
+    for (c[0]=0; c[0]<4; ++c[0]) 
+    for (c[1]=0; c[1]<5; ++c[1]) 
+    for (c[2]=0; c[2]<5; ++c[2]) {
+        int state = ofsm_execute(ofsm, 3, c);
+        if (c[1] == c[2]) {
+            if (state == -1) continue;
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.", state);
+            return 1;
+        }
+
+        if (state < 0 || state >= 40) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 39.\n", state);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<40; ++i) {
+        if (stat[i] != 2) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is 2.\n", i, stat[i]);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int append_power_41_combinatoric_52_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_append_power_41_combinatoric_52, check_append_power_41_combinatoric_52);
 }
