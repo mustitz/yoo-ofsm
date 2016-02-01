@@ -379,7 +379,7 @@ static int calc_paths(struct flake * restrict flake, unsigned int nflake)
         }
     }
 
-    return 1;
+    return 0;
 }
 
 static void do_append_power_flake(struct script * restrict me, unsigned int n)

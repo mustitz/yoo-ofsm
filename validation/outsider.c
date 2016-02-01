@@ -7,6 +7,7 @@
 
 
 int empty_test();
+int append_power_41_test();
 
 
 
@@ -21,6 +22,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(append_power_41),
     { NULL, NULL }
 };
 #undef TEST_ITEM
@@ -75,4 +77,15 @@ int main(int argc, char * argv[])
     }
 
     return 0;
+}
+
+void build_append_power_41(void * script)
+{
+    script_append_power(script, 4, 1);
+}
+
+int append_power_41_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_append_power_41);
 }
