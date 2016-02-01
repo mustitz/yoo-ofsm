@@ -8,6 +8,7 @@
 
 int empty_test();
 int append_power_41_test();
+int append_power_42_test();
 
 
 
@@ -22,6 +23,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(append_power_42),
     TEST_ITEM(append_power_41),
     { NULL, NULL }
 };
@@ -79,6 +81,8 @@ int main(int argc, char * argv[])
     return 0;
 }
 
+
+
 void build_append_power_41(void * script)
 {
     script_append_power(script, 4, 1);
@@ -114,4 +118,44 @@ int append_power_41_test()
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_append_power_41, check_append_power_41);
+}
+
+
+
+void build_append_power_42(void * script)
+{
+    script_append_power(script, 4, 2);
+}
+
+int check_append_power_42(const void * ofsm)
+{
+    static int stat[16];
+    memset(stat, 0, sizeof(stat));
+
+    int c[2];
+    for (c[0]=0; c[0]<4; ++c[0]) 
+    for (c[1]=0; c[1]<4; ++c[1]) {
+        int state = ofsm_execute(ofsm, 2, c);
+        if (state < 0 || state >= 16) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 3.\n", state);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<16; ++i) {
+        if (stat[i] != 1) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is 1.\n", i, stat[i]);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int append_power_42_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_append_power_42, check_append_power_42);
 }
