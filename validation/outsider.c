@@ -87,6 +87,17 @@ int main(int argc, char * argv[])
 
 
 
+static void print_int_array(const char * prefix, const int * data, size_t len)
+{
+    fprintf(stderr, "%s", prefix);
+    for (size_t i=0; i<len; ++i) {
+        fprintf(stderr, " %d", data[i]);
+    }
+    fprintf(stderr, ".\n");
+}
+
+
+
 void build_append_power_41(void * script)
 {
     script_append_power(script, 4, 1);
@@ -102,6 +113,7 @@ int check_append_power_41(const void * ofsm)
         int state = ofsm_execute(ofsm, 1, c);
         if (state < 0 || state >= 4) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 3.\n", state);
+            print_int_array("input =", c, 1);
             return 1;
         }
 
@@ -137,11 +149,12 @@ int check_append_power_42(const void * ofsm)
     memset(stat, 0, sizeof(stat));
 
     int c[2];
-    for (c[0]=0; c[0]<4; ++c[0]) 
+    for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
         int state = ofsm_execute(ofsm, 2, c);
         if (state < 0 || state >= 16) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 15.\n", state);
+            print_int_array("input =", c, 2);
             return 1;
         }
 
@@ -179,11 +192,12 @@ int check_append_power_41_51(const void * ofsm)
     memset(stat, 0, sizeof(stat));
 
     int c[2];
-    for (c[0]=0; c[0]<4; ++c[0]) 
+    for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1]) {
         int state = ofsm_execute(ofsm, 2, c);
         if (state < 0 || state >= 20) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 19.\n", state);
+            print_int_array("input =", c, 2);
             return 1;
         }
 
@@ -220,18 +234,20 @@ int check_append_power_41_combinatoric_52(const void * ofsm)
     memset(stat, 0, sizeof(stat));
 
     int c[3];
-    for (c[0]=0; c[0]<4; ++c[0]) 
-    for (c[1]=0; c[1]<5; ++c[1]) 
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
         int state = ofsm_execute(ofsm, 3, c);
         if (c[1] == c[2]) {
             if (state == -1) continue;
-            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.", state);
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            print_int_array("input =", c, 3);
             return 1;
         }
 
         if (state < 0 || state >= 40) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 39.\n", state);
+            print_int_array("input =", c, 3);
             return 1;
         }
 
