@@ -84,8 +84,34 @@ void build_append_power_41(void * script)
     script_append_power(script, 4, 1);
 }
 
+int check_append_power_41(const void * ofsm)
+{
+    static int stat[4];
+    memset(stat, 0, sizeof(stat));
+
+    int c[1];
+    for (c[0]=0; c[0]<4; ++c[0]) {
+        int state = ofsm_execute(ofsm, 1, c);
+        if (state < 0 || state >= 4) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 3.\n", state);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<4; ++i) {
+        if (stat[i] != 1) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is 1.\n", i, stat[i]);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int append_power_41_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_power_41);
+    return execute(1, argv, build_append_power_41, check_append_power_41);
 }

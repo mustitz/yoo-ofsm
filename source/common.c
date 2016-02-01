@@ -8,8 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 
+
+
 #define input_t unsigned char
 #define state_t uint32_t
+#define INVALID_STATE (~(state_t)0)
+
+
 
 #define STATUS__NEW           1
 #define STATUS__EXECUTING     2
@@ -529,11 +534,48 @@ static void run(struct script * restrict me)
     }
 }
 
+int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
+{
+    if (n >= me->qflakes) {
+        ERRHEADER;
+        errmsg("Maximum input size is equal to qflakes = %u, but %u as passed as argument n.", me->qflakes, n);
+        return -1;
+    }
+
+    for (int i=0; i<n; ++i) {
+        const struct flake * flake = me->flakes + i + 1;
+        if (n >= flake->qinputs) {
+            ERRHEADER;
+            errmsg("Invalid input, the inputs[%d] = %u, it increases flake qinputes (%lu).", i, inputs[i], flake->qinputs);
+            return -1;
+        }
+    }
+
+    state_t state = 0;
+    const struct flake * flake = me->flakes + 1;
+
+    for (int i=0; i<n; ++i) {
+        input_t input = inputs[i];
+
+        state = flake->data[state * flake->qinputs + input];
+        if (state == INVALID_STATE) return -1;
+        if (state >= flake->qoutputs) {
+            ERRHEADER;
+            errmsg("Invalid OFSM, new state = %u more than qoutpus = %lu.", state, flake->qoutputs);
+            return -1;
+        }
+
+        ++flake;
+    }
+
+    return state;
+}
+
 static void print(struct script * restrict me)
 {
 }
 
-int execute(int argc, char * argv[], build_script_func build)
+int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check)
 {
     if (build == NULL) {
         ERRHEADER;
@@ -567,6 +609,14 @@ int execute(int argc, char * argv[], build_script_func build)
     verbose("DONE: running script.");
 
     if (script->status == STATUS__DONE) {
+        if (check != NULL) {
+            errcode = check(script->ofsm);
+            if (errcode != 0) {
+                errmsg("Check failed with code %d.", errcode);
+                script->status = STATUS__FAILED;
+            }
+        }
+
         print(script);
         verbose("DONE: output final OFSM.");
     }
@@ -663,4 +713,15 @@ void script_optimize(void * restrict script, int nlayer)
     if (append_step(script) != NULL) {
         add_step_optimize(script, nlayer);
     }
+}
+
+void script_fail(void * restrict script)
+{
+    struct script * restrict me = script;
+    me->status = STATUS__FAILED;
+}
+
+int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs)
+{
+    return do_ofsm_execute(ofsm, n, inputs);
 }

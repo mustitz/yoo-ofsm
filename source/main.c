@@ -18,5 +18,5 @@ void build_script(void * script)
 
 int main(int argc, char * argv[])
 {
-    return execute(argc, argv, build_script);
+    return execute(argc, argv, build_script, NULL);
 }
