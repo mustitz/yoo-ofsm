@@ -1,8 +1,8 @@
 #include <ofsm.h>
 
-int64_t calc_rank(int64_t value)
+int64_t calc_rank(unsigned int n, const input_t * path)
 {
-    return value;
+    return 0;
 }
 
 void build_script(void * script)

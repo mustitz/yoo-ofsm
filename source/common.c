@@ -11,8 +11,6 @@
 
 
 
-#define input_t unsigned char
-#define state_t uint32_t
 #define INVALID_STATE (~(state_t)0)
 
 
@@ -365,7 +363,7 @@ static struct flake * create_flake(struct script * restrict me, uint64_t qinputs
 
     if (ptrs[0] == NULL) {
         ERRHEADER;
-        errmsg("multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed.", sizes[0], sizes[1], sizes[2]);
+        errmsg("multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed for new flake.", sizes[0], sizes[1], sizes[2]);
         return NULL;
     }
 
@@ -604,11 +602,156 @@ static void do_append_combinatoric(struct script * restrict me, const struct ste
     verbose("DONE append combinatoric step.");
 }
 
+struct ofsm_pack_decode {
+    state_t output;
+    uint64_t value;
+};
+
+static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
+{
+    const struct ofsm_pack_decode * a = arg_a;
+    const struct ofsm_pack_decode * b = arg_b;
+    if (a->value < b->value) return -1;
+    if (a->value > b->value) return +1;
+    if (a->output < b->output) return -1;
+    if (a->output > b->output) return +1;
+    return 0;
+}
+
 static void do_pack(struct script * restrict me, const struct step_data_pack * args)
 {
     verbose("START pack step, f = %p.", args->f);
+
+
+
+    struct ofsm * restrict ofsm = me->ofsm;
+    unsigned int nflake = ofsm->qflakes - 1;
+    const struct flake oldman =  ofsm->flakes[nflake];
+    uint64_t old_output_count = oldman.qoutputs;
+
+
+
+    size_t sizes[3];
+    sizes[0] = 0;
+    sizes[1] = old_output_count * sizeof(struct ofsm_pack_decode);
+    sizes[2] = old_output_count * sizeof(state_t);
+    sizes[3] = old_output_count * sizeof(state_t);
+
+    void * ptrs[4];
+    multialloc(4, sizes, ptrs, 32);
+    void * ptr = ptrs[0];
+
+    if (ptr == NULL) {
+        ERRHEADER;
+        errmsg("  multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2]);
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+    struct ofsm_pack_decode * decode_table = ptrs[1];
+    state_t * translate = ptrs[2];
+    state_t * backref = ptrs[3];
+
+
+
+    { verbose("  --> calculate pack values.");
+
+        struct ofsm_pack_decode * restrict curr = decode_table;
+        const input_t * path = oldman.paths;
+        for (size_t output = 0; output < old_output_count; ++output) {
+            curr->output = output;
+            curr->value = args->f(nflake, path);
+            path += nflake;
+            ++curr;
+        }
+
+    } verbose("  <<< calculate pack values.");
+
+
+
+    { verbose("  --> sort new states.");
+        qsort(decode_table, old_output_count, sizeof(struct ofsm_pack_decode), &cmp_ofsm_pack_decode);
+    } verbose("  <<< sort new states.");
+
+
+
+
+    state_t new_output_count = 0;
+
+    { verbose("  --> calc output_translate table.");
+
+        const struct ofsm_pack_decode * left = decode_table;
+        const struct ofsm_pack_decode * end = decode_table + old_output_count;
+
+        while (left != end) {
+
+            const struct ofsm_pack_decode * right = left + 1;
+            while (right != end && right->value == left->value) {
+                ++right;
+            }
+
+            backref[new_output_count] = left->output;
+            for (; left != right; ++left) {
+                translate[left->output] = new_output_count;
+            }
+
+            ++new_output_count;
+        }
+
+    } verbose("  <<< calc output_translate table.");
+
+
+
+    --ofsm->qflakes;
+    struct flake * restrict infant = create_flake(me, oldman.qinputs, new_output_count, oldman.qstates);
+    if (infant == NULL) {
+        ERRHEADER;
+        errmsg("create_flake(me, %lu, %u, %lu) faled with NULL as return value in pack step.", oldman.qinputs, new_output_count, oldman.qstates);
+        me->status = STATUS__FAILED;
+        free(ptr);
+        return;
+    }
+
+
+
+    { verbose("  --> update data.");
+
+        const state_t * old = oldman.data;
+        const state_t * end = old + oldman.qstates * oldman.qinputs;
+        state_t * restrict new = infant->data;
+
+        for (; old != end; ++old) {
+            if (*old != INVALID_STATE) {
+                *new = translate[*old];
+            } else {
+                *new = INVALID_STATE;
+            }
+        }
+
+    } verbose("  <<< update data.");
+
+
+
+    { verbose("  --> update paths.");
+
+        size_t sz = sizeof(input_t) * nflake;
+        input_t * restrict new_path = infant->paths;
+        for (state_t new_output = 0; new_output < new_output_count; ++new_output) {
+            state_t old_output = backref[new_output];
+            memcpy(new_path,  oldman.paths + old_output * nflake, sz);
+            new_path += nflake;
+        }
+
+    } verbose("  <<< update paths.");
+
+
+
+    free(oldman.ptr);
+    free(ptr);
     verbose("DONE pack step.");
 }
+
+
 
 static void do_optimize(struct script * restrict me, const struct step_data_optimize * args)
 {
@@ -681,7 +824,7 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
         const struct flake * flake = me->flakes + i + 1;
         if (inputs[i] >= flake->qinputs) {
             ERRHEADER;
-            errmsg("Invalid input, the inputs[%d] = %u, it increases flake qinputes (%lu).", i, inputs[i], flake->qinputs);
+            errmsg("Invalid input, the inputs[%d] = %u, it increases flake qinputs (%lu).", i, inputs[i], flake->qinputs);
             return -1;
         }
     }
