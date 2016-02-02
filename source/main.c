@@ -1,6 +1,6 @@
 #include <ofsm.h>
 
-int64_t calc_rank(unsigned int n, const input_t * path)
+pack_value_t calc_rank(unsigned int n, const input_t * path)
 {
     return 0;
 }
@@ -8,7 +8,7 @@ int64_t calc_rank(unsigned int n, const input_t * path)
 void build_script(void * script)
 {
     script_append_combinatoric(script, 52, 5);
-    script_pack(script, calc_rank);
+    script_append_pack(script, calc_rank);
     script_optimize(script, 5);
     script_optimize(script, 4);
     script_optimize(script, 3);

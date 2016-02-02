@@ -11,7 +11,6 @@
 
 
 
-#define INVALID_STATE (~(state_t)0)
 
 
 
@@ -604,7 +603,7 @@ static void do_append_combinatoric(struct script * restrict me, const struct ste
 
 struct ofsm_pack_decode {
     state_t output;
-    uint64_t value;
+    pack_value_t value;
 };
 
 static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
@@ -690,12 +689,17 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
                 ++right;
             }
 
-            backref[new_output_count] = left->output;
-            for (; left != right; ++left) {
-                translate[left->output] = new_output_count;
+            state_t new_output;
+            if (left->value != INVALID_PACK_VALUE) {
+                new_output = new_output_count++;
+                backref[new_output] = left->output;
+            } else {
+                new_output = INVALID_STATE;
             }
 
-            ++new_output_count;
+            for (; left != right; ++left) {
+                translate[left->output] = new_output;
+            }
         }
 
     } verbose("  <<< calc output_translate table.");
@@ -949,7 +953,7 @@ static void add_step_append_combinatoric(struct script * restrict me, unsigned i
     data->m = m;
 }
 
-static void add_step_pack(struct script * restrict me, pack_func f)
+static void add_step_append_pack(struct script * restrict me, pack_func f)
 {
     struct step * restrict step = me->last;
     step->type = STEP__PACK;
@@ -979,10 +983,10 @@ void script_append_combinatoric(void * restrict script, unsigned int n, unsigned
     }
 }
 
-void script_pack(void * restrict script, pack_func f)
+void script_append_pack(void * restrict script, pack_func f)
 {
     if (append_step(script) != NULL) {
-        add_step_pack(script, f);
+        add_step_append_pack(script, f);
     }
 }
 

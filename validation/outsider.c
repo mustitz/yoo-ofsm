@@ -13,6 +13,7 @@ int append_power_41_51_test();
 int append_combinatoric_42_test();
 int append_combinatoric_55_test();
 int append_power_41_combinatoric_52_test();
+int append_pack_test();
 
 
 
@@ -27,6 +28,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(append_pack),
     TEST_ITEM(append_power_41_combinatoric_52),
     TEST_ITEM(append_combinatoric_55),
     TEST_ITEM(append_combinatoric_42),
@@ -377,4 +379,29 @@ int append_power_41_combinatoric_52_test()
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_append_power_41_combinatoric_52, check_append_power_41_combinatoric_52);
+}
+
+
+
+pack_value_t mod7(unsigned int n, const input_t * path)
+{
+    return (3*path[0] + path[1] + path[2]) % 7;
+}
+
+void build_append_pack(void * script)
+{
+    script_append_power(script, 4, 1);
+    script_append_combinatoric(script, 5, 2);
+    script_append_pack(script, mod7);
+}
+
+int check_append_pack(const void * ofsm)
+{
+    return 0;
+}
+
+int append_pack_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_append_pack, check_append_pack);
 }
