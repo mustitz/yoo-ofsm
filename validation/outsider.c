@@ -385,7 +385,7 @@ int append_power_41_combinatoric_52_test()
 
 pack_value_t mod7(unsigned int n, const input_t * path)
 {
-    return (3*path[0] + path[1] + path[2]) % 7;
+    return ((3*path[0] + path[1] + path[2]) % 7) + 111;
 }
 
 void build_append_pack(void * script)
@@ -397,6 +397,32 @@ void build_append_pack(void * script)
 
 int check_append_pack(const void * ofsm)
 {
+    int c[3];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
+    for (c[2]=0; c[2]<5; ++c[2]) {
+        int state = ofsm_execute(ofsm, 3, c);
+        if (c[1] == c[2]) {
+            if (state == -1) continue;
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
+        if (state < 0 || state >= 7) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 6.\n", state);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
+        size_t expected = (3*c[0] + c[1] + c[2]) % 7;
+        if (expected != state) {
+            fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+    }
+
     return 0;
 }
 

@@ -726,9 +726,9 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
         for (; old != end; ++old) {
             if (*old != INVALID_STATE) {
-                *new = translate[*old];
+                *new++ = translate[*old];
             } else {
-                *new = INVALID_STATE;
+                *new++ = INVALID_STATE;
             }
         }
 
