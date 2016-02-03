@@ -263,7 +263,7 @@ struct step_data_pack
 
 struct step_data_optimize
 {
-    int nlayer;
+    int nflake;
 };
 
 union step_data
@@ -624,6 +624,15 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
     struct ofsm * restrict ofsm = me->ofsm;
+    if (ofsm->qflakes <= 1) {
+        ERRHEADER;
+        errmsg("Try to pack empty OFSM.");
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+
+
     unsigned int nflake = ofsm->qflakes - 1;
     const struct flake oldman =  ofsm->flakes[nflake];
     uint64_t old_output_count = oldman.qoutputs;
@@ -759,7 +768,24 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 static void do_optimize(struct script * restrict me, const struct step_data_optimize * args)
 {
-    verbose("START optimize step, nlayer  %d.", args->nlayer);
+    struct ofsm * restrict ofsm = me->ofsm;
+    if (ofsm->qflakes <= 1) {
+        ERRHEADER;
+        errmsg("Try to optmimize empty OFSM.");
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+    unsigned int nflake = args->nflake;
+    if (nflake <= 0 || nflake >= ofsm->qflakes) {
+        ERRHEADER;
+        errmsg("Invalid flake number (%u), expected value might be in range 1 - %u.", nflake, ofsm->qflakes - 1);
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+    verbose("START optimize step, nlayer  %d.", args->nflake);
+
     verbose("DONE optimize step.");
 }
 
@@ -961,12 +987,12 @@ static void add_step_append_pack(struct script * restrict me, pack_func f)
     data->f = f;
 }
 
-static void add_step_optimize(struct script * restrict me, int nlayer)
+static void add_step_optimize(struct script * restrict me, unsigned int nflake)
 {
     struct step * restrict step = me->last;
     step->type = STEP__OPTIMIZE;
     struct step_data_optimize * restrict data = data = &step->data.optimize;
-    data->nlayer = nlayer;
+    data->nflake = nflake;
 }
 
 void script_append_power(void * restrict script, unsigned int n, unsigned int m)
@@ -990,10 +1016,10 @@ void script_append_pack(void * restrict script, pack_func f)
     }
 }
 
-void script_optimize(void * restrict script, int nlayer)
+void script_optimize(void * restrict script, unsigned int nflake)
 {
     if (append_step(script) != NULL) {
-        add_step_optimize(script, nlayer);
+        add_step_optimize(script, nflake);
     }
 }
 

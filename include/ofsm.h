@@ -24,7 +24,7 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
 void script_append_power(void * restrict script, unsigned int n, unsigned int m);
 void script_append_combinatoric(void * restrict script, unsigned int n, unsigned int m);
 void script_append_pack(void * restrict script, pack_func f);
-void script_optimize(void * restrict script, int nlayer);
+void script_optimize(void * restrict script, unsigned int nflake);
 
 int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs);
 
