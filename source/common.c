@@ -355,6 +355,7 @@ static struct flake * create_flake(struct script * restrict me, uint64_t qinputs
     sizes[0] = 0;
     sizes[1] = qinputs * qstates * sizeof(state_t);
     sizes[2] = qoutputs * nflake * sizeof(input_t);
+    size_t total_sz = sizes[1] + sizes[2];
 
     void * ptrs[3];
     verbose("  Try allocate data for flake %u: data_sz = %lu, paths_sz = %lu.", nflake, sizes[1], sizes[2]);
@@ -375,7 +376,7 @@ static struct flake * create_flake(struct script * restrict me, uint64_t qinputs
     flake->ptr = ptrs[0];
     flake->data = ptrs[1];
     flake->paths = ptrs[2];
-    verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu.", nflake, qinputs, qoutputs, qstates);
+    verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu, total_sz = %lu.", nflake, qinputs, qoutputs, qstates, total_sz);
 
     ++ofsm->qflakes;
     return flake;
@@ -761,7 +762,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     free(oldman.ptr);
     free(ptr);
-    verbose("DONE pack step.");
+    verbose("DONE pack step, new qoutput = %u.", new_output_count);
 }
 
 
