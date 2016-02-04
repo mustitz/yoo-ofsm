@@ -28,11 +28,11 @@ void build_default_script(void * script)
 {
     script_append_combinatoric(script, 52, 5);
     script_append_pack(script, calc_rank);
-    script_optimize(script, 5);
-    script_optimize(script, 4);
-    script_optimize(script, 3);
-    script_optimize(script, 2);
-    script_optimize(script, 1);
+    script_optimize(script, 5, NULL);
+    script_optimize(script, 4, NULL);
+    script_optimize(script, 3, NULL);
+    script_optimize(script, 2, NULL);
+    script_optimize(script, 1, NULL);
 }
 
 

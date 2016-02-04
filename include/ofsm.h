@@ -18,13 +18,14 @@
 typedef void build_script_func(void * script);
 typedef int check_ofsm_func(const void * ofsm);
 typedef pack_value_t pack_func(unsigned int n, const input_t * path);
+typedef uint64_t hash_func(unsigned int n, const state_t * path);
 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check);
 
 void script_append_power(void * restrict script, unsigned int n, unsigned int m);
 void script_append_combinatoric(void * restrict script, unsigned int n, unsigned int m);
 void script_append_pack(void * restrict script, pack_func f);
-void script_optimize(void * restrict script, unsigned int nflake);
+void script_optimize(void * restrict script, unsigned int nflake, hash_func f);
 
 int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs);
 

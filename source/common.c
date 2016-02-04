@@ -135,7 +135,7 @@ struct flake
     uint64_t qinputs;
     uint64_t qoutputs;
     uint64_t qstates;
-    state_t * data;
+    state_t * jumps;
     input_t * paths;
 };
 
@@ -264,6 +264,7 @@ struct step_data_pack
 struct step_data_optimize
 {
     int nflake;
+    hash_func * f;
 };
 
 union step_data
@@ -374,7 +375,7 @@ static struct flake * create_flake(struct script * restrict me, uint64_t qinputs
     flake->qoutputs = qoutputs;
     flake->qstates = qstates;
     flake->ptr = ptrs[0];
-    flake->data = ptrs[1];
+    flake->jumps = ptrs[1];
     flake->paths = ptrs[2];
     verbose("  New flake %u: qinputs = %lu, qoutputs = %lu, qstates = %lu, total_sz = %lu.", nflake, qinputs, qoutputs, qstates, total_sz);
 
@@ -413,7 +414,7 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
     }
 
     const struct flake * prev = flake - 1;
-    const state_t * data_ptr = flake->data;
+    const state_t * data_ptr = flake->jumps;
 
     if (nflake > 1) {
 
@@ -462,7 +463,7 @@ static void do_append_power_flake(struct script * restrict me, unsigned int n)
         return;
     }
 
-    state_t * restrict data = flake->data;
+    state_t * restrict data = flake->jumps;
     state_t output = 0;
 
     for (uint64_t state=0; state<qstates; ++state)
@@ -558,7 +559,7 @@ static void do_append_combinatoric(struct script * restrict me, const struct ste
             return;
         }
 
-        state_t * restrict data = flake->data;
+        state_t * restrict jumps = flake->jumps;
         uint64_t unique_state_count = qstates / N;
         uint64_t unique_output_count = qoutputs / N;
 
@@ -571,18 +572,18 @@ static void do_append_combinatoric(struct script * restrict me, const struct ste
 
             for (uint64_t input = 0; input < qinputs; ++input) {
                 c[i] = input;
-                *data++ = calc_combinatoric_index(ct, c, args->n, i+1);
+                *jumps++ = calc_combinatoric_index(ct, c, args->n, i+1);
             }
         }
 
-        int64_t offset = flake->data - data;
-        const state_t * end = flake->data + qinputs * qstates;
-        for (; data != end; ++data) {
-            state_t state = data[offset];
+        int64_t offset = flake->jumps - jumps;
+        const state_t * end = flake->jumps + qinputs * qstates;
+        for (; jumps != end; ++jumps) {
+            state_t state = jumps[offset];
             if (state != INVALID_STATE) {
                 state += unique_output_count;
             }
-            *data = state;
+            *jumps = state;
         }
 
         int errcode = calc_paths(flake, nflake);
@@ -636,15 +637,15 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     unsigned int nflake = ofsm->qflakes - 1;
     const struct flake oldman =  ofsm->flakes[nflake];
-    uint64_t old_output_count = oldman.qoutputs;
+    uint64_t old_qoutputs = oldman.qoutputs;
 
 
 
-    size_t sizes[3];
+    size_t sizes[4];
     sizes[0] = 0;
-    sizes[1] = old_output_count * sizeof(struct ofsm_pack_decode);
-    sizes[2] = old_output_count * sizeof(state_t);
-    sizes[3] = old_output_count * sizeof(state_t);
+    sizes[1] = old_qoutputs * sizeof(struct ofsm_pack_decode);
+    sizes[2] = old_qoutputs * sizeof(state_t);
+    sizes[3] = old_qoutputs * sizeof(state_t);
 
     void * ptrs[4];
     multialloc(4, sizes, ptrs, 32);
@@ -652,7 +653,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     if (ptr == NULL) {
         ERRHEADER;
-        errmsg("  multialloc(3, {%lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2]);
+        errmsg("  multialloc(4, {%lu, %lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2], sizes[3]);
         me->status = STATUS__FAILED;
         return;
     }
@@ -667,7 +668,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
         struct ofsm_pack_decode * restrict curr = decode_table;
         const input_t * path = oldman.paths;
-        for (size_t output = 0; output < old_output_count; ++output) {
+        for (size_t output = 0; output < old_qoutputs; ++output) {
             curr->output = output;
             curr->value = args->f(nflake, path);
             path += nflake;
@@ -679,18 +680,18 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
     { verbose("  --> sort new states.");
-        qsort(decode_table, old_output_count, sizeof(struct ofsm_pack_decode), &cmp_ofsm_pack_decode);
+        qsort(decode_table, old_qoutputs, sizeof(struct ofsm_pack_decode), &cmp_ofsm_pack_decode);
     } verbose("  <<< sort new states.");
 
 
 
 
-    state_t new_output_count = 0;
+    state_t new_qoutputs = 0;
 
     { verbose("  --> calc output_translate table.");
 
         const struct ofsm_pack_decode * left = decode_table;
-        const struct ofsm_pack_decode * end = decode_table + old_output_count;
+        const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
 
         while (left != end) {
 
@@ -701,7 +702,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
             state_t new_output;
             if (left->value != INVALID_PACK_VALUE) {
-                new_output = new_output_count++;
+                new_output = new_qoutputs++;
                 backref[new_output] = left->output;
             } else {
                 new_output = INVALID_STATE;
@@ -717,10 +718,10 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
     --ofsm->qflakes;
-    struct flake * restrict infant = create_flake(me, oldman.qinputs, new_output_count, oldman.qstates);
+    struct flake * restrict infant = create_flake(me, oldman.qinputs, new_qoutputs, oldman.qstates);
     if (infant == NULL) {
         ERRHEADER;
-        errmsg("create_flake(me, %lu, %u, %lu) faled with NULL as return value in pack step.", oldman.qinputs, new_output_count, oldman.qstates);
+        errmsg("create_flake(me, %lu, %u, %lu) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
         me->status = STATUS__FAILED;
         free(ptr);
         return;
@@ -730,9 +731,9 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     { verbose("  --> update data.");
 
-        const state_t * old = oldman.data;
+        const state_t * old = oldman.jumps;
         const state_t * end = old + oldman.qstates * oldman.qinputs;
-        state_t * restrict new = infant->data;
+        state_t * restrict new = infant->jumps;
 
         for (; old != end; ++old) {
             if (*old != INVALID_STATE) {
@@ -750,7 +751,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
         size_t sz = sizeof(input_t) * nflake;
         input_t * restrict new_path = infant->paths;
-        for (state_t new_output = 0; new_output < new_output_count; ++new_output) {
+        for (state_t new_output = 0; new_output < new_qoutputs; ++new_output) {
             state_t old_output = backref[new_output];
             memcpy(new_path,  oldman.paths + old_output * nflake, sz);
             new_path += nflake;
@@ -762,10 +763,45 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     free(oldman.ptr);
     free(ptr);
-    verbose("DONE pack step, new qoutput = %u.", new_output_count);
+    verbose("DONE pack step, new qoutputs = %u.", new_qoutputs);
 }
 
 
+
+struct state_info
+{
+    state_t old;
+    state_t new;
+    uint64_t hash;
+};
+
+static int cmp_state_info(const void * arg_a, const void * arg_b)
+{
+    const struct state_info * a = arg_a;
+    const struct state_info * b = arg_b;
+    if (a->hash < b->hash) return -1;
+    if (a->hash > b->hash) return +1;
+    if (a->old < b->old) return -1;
+    if (a->old > b->old) return +1;
+    return 0;
+}
+
+int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
+{
+    for (unsigned int i = 0; i < qinputs; ++i) {
+        if (a[i] == INVALID_STATE) continue;
+        if (b[i] == INVALID_STATE) continue;
+        if (a[i] != b[i]) return 0;
+    }
+
+    for (unsigned int i = 0; i < qinputs; ++i) {
+        if (a[i] == INVALID_STATE) {
+            a[i] = b[i];
+        }
+    }
+
+    return 1;
+}
 
 static void do_optimize(struct script * restrict me, const struct step_data_optimize * args)
 {
@@ -785,8 +821,105 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         return;
     }
 
-    verbose("START optimize step, nlayer  %d.", args->nflake);
+    struct flake * restrict flake = ofsm->flakes + nflake;
+    verbose("START optimize step, nlayer  %d.", nflake);
 
+
+
+    uint64_t old_qstates = flake->qstates;
+    uint64_t qinputs = flake->qinputs;
+
+
+    size_t sizes[2];
+    sizes[0] = 0;
+    sizes[1] = old_qstates * sizeof(struct state_info);
+
+    void * ptrs[2];
+    multialloc(2, sizes, ptrs, 32);
+    void * ptr = ptrs[0];
+
+    if (ptr == NULL) {
+        ERRHEADER;
+        errmsg("  multialloc(2, {%lu, %lu}, ptrs, 32) failed for temporary optimizing data.", sizes[0], sizes[1]);
+        me->status = STATUS__FAILED;
+        return;
+    }
+
+    struct state_info * state_infos = ptrs[1];
+
+
+
+    { verbose("  --> calc state hashes and sort.");
+
+        const state_t * jumps = flake->jumps;
+        struct state_info * restrict ptr = state_infos;
+        const struct state_info * end = state_infos + old_qstates;
+        state_t state = 0;
+        for (; ptr != end; ++ptr) {
+            ptr->old = state++;
+            ptr->hash = 0;
+            if (args->f != NULL) {
+                ptr->hash = args->f(qinputs, jumps);
+                jumps += qinputs;
+            }
+        }
+
+        qsort(state_infos, old_qstates, sizeof(struct state_info), cmp_state_info);
+
+    } verbose("  <<< calc state hashes and sort.");
+
+
+
+    size_t new_qstates = 0;
+
+    { verbose("  --> merge states.");
+
+        const struct state_info * end = state_infos + old_qstates;
+        struct state_info * left = state_infos;
+
+        while (left != end) {
+            struct state_info * right = left + 1;
+            while (right != end && right->hash == left->hash) {
+                ++right;
+            }
+
+            ++new_qstates;
+            left->new = left->old;
+            struct state_info * base = left;
+            while (++left != right) {
+                for (struct state_info * ptr = base; ptr != left; ++ptr) {
+
+                    // Current state is unmerged by default
+                    left->new = left->old;
+
+                    if (ptr->new != ptr->old) {
+                        // This state was merged with another one, no sence to merge.
+                        continue;
+                    }
+
+                    // Try to merge
+                    state_t * a = flake->jumps + ptr->old * qinputs;
+                    state_t * b = flake->jumps + left->old * qinputs;
+                    int was_merged = merge(qinputs, a, b) != 0;
+
+                    if (was_merged) {
+                        left->new = ptr->new;
+                        break;
+                    }
+                }
+
+                new_qstates += left->new == left->old;
+            }
+        }
+
+    } verbose("  <<< merge states.");
+
+
+
+    { verbose("  --> replace old jumps with a new one.");
+    } verbose("  <<< replace old jumps with a new one.");
+
+    free(ptr);
     verbose("DONE optimize step.");
 }
 
@@ -866,7 +999,7 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
     for (int i=0; i<n; ++i) {
         input_t input = inputs[i];
 
-        state = flake->data[state * flake->qinputs + input];
+        state = flake->jumps[state * flake->qinputs + input];
         if (state == INVALID_STATE) return -1;
         if (state >= flake->qoutputs) {
             ERRHEADER;
@@ -988,12 +1121,13 @@ static void add_step_append_pack(struct script * restrict me, pack_func f)
     data->f = f;
 }
 
-static void add_step_optimize(struct script * restrict me, unsigned int nflake)
+static void add_step_optimize(struct script * restrict me, unsigned int nflake, hash_func f)
 {
     struct step * restrict step = me->last;
     step->type = STEP__OPTIMIZE;
     struct step_data_optimize * restrict data = data = &step->data.optimize;
     data->nflake = nflake;
+    data->f = f;
 }
 
 void script_append_power(void * restrict script, unsigned int n, unsigned int m)
@@ -1017,10 +1151,10 @@ void script_append_pack(void * restrict script, pack_func f)
     }
 }
 
-void script_optimize(void * restrict script, unsigned int nflake)
+void script_optimize(void * restrict script, unsigned int nflake, hash_func f)
 {
     if (append_step(script) != NULL) {
-        add_step_optimize(script, nflake);
+        add_step_optimize(script, nflake, f);
     }
 }
 
