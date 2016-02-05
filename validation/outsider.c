@@ -106,7 +106,7 @@ static void print_int_array(const char * prefix, const int * data, size_t len)
 
 void build_append_power_41(void * script)
 {
-    script_append_power(script, 4, 1);
+    script_step_pow(script, 4, 1);
 }
 
 int check_append_power_41(const void * ofsm)
@@ -146,7 +146,7 @@ int append_power_41_test()
 
 void build_append_power_42(void * script)
 {
-    script_append_power(script, 4, 2);
+    script_step_pow(script, 4, 2);
 }
 
 int check_append_power_42(const void * ofsm)
@@ -188,8 +188,8 @@ int append_power_42_test()
 
 void build_append_power_41_51(void * script)
 {
-    script_append_power(script, 4, 1);
-    script_append_power(script, 5, 1);
+    script_step_pow(script, 4, 1);
+    script_step_pow(script, 5, 1);
 }
 
 int check_append_power_41_51(const void * ofsm)
@@ -230,7 +230,7 @@ int append_power_41_51_test()
 
 void build_append_combinatoric_42(void * script)
 {
-    script_append_combinatoric(script, 4, 2);
+    script_step_comb(script, 4, 2);
 }
 
 int check_append_combinatoric_42(const void * ofsm)
@@ -278,7 +278,7 @@ int append_combinatoric_42_test()
 
 void build_append_combinatoric_55(void * script)
 {
-    script_append_combinatoric(script, 5, 5);
+    script_step_comb(script, 5, 5);
 }
 
 int check_append_combinatoric_55(const void * ofsm)
@@ -335,8 +335,8 @@ int append_combinatoric_55_test()
 
 void build_append_power_41_combinatoric_52(void * script)
 {
-    script_append_power(script, 4, 1);
-    script_append_combinatoric(script, 5, 2);
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
 }
 
 int check_append_power_41_combinatoric_52(const void * ofsm)
@@ -390,9 +390,9 @@ pack_value_t mod7(unsigned int n, const input_t * path)
 
 void build_append_pack(void * script)
 {
-    script_append_power(script, 4, 1);
-    script_append_combinatoric(script, 5, 2);
-    script_append_pack(script, mod7);
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
+    script_step_pack(script, mod7);
 }
 
 int check_append_pack(const void * ofsm)

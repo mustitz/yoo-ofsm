@@ -26,13 +26,13 @@ pack_value_t calc_rank(unsigned int n, const input_t * path)
 
 void build_default_script(void * script)
 {
-    script_append_combinatoric(script, 52, 5);
-    script_append_pack(script, calc_rank);
-    script_optimize(script, 5, NULL);
-    script_optimize(script, 4, NULL);
-    script_optimize(script, 3, NULL);
-    script_optimize(script, 2, NULL);
-    script_optimize(script, 1, NULL);
+    script_step_comb(script, 52, 5);
+    script_step_pack(script, calc_rank);
+    script_step_optimize(script, 5, NULL);
+    script_step_optimize(script, 4, NULL);
+    script_step_optimize(script, 3, NULL);
+    script_step_optimize(script, 2, NULL);
+    script_step_optimize(script, 1, NULL);
 }
 
 
@@ -131,9 +131,9 @@ pack_value_t omaha_simplify_5(unsigned int n, const input_t * path)
 
 void build_omaha_script(void * script)
 {
-    script_append_combinatoric(script, 52, 5);
-    script_append_pack(script, omaha_simplify_5);
-    script_append_combinatoric(script, 52, 2);
+    script_step_comb(script, 52, 5);
+    script_step_pack(script, omaha_simplify_5);
+    script_step_comb(script, 52, 2);
 }
 
 int main(int argc, char * argv[])
