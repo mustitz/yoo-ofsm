@@ -907,10 +907,12 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
             left->new = left->old;
             struct state_info * base = left;
             while (++left != right) {
-                for (struct state_info * ptr = base; ptr != left; ++ptr) {
 
-                    // Current state is unmerged by default
-                    left->new = left->old;
+                // Current state is unmerged by default
+                left->new = left->old;
+
+                // Try to merge
+                for (struct state_info * ptr = base; ptr != left; ++ptr) {
 
                     if (ptr->new != ptr->old) {
                         // This state was merged with another one, no sence to merge.
@@ -952,7 +954,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         }
 
         state_t * new_jumps = ptrs[1];
-        const void * old_jumps = flake->jumps[1];
+        const state_t * old_jumps = flake->jumps[1];
         struct state_info * restrict ptr = state_infos;
         const struct state_info * end = state_infos + old_qstates;
         for (; ptr != end; ++ptr) {

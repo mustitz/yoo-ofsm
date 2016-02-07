@@ -7,13 +7,14 @@
 
 
 int empty_test();
+int optimize_test();
 int pow_41_test();
 int pow_42_test();
 int pow_41_51_test();
 int comb_42_test();
 int comb_55_test();
 int pow_41_comb_52_test();
-int append_pack_test();
+int pack_test();
 
 
 
@@ -28,7 +29,8 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
-    TEST_ITEM(append_pack),
+    TEST_ITEM(optimize),
+    TEST_ITEM(pack),
     TEST_ITEM(pow_41_comb_52),
     TEST_ITEM(comb_55),
     TEST_ITEM(comb_42),
@@ -388,14 +390,14 @@ pack_value_t mod7(unsigned int n, const input_t * path)
     return ((3*path[0] + path[1] + path[2]) % 7) + 111;
 }
 
-void build_append_pack(void * script)
+void build_pack(void * script)
 {
     script_step_pow(script, 4, 1);
     script_step_comb(script, 5, 2);
     script_step_pack(script, mod7);
 }
 
-int check_append_pack(const void * ofsm)
+int check_pack(const void * ofsm)
 {
     int c[3];
     for (c[0]=0; c[0]<4; ++c[0])
@@ -426,8 +428,54 @@ int check_append_pack(const void * ofsm)
     return 0;
 }
 
-int append_pack_test()
+int pack_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_pack, check_append_pack);
+    return execute(1, argv, build_pack, check_pack);
+}
+
+
+
+void build_optimize(void * script)
+{
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
+    script_step_pack(script, mod7);
+    script_step_optimize(script, 3, NULL);
+}
+
+int check_optimize(const void * ofsm)
+{
+    int c[3];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
+    for (c[2]=0; c[2]<5; ++c[2]) {
+        
+        if (c[1] == c[2]) {
+            // Optimized
+            continue;
+        }
+
+        int state = ofsm_execute(ofsm, 3, c);
+        if (state < 0 || state >= 7) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 6.\n", state);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
+        size_t expected = (3*c[0] + c[1] + c[2]) % 7;
+        if (expected != state) {
+            fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int optimize_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_optimize, check_optimize);
 }
