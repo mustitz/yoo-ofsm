@@ -138,7 +138,7 @@ struct flake
     input_t * paths[2];
 };
 
-static const struct flake zero_flake = { 0, 1, 0, { NULL, NULL }, { NULL, NULL } };
+static const struct flake zero_flake = { 0, 0, 1, { NULL, NULL }, { NULL, NULL } };
 
 struct ofsm
 {
