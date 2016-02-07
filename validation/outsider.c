@@ -367,6 +367,20 @@ int check_comb_42(const void * ofsm)
             return 1;
         }
 
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
+
         ++stat[state];
     }
 
@@ -449,6 +463,20 @@ int check_comb_55(const void * ofsm)
             return 1;
         }
 
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
+
         ++stat;
     }
 
@@ -517,6 +545,20 @@ int check_pow_41_comb_52(const void * ofsm)
         if (state != value - 1) {
             fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.\n", state, value-1);
             print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
             return 1;
         }
 
@@ -603,6 +645,19 @@ int check_pack(const void * ofsm)
             return 1;
         }
 
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
     }
 
     free(array.array);
@@ -673,6 +728,19 @@ int check_pack_without_renum(const void * ofsm)
             return 1;
         }
 
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
     }
 
     free(array.array);
@@ -739,6 +807,20 @@ int check_optimize(const void * ofsm)
 
         if (state != value - 1) {
             fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.\n", state, value-1);
+            return 1;
+        }
+
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
             return 1;
         }
     }

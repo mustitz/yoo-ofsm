@@ -802,11 +802,13 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
         const struct ofsm_pack_decode * decode = decode_table;
         size_t sz = sizeof(input_t) * nflake;
         for (state_t output = 0; output < new_qoutputs; ++output) {
-            if (output == decode->value) {
-                state_t old_output = decode->output;
+            pack_value_t value = decode->value;
+            state_t old_output = decode->output;
+            state_t new_output = translate[old_output];
+            if (output == new_output) {
                 memcpy(new_path, old_paths + old_output * nflake, sz);
                 new_path += nflake;
-                do ++decode; while (decode->value == output);
+                do ++decode; while (decode->value == value);
             } else {
                 for (unsigned int i=0; i < nflake; ++i) {
                     *new_path++ = INVALID_INPUT;
