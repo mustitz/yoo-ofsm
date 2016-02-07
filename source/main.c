@@ -144,7 +144,7 @@ int check_holdem5(const void * ofsm)
     struct ofsm_array array;
     int errcode = ofsm_get_array(ofsm, 1, &array);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.\n", errcode);
         return 1;
     }
 
@@ -348,7 +348,7 @@ int check_omaha7(const void * ofsm)
     struct ofsm_array array;
     int errcode = ofsm_get_array(ofsm, 0, &array);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.\n", errcode);
         return 1;
     }
 

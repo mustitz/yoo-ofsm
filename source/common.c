@@ -132,7 +132,7 @@ struct flake
 {
     input_t qinputs;
     state_t qstates;
-    uint64_t qoutputs;
+    state_t qoutputs;
     state_t * jumps[2];
     input_t * paths[2];
 };
@@ -480,7 +480,7 @@ static void do_pow_flake(struct script * restrict me, input_t qinputs)
         return;
     }
 
-    state_t * restrict jumps = flake->jumps[0];
+    state_t * restrict jumps = flake->jumps[1];
     state_t output = 0;
 
     for (uint64_t state=0; state<qstates; ++state)
@@ -559,7 +559,7 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
 
         if (prev->qoutputs >= INVALID_STATE) {
             ERRHEADER;
-            errmsg("state_t overflow: try to assign %lu to qstates.", prev->qoutputs);
+            errmsg("state_t overflow: try to assign %u to qstates.", prev->qoutputs);
             me->status = STATUS__FAILED;
             return;
         }
@@ -1087,7 +1087,7 @@ static void run(struct script * restrict me)
     }
 }
 
-int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
+int do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
 {
     if (n >= me->qflakes) {
         ERRHEADER;
@@ -1114,7 +1114,7 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
         if (state == INVALID_STATE) return -1;
         if (state >= flake->qoutputs) {
             ERRHEADER;
-            errmsg("Invalid OFSM, new state = %u more than qoutputs = %lu.", state, flake->qoutputs);
+            errmsg("Invalid OFSM, new state = %u more than qoutputs = %u.", state, flake->qoutputs);
             return -1;
         }
 
@@ -1226,6 +1226,28 @@ int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * arra
 
     return 0;
 }
+
+
+
+const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, state_t output)
+{
+    if (nflake <= 0 || nflake >= ofsm->qflakes) {
+        ERRHEADER;
+        errmsg("Invalid argument “nflake” = %u, should be in range 1 - %u.", nflake, ofsm->qflakes - 1);
+        return NULL;
+    }
+
+    const struct flake * flake = ofsm->flakes + nflake;
+
+    if (output >= flake->qoutputs) {
+        ERRHEADER;
+        errmsg("Invalid argument “output” = %u for given flake, should be in range 0 - %u.", output, flake->qoutputs - 1);
+        return NULL;
+    }
+
+    return flake->paths[1] + output * nflake;
+}
+
 
 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check)
@@ -1373,7 +1395,7 @@ void script_fail(void * restrict script)
     me->status = STATUS__FAILED;
 }
 
-int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs)
+int ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs)
 {
     return do_ofsm_execute(ofsm, n, inputs);
 }
@@ -1381,4 +1403,9 @@ int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs)
 int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
 {
     return do_ofsm_get_array(ofsm, delta_last, out);
+}
+
+const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output)
+{
+    return do_ofsm_get_path(ofsm, nflake, output);
 }
