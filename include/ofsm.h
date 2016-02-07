@@ -30,7 +30,7 @@ struct ofsm_array
 typedef void build_script_func(void * script);
 typedef int check_ofsm_func(const void * ofsm);
 typedef pack_value_t pack_func(unsigned int n, const input_t * path);
-typedef uint64_t hash_func(unsigned int n, const state_t * path);
+typedef uint64_t hash_func(unsigned int n, const state_t * jumps);
 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check);
 

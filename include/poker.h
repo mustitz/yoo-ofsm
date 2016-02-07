@@ -150,9 +150,9 @@ extern const char * card_str[];
 extern const char * nominal_str;
 extern const char * suite_str;
 
-extern const int * const manual_fsm5;
-extern const int * const fsm5;
-extern const int * const fsm7;
+extern const unsigned int * const manual_fsm5;
+extern const unsigned int * const fsm5;
+extern const unsigned int * const fsm7;
 
 const card_t * deal_cards(int n, card_t * restrict deck, int deck_size);
 

@@ -5,18 +5,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-int is_prefix(const char * prefix, int * argc, char * argv[])
-{
-    if (*argc <= 1) return 0;
-    if (strcmp(argv[1], prefix) != 0) return 0;
+#include "../arrays/fsm5.c"
+const unsigned int * const fsm5 = fsm5_data;
 
-    --*argc;
-    for (int i=1; i<*argc; ++i) {
-        argv[i] = argv[i+1];
-    }
 
-    return 1;
-}
+
+const char * card_str[] = {
+    "2s", "2c", "2d", "2h",
+    "3s", "3c", "3d", "3h",
+    "4s", "4c", "4d", "4h",
+    "5s", "5c", "5d", "5h",
+    "6s", "6c", "6d", "6h",
+    "7s", "7c", "7d", "7h",
+    "8s", "8c", "8d", "8h",
+    "9s", "9c", "9d", "9h",
+    "Ts", "Tc", "Td", "Th",
+    "Js", "Jc", "Jd", "Jh",
+    "Qs", "Qc", "Qd", "Qh",
+    "Ks", "Kc", "Kd", "Kh",
+    "As", "Ac", "Ad", "Ah"
+};
 
 
 
@@ -92,7 +100,22 @@ uint64_t eval_slow_robust_rank5(const card_t * cards)
     return rank | prefix;
 }
 
-pack_value_t calc_rank(unsigned int n, const input_t * path)
+
+
+uint64_t minmax_hash(unsigned int n, const state_t * jumps)
+{
+    uint64_t max = 0;
+    uint64_t min = ~max;
+    for (unsigned int i = 0; i < n; ++n) {
+        if (jumps[i] < min) min = jumps[i];
+        if (jumps[i] > max) max = jumps[i];
+    }
+    return min + 100000 * max;
+}
+
+
+
+pack_value_t calc_holdem5(unsigned int n, const input_t * path)
 {
     if (n != 5) {
         fprintf(stderr, "Assertion failed: omaha_simplify_5 requires n = 5, but %u as passed.\n", n);
@@ -108,7 +131,7 @@ pack_value_t calc_rank(unsigned int n, const input_t * path)
 void build_holdem5_script(void * script)
 {
     script_step_comb(script, 52, 5);
-    script_step_pack(script, calc_rank, 0);
+    script_step_pack(script, calc_holdem5, 0);
     script_step_optimize(script, 5, NULL);
     script_step_optimize(script, 4, NULL);
     script_step_optimize(script, 3, NULL);
@@ -225,12 +248,116 @@ pack_value_t omaha_simplify_5(unsigned int n, const input_t * path)
     return rank | prefix;
 }
 
+static inline unsigned int eval_enum_omaha_nrank7(const card_t * cards)
+{
+    unsigned int result = 0;
+    unsigned int start = 52;
+
+    unsigned int s0 = fsm5[start + cards[0]];
+    unsigned int s1 = fsm5[start + cards[1]];
+    unsigned int s2 = fsm5[start + cards[2]];
+
+    #define NEW_STATE(x, y) unsigned int x##y = fsm5[x + cards[y]];
+    #define LAST_STATE(x, y) { unsigned int tmp = fsm5[x + cards[y]]; if (tmp > result) result = tmp; }
+
+    NEW_STATE(s0, 1);
+    NEW_STATE(s0, 2);
+    NEW_STATE(s0, 3);
+    NEW_STATE(s1, 2);
+    NEW_STATE(s1, 3);
+    NEW_STATE(s2, 3);
+
+    NEW_STATE(s01, 2);
+    NEW_STATE(s01, 3);
+    NEW_STATE(s01, 4);
+    NEW_STATE(s02, 3);
+    NEW_STATE(s02, 4);
+    NEW_STATE(s03, 4);
+    NEW_STATE(s12, 3);
+    NEW_STATE(s12, 4);
+    NEW_STATE(s13, 4);
+    NEW_STATE(s23, 4);
+
+    NEW_STATE(s012, 5);
+    NEW_STATE(s013, 5);
+    NEW_STATE(s014, 5);
+    NEW_STATE(s023, 5);
+    NEW_STATE(s024, 5);
+    NEW_STATE(s034, 5);
+    NEW_STATE(s123, 5);
+    NEW_STATE(s124, 5);
+    NEW_STATE(s134, 5);
+    NEW_STATE(s234, 5);
+
+    LAST_STATE(s0125, 6);
+    LAST_STATE(s0135, 6);
+    LAST_STATE(s0145, 6);
+    LAST_STATE(s0235, 6);
+    LAST_STATE(s0245, 6);
+    LAST_STATE(s0345, 6);
+    LAST_STATE(s1235, 6);
+    LAST_STATE(s1245, 6);
+    LAST_STATE(s1345, 6);
+    LAST_STATE(s2345, 6);
+
+    #undef NEW_STATE
+    #undef LAST_STATE
+
+    return result;
+}
+
+pack_value_t calc_omaha7(unsigned int n, const input_t * path)
+{
+    card_t cards[7] = { path[0], path[1], path[2], path[3], path[4], path[5], path[6] };
+    pack_value_t result = eval_enum_omaha_nrank7(cards);
+    if (result <= 0 || result > 7462) {
+        fprintf(stderr, "Assertion failed: invalid omaha7 nrank: %s %s %s %s %s %s %s -> %lu.\n",
+            card_str[cards[0]],
+            card_str[cards[1]],
+            card_str[cards[2]],
+            card_str[cards[3]],
+            card_str[cards[4]],
+            card_str[cards[5]],
+            card_str[cards[6]],
+            result
+            );
+        abort();
+    }
+
+    return result;
+}
+
 void build_omaha7_script(void * script)
 {
     script_step_comb(script, 52, 5);
     script_step_pack(script, omaha_simplify_5, 0);
     script_step_comb(script, 52, 2);
+    script_step_pack(script, calc_omaha7, PACK_FLAG__SKIP_RENUMERING);
+    script_step_optimize(script, 7, minmax_hash);
+    script_step_optimize(script, 7, NULL);
+    script_step_optimize(script, 6, NULL);
+    script_step_optimize(script, 5, NULL);
+    script_step_optimize(script, 4, NULL);
+    script_step_optimize(script, 3, NULL);
+    script_step_optimize(script, 2, NULL);
+    script_step_optimize(script, 1, NULL);
 }
+
+int check_omaha7(const void * ofsm)
+{
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 0, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    ofsm_print_array(stdout, "omaha7_data", &array, 52);
+
+    free(array.array);
+    return 0;
+}
+
 
 
 struct selector
@@ -241,10 +368,23 @@ struct selector
 };
 
 struct selector selectors[] = {
-    { "omaha7", build_omaha7_script, NULL },
+    { "omaha7", build_omaha7_script, check_omaha7 },
     { "holdem5", build_holdem5_script, check_holdem5 },
     { NULL, NULL }
 };
+
+int is_prefix(const char * prefix, int * argc, char * argv[])
+{
+    if (*argc <= 1) return 0;
+    if (strcmp(argv[1], prefix) != 0) return 0;
+
+    --*argc;
+    for (int i=1; i<*argc; ++i) {
+        argv[i] = argv[i+1];
+    }
+
+    return 1;
+}
 
 int main(int argc, char * argv[])
 {
