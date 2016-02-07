@@ -300,6 +300,7 @@ struct script
     struct step * last;
 
     struct choose_table choose;
+    FILE * cfile;
 };
 
 static struct script * create_script()
@@ -333,6 +334,7 @@ static struct script * create_script()
     script->step = NULL;
     script->last = NULL;
     memset(&script->choose, 0, sizeof(struct choose_table));
+    script->cfile = stdout;
     return script;
 }
 
@@ -1080,9 +1082,36 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
     return state;
 }
 
-static void print(struct script * restrict me)
+
+
+static void print(const struct script * me)
 {
+    const struct ofsm * ofsm = me->ofsm;
+
+    input_t max = 0;
+    for (unsigned int nflake = 0; nflake < ofsm->qflakes; ++nflake) {
+        const struct flake * flake = ofsm->flakes + nflake;
+        if (flake->qinputs > max) {
+            max = ofsm->flakes[nflake].qinputs;
+        }
+    }
+
+    verbose("Max inputs = %u.", max);
+
+    uint64_t len = max;
+
+    fprintf(me->cfile, "/* Zero state len = %lu */\n", len);
+
+    for (unsigned int nflake = 1; nflake <  ofsm->qflakes; ++nflake) {
+        const struct flake * flake = ofsm->flakes + nflake;
+        len += flake->qinputs * flake->qstates;
+    }
+
+    fprintf(me->cfile, "unsigned int fsm[%lu] = {\n", len);
+    fprintf(me->cfile, "};\n");
 }
+
+
 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check)
 {
