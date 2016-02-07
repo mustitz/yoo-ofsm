@@ -108,6 +108,17 @@ static void print_int_array(const char * prefix, const int * data, size_t len)
 
 
 
+static unsigned int run_array(const struct ofsm_array * array, const int * input)
+{
+    unsigned int n = array->qflakes;
+    unsigned int current = array->start_from;
+    for (unsigned int i=0; i<n; ++i) {
+        current = array->array[current + input[i]];
+    }
+    return current;
+}
+
+
 void build_pow_41(void * script)
 {
     script_step_pow(script, 4, 1);
@@ -158,12 +169,32 @@ int check_pow_42(const void * ofsm)
     static int stat[16];
     memset(stat, 0, sizeof(stat));
 
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 0, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 2, c);
         if (state < 0 || state >= 16) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 15.\n", state);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
+        if (state != value) {
+            fprintf(stderr, "state & value mismatch: state = %d, value = %d.", state, value);
             print_int_array("input =", c, 2);
             return 1;
         }
@@ -178,6 +209,7 @@ int check_pow_42(const void * ofsm)
         }
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -201,12 +233,32 @@ int check_pow_41_51(const void * ofsm)
     static int stat[20];
     memset(stat, 0, sizeof(stat));
 
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 0, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 2, c);
         if (state < 0 || state >= 20) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 19.\n", state);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
+        if (state != value) {
+            fprintf(stderr, "state & value mismatch: state = %d, value = %d.", state, value);
             print_int_array("input =", c, 2);
             return 1;
         }
@@ -221,6 +273,7 @@ int check_pow_41_51(const void * ofsm)
         }
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -242,9 +295,23 @@ int check_comb_42(const void * ofsm)
     static int stat[6];
     memset(stat, 0, sizeof(stat));
 
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 2, c);
         if (c[0] == c[1]) {
             if (state == -1) continue;
@@ -259,6 +326,12 @@ int check_comb_42(const void * ofsm)
             return 1;
         }
 
+        if (state != value - 1) {
+            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.", state, value-1);
+            print_int_array("input =", c, 2);
+            return 1;
+        }
+
         ++stat[state];
     }
 
@@ -269,6 +342,7 @@ int check_comb_42(const void * ofsm)
         }
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -289,12 +363,26 @@ int check_comb_55(const void * ofsm)
 {
     static int stat = 0;
 
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[5];
     for (c[0]=0; c[0]<5; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2])
     for (c[3]=0; c[3]<5; ++c[3])
     for (c[4]=0; c[4]<5; ++c[4]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 5);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 5, c);
 
         unsigned int mask = 0
@@ -318,6 +406,12 @@ int check_comb_55(const void * ofsm)
             return 1;
         }
 
+        if (state != value - 1) {
+            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.", state, value-1);
+            print_int_array("input =", c, 5);
+            return 1;
+        }
+
         ++stat;
     }
 
@@ -326,6 +420,7 @@ int check_comb_55(const void * ofsm)
         return 1;
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -348,10 +443,24 @@ int check_pow_41_comb_52(const void * ofsm)
     static int stat[40];
     memset(stat, 0, sizeof(stat));
 
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[3];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 3, c);
         if (c[1] == c[2]) {
             if (state == -1) continue;
@@ -366,6 +475,12 @@ int check_pow_41_comb_52(const void * ofsm)
             return 1;
         }
 
+        if (state != value - 1) {
+            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.", state, value-1);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
         ++stat[state];
     }
 
@@ -376,6 +491,7 @@ int check_pow_41_comb_52(const void * ofsm)
         }
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -401,10 +517,24 @@ void build_pack(void * script)
 
 int check_pack(const void * ofsm)
 {
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[3];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 3, c);
         if (c[1] == c[2]) {
             if (state == -1) continue;
@@ -425,8 +555,16 @@ int check_pack(const void * ofsm)
             print_int_array("input =", c, 3);
             return 1;
         }
+
+        if (state != value - 1) {
+            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.", state, value-1);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -447,10 +585,24 @@ void build_pack_without_renum(void * script)
 
 int check_pack_without_renum(const void * ofsm)
 {
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 0, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[3];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
         int state = ofsm_execute(ofsm, 3, c);
         if (c[1] == c[2]) {
             if (state == -1) continue;
@@ -472,8 +624,16 @@ int check_pack_without_renum(const void * ofsm)
             print_int_array("input =", c, 3);
             return 1;
         }
+
+        if (state != value) {
+            fprintf(stderr, "state & value mismatch: state = %d, value = %d.", state, value);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
     }
 
+    free(array.array);
     return 0;
 }
 
@@ -495,14 +655,28 @@ void build_optimize(void * script)
 
 int check_optimize(const void * ofsm)
 {
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     int c[3];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        
+
         if (c[1] == c[2]) {
             // Optimized
             continue;
+        }
+
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.", value);
+            print_int_array("input =", c, 3);
+            return 1;
         }
 
         int state = ofsm_execute(ofsm, 3, c);
@@ -518,8 +692,14 @@ int check_optimize(const void * ofsm)
             print_int_array("input =", c, 3);
             return 1;
         }
+
+        if (state != value - 1) {
+            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.", state, value-1);
+            return 1;
+        }
     }
 
+    free(array.array);
     return 0;
 }
 

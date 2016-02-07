@@ -21,6 +21,7 @@
 struct ofsm_array
 {
     unsigned int start_from;
+    unsigned int qflakes;
     uint64_t len;
     unsigned int * array;
 };

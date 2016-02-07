@@ -1131,7 +1131,7 @@ int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct 
 {
     memset(out, 0, sizeof(struct ofsm_array));
 
-    if (ofsm->qflakes <= 0) {
+    if (ofsm->qflakes <= 1) {
         ERRHEADER;
         errmsg("Invalid argument: try to build and for empty OFSM.");
         return 1;
@@ -1151,6 +1151,7 @@ int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct 
         return 1;
     }
 
+    out->qflakes = ofsm->qflakes - 1;
     out->start_from = qinputs_err;
     out->len = qinputs_err;
 
