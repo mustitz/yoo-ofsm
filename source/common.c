@@ -6,7 +6,6 @@
 #include <getopt.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 
@@ -1235,6 +1234,27 @@ static void print(const struct script * me)
     fprintf(me->cfile, "};\n");
 }
 
+
+
+int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns)
+{
+    if (qcolumns == 0) {
+        qcolumns = 30;
+    }
+
+    fprintf(f, "unsigned int %s[%lu] = {\n", name, array->len);
+    const unsigned int * ptr = array->array;
+    const unsigned int * end = array->array + array->len;
+    int pos = 1;
+    fprintf(f, "  %u",  *ptr++);
+    for (; ptr != end; ++ptr) {
+        const char * delimeter = (pos++ % qcolumns) == 0 ? "\n " : "";
+        fprintf(f, ",%s %u", delimeter, *ptr);
+    }
+    fprintf(f, "\n};\n");
+
+    return 0;
+}
 
 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check)

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 
 
@@ -40,5 +41,6 @@ void script_step_optimize(void * restrict script, unsigned int nflake, hash_func
 
 int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs);
 int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
+int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
 
 #endif
