@@ -1127,6 +1127,86 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const int * inputs)
 
 
 
+int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
+{
+    memset(out, 0, sizeof(struct ofsm_array));
+
+    if (ofsm->qflakes <= 0) {
+        ERRHEADER;
+        errmsg("Invalid argument: try to build and for empty OFSM.");
+        return 1;
+    }
+
+    input_t qinputs_err = 0;
+    for (unsigned int nflake = 0; nflake < ofsm->qflakes; ++nflake) {
+        const struct flake * flake = ofsm->flakes + nflake;
+        if (flake->qinputs > qinputs_err) {
+             qinputs_err = flake->qinputs;
+        }
+    }
+
+    if (qinputs_err == 0) {
+        ERRHEADER;
+        errmsg("Assertion failed: maximum input count for all flakes is 0.");
+        return 1;
+    }
+
+    out->start_from = qinputs_err;
+    out->len = qinputs_err;
+
+    for (unsigned int nflake = 1; nflake <  ofsm->qflakes; ++nflake) {
+        const struct flake * flake = ofsm->flakes + nflake;
+        out->len += flake->qinputs * flake->qstates;
+    }
+
+    size_t sz = out->len * sizeof(unsigned int);
+    out->array = malloc(sz);
+    if (out->array == NULL) {
+        ERRHEADER;
+        errmsg("malloc(%lu) failed with NULL as return value in “do_ofsm_get_table”.", sz);
+        return 1;
+    }
+
+
+
+    unsigned int * restrict ptr = out->array;
+
+    for (input_t input = 0; input < qinputs_err; ++input) {
+        *ptr++ = 0;
+    }
+
+    for (unsigned int nflake = 1; nflake < ofsm->qflakes - 1; ++nflake) {
+        const struct flake * flake = ofsm->flakes + nflake;
+        uint64_t qjumps = flake->qinputs * flake->qstates;
+        const state_t * jump = flake->jumps[1];
+        const state_t * end = jump + qjumps;
+        uint64_t offset = ptr - out->array + qjumps;
+        for (; jump != end; ++jump) {
+            if (*jump == INVALID_STATE) {
+                *ptr++ = 0;
+            } else {
+                *ptr++ = offset + *jump * flake[1].qinputs;
+            }
+        }
+    }
+
+    const struct flake * flake = ofsm->flakes + ofsm->qflakes - 1;
+    uint64_t qjumps = flake->qinputs * flake->qstates;
+    const state_t * jump = flake->jumps[1];
+    const state_t * end = jump + qjumps;
+    for (; jump != end; ++jump) {
+        if (*jump == INVALID_STATE) {
+            *ptr++ = 0;
+        } else {
+            *ptr++ = *jump + delta_last;
+        }
+    }
+
+    return 0;
+}
+
+
+
 static void print(const struct script * me)
 {
     const struct ofsm * ofsm = me->ofsm;
@@ -1307,4 +1387,9 @@ void script_fail(void * restrict script)
 int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs)
 {
     return do_ofsm_execute(ofsm, n, inputs);
+}
+
+int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
+{
+    return do_ofsm_get_array(ofsm, delta_last, out);
 }
