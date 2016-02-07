@@ -106,7 +106,8 @@ uint64_t minmax_hash(unsigned int n, const state_t * jumps)
 {
     uint64_t max = 0;
     uint64_t min = ~max;
-    for (unsigned int i = 0; i < n; ++n) {
+    for (unsigned int i = 0; i < n; ++i) {
+        if (jumps[i] == INVALID_STATE) continue;
         if (jumps[i] < min) min = jumps[i];
         if (jumps[i] > max) max = jumps[i];
     }

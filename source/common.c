@@ -912,6 +912,9 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
     { verbose("  --> calc state hashes and sort.");
 
+        uint64_t counter = 0;
+        double start = get_app_age();
+
         const state_t * jumps = flake->jumps[1];
         struct state_info * restrict ptr = state_infos;
         const struct state_info * end = state_infos + old_qstates;
@@ -923,7 +926,18 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 ptr->hash = args->f(qinputs, jumps);
                 jumps += qinputs;
             }
+
+            if ((++counter & 0xFF) == 0) {
+                double now = get_app_age();
+                if (now - start > 10.0) {
+                    uint64_t processed = ptr - state_infos;
+                    verbose("     processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
+                    start = now;
+                }
+            }
         }
+
+        verbose("        sorting...");
 
         qsort(state_infos, old_qstates, sizeof(struct state_info), cmp_state_info);
 
@@ -934,6 +948,10 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
     state_t new_qstates = 0;
 
     { verbose("  --> merge states.");
+
+        double start = get_app_age();
+        uint64_t counter = 0;
+        uint64_t merged = 0;
 
         const struct state_info * end = state_infos + old_qstates;
         struct state_info * left = state_infos;
@@ -967,7 +985,26 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
                     if (was_merged) {
                         left->new = ptr->new;
+                        ++merged;
                         break;
+                    }
+                }
+
+                if ((++counter & 0xFFF) == 0) {
+                    double now = get_app_age();
+                    if (now - start > 60.0) {
+                        uint64_t processed = left - state_infos;
+                        uint64_t total = old_qstates;
+                        double persent = 100.0 * processed / total;
+
+                        uint64_t chunk_processed = left - base;
+                        uint64_t chunk_total = right - base;
+                        double chunk_persent = 100.0 * chunk_processed / chunk_total;
+
+                        verbose("      processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
+                            persent, chunk_persent, processed, total, chunk_processed, chunk_total, merged);
+
+                        start = now;
                     }
                 }
 
