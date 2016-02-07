@@ -105,7 +105,7 @@ pack_value_t calc_rank(unsigned int n, const input_t * path)
     return eval_slow_robust_rank5(cards);
 }
 
-void build_hand5_script(void * script)
+void build_holdem5_script(void * script)
 {
     script_step_comb(script, 52, 5);
     script_step_pack(script, calc_rank, 0);
@@ -114,6 +114,21 @@ void build_hand5_script(void * script)
     script_step_optimize(script, 3, NULL);
     script_step_optimize(script, 2, NULL);
     script_step_optimize(script, 1, NULL);
+}
+
+int check_holdem5(const void * ofsm)
+{
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    ofsm_print_array(stdout, "fsm5_data", &array, 52);
+
+    free(array.array);
+    return 0;
 }
 
 
@@ -218,17 +233,16 @@ void build_omaha7_script(void * script)
 }
 
 
-typedef void build_script_func(void * script);
-
 struct selector
 {
     const char * name;
     build_script_func * build;
+    check_ofsm_func * check;
 };
 
 struct selector selectors[] = {
-    { "omaha7", build_omaha7_script },
-    { "hand5", build_hand5_script },
+    { "omaha7", build_omaha7_script, NULL },
+    { "holdem5", build_holdem5_script, check_holdem5 },
     { NULL, NULL }
 };
 
@@ -237,7 +251,7 @@ int main(int argc, char * argv[])
     const struct selector * selector = selectors;
     for (; selector->name != NULL; ++selector) {
         if (is_prefix(selector->name, &argc, argv)) {
-            return execute(argc, argv, selector->build, NULL);
+            return execute(argc, argv, selector->build, selector->check);
         }
     }
 

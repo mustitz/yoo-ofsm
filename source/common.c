@@ -1207,35 +1207,6 @@ int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct 
 
 
 
-static void print(const struct script * me)
-{
-    const struct ofsm * ofsm = me->ofsm;
-
-    input_t max = 0;
-    for (unsigned int nflake = 0; nflake < ofsm->qflakes; ++nflake) {
-        const struct flake * flake = ofsm->flakes + nflake;
-        if (flake->qinputs > max) {
-            max = ofsm->flakes[nflake].qinputs;
-        }
-    }
-
-    verbose("Max inputs = %u.", max);
-
-    uint64_t len = max;
-
-    fprintf(me->cfile, "/* Zero state len = %lu */\n", len);
-
-    for (unsigned int nflake = 1; nflake <  ofsm->qflakes; ++nflake) {
-        const struct flake * flake = ofsm->flakes + nflake;
-        len += flake->qinputs * flake->qstates;
-    }
-
-    fprintf(me->cfile, "unsigned int fsm[%lu] = {\n", len);
-    fprintf(me->cfile, "};\n");
-}
-
-
-
 int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns)
 {
     if (qcolumns == 0) {
@@ -1298,9 +1269,6 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
                 script->status = STATUS__FAILED;
             }
         }
-
-        print(script);
-        verbose("DONE: output final OFSM.");
     }
 
     int exit_code = script->status == STATUS__DONE || script->status == STATUS__INTERRUPTED ? 0 : 1;
