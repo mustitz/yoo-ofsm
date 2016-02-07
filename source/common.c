@@ -543,7 +543,7 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
 {
     input_t qinputs = args->qinputs;
 
-    verbose("START append combinatoric step, qinputes = %u, m = %u.", args->qinputs, args->m);
+    verbose("START append combinatoric step, qinputs = %u, m = %u.", args->qinputs, args->m);
 
     struct choose_table * restrict ct = &me->choose;
     init_choose_table(ct, args->qinputs, args->m);
@@ -769,9 +769,10 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
         size_t sz = sizeof(input_t) * nflake;
         input_t * restrict new_path = infant->paths[1];
+        const input_t * old_paths = oldman.paths[1];
         for (state_t new_output = 0; new_output < new_qoutputs; ++new_output) {
             state_t old_output = backref[new_output];
-            memcpy(new_path,  oldman.paths + old_output * nflake, sz);
+            memcpy(new_path, old_paths + old_output * nflake, sz);
             new_path += nflake;
         }
 
@@ -890,7 +891,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
 
 
-    size_t new_qstates = 0;
+    state_t new_qstates = 0;
 
     { verbose("  --> merge states.");
 
@@ -970,6 +971,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         free(flake->jumps[0]);
         flake->jumps[0] = ptrs[0];
         flake->jumps[1] = ptrs[1];
+        flake->qstates = new_qstates;
 
     } verbose("  <<< replace old jumps with a new one.");
 
@@ -991,7 +993,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
 
     free(ptr);
-    verbose("DONE optimize step.");
+    verbose("DONE optimize step, state count was requced from %u to %u.", old_qstates, new_qstates);
 }
 
 static void do_step(struct script * restrict me)
