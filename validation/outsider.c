@@ -7,12 +7,12 @@
 
 
 int empty_test();
-int append_power_41_test();
-int append_power_42_test();
-int append_power_41_51_test();
-int append_combinatoric_42_test();
-int append_combinatoric_55_test();
-int append_power_41_combinatoric_52_test();
+int pow_41_test();
+int pow_42_test();
+int pow_41_51_test();
+int comb_42_test();
+int comb_55_test();
+int pow_41_comb_52_test();
 int append_pack_test();
 
 
@@ -29,12 +29,12 @@ struct test_item
 struct test_item tests[] = {
     TEST_ITEM(empty),
     TEST_ITEM(append_pack),
-    TEST_ITEM(append_power_41_combinatoric_52),
-    TEST_ITEM(append_combinatoric_55),
-    TEST_ITEM(append_combinatoric_42),
-    TEST_ITEM(append_power_41_51),
-    TEST_ITEM(append_power_42),
-    TEST_ITEM(append_power_41),
+    TEST_ITEM(pow_41_comb_52),
+    TEST_ITEM(comb_55),
+    TEST_ITEM(comb_42),
+    TEST_ITEM(pow_41_51),
+    TEST_ITEM(pow_42),
+    TEST_ITEM(pow_41),
     { NULL, NULL }
 };
 #undef TEST_ITEM
@@ -104,12 +104,12 @@ static void print_int_array(const char * prefix, const int * data, size_t len)
 
 
 
-void build_append_power_41(void * script)
+void build_pow_41(void * script)
 {
     script_step_pow(script, 4, 1);
 }
 
-int check_append_power_41(const void * ofsm)
+int check_pow_41(const void * ofsm)
 {
     static int stat[4];
     memset(stat, 0, sizeof(stat));
@@ -136,20 +136,20 @@ int check_append_power_41(const void * ofsm)
     return 0;
 }
 
-int append_power_41_test()
+int pow_41_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_power_41, check_append_power_41);
+    return execute(1, argv, build_pow_41, check_pow_41);
 }
 
 
 
-void build_append_power_42(void * script)
+void build_pow_42(void * script)
 {
     script_step_pow(script, 4, 2);
 }
 
-int check_append_power_42(const void * ofsm)
+int check_pow_42(const void * ofsm)
 {
     static int stat[16];
     memset(stat, 0, sizeof(stat));
@@ -177,22 +177,22 @@ int check_append_power_42(const void * ofsm)
     return 0;
 }
 
-int append_power_42_test()
+int pow_42_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_power_42, check_append_power_42);
+    return execute(1, argv, build_pow_42, check_pow_42);
 }
 
 
 
 
-void build_append_power_41_51(void * script)
+void build_pow_41_51(void * script)
 {
     script_step_pow(script, 4, 1);
     script_step_pow(script, 5, 1);
 }
 
-int check_append_power_41_51(const void * ofsm)
+int check_pow_41_51(const void * ofsm)
 {
     static int stat[20];
     memset(stat, 0, sizeof(stat));
@@ -220,20 +220,20 @@ int check_append_power_41_51(const void * ofsm)
     return 0;
 }
 
-int append_power_41_51_test()
+int pow_41_51_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_power_41_51, check_append_power_41_51);
+    return execute(1, argv, build_pow_41_51, check_pow_41_51);
 }
 
 
 
-void build_append_combinatoric_42(void * script)
+void build_comb_42(void * script)
 {
     script_step_comb(script, 4, 2);
 }
 
-int check_append_combinatoric_42(const void * ofsm)
+int check_comb_42(const void * ofsm)
 {
     static int stat[6];
     memset(stat, 0, sizeof(stat));
@@ -268,20 +268,20 @@ int check_append_combinatoric_42(const void * ofsm)
     return 0;
 }
 
-int append_combinatoric_42_test()
+int comb_42_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_combinatoric_42, check_append_combinatoric_42);
+    return execute(1, argv, build_comb_42, check_comb_42);
 }
 
 
 
-void build_append_combinatoric_55(void * script)
+void build_comb_55(void * script)
 {
     script_step_comb(script, 5, 5);
 }
 
-int check_append_combinatoric_55(const void * ofsm)
+int check_comb_55(const void * ofsm)
 {
     static int stat = 0;
 
@@ -325,21 +325,21 @@ int check_append_combinatoric_55(const void * ofsm)
     return 0;
 }
 
-int append_combinatoric_55_test()
+int comb_55_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_combinatoric_55, check_append_combinatoric_55);
+    return execute(1, argv, build_comb_55, check_comb_55);
 }
 
 
 
-void build_append_power_41_combinatoric_52(void * script)
+void build_pow_41_comb_52(void * script)
 {
     script_step_pow(script, 4, 1);
     script_step_comb(script, 5, 2);
 }
 
-int check_append_power_41_combinatoric_52(const void * ofsm)
+int check_pow_41_comb_52(const void * ofsm)
 {
     static int stat[40];
     memset(stat, 0, sizeof(stat));
@@ -375,10 +375,10 @@ int check_append_power_41_combinatoric_52(const void * ofsm)
     return 0;
 }
 
-int append_power_41_combinatoric_52_test()
+int pow_41_comb_52_test()
 {
     char * argv[2] = { "outsider", "-v" };
-    return execute(1, argv, build_append_power_41_combinatoric_52, check_append_power_41_combinatoric_52);
+    return execute(1, argv, build_pow_41_comb_52, check_pow_41_comb_52);
 }
 
 
