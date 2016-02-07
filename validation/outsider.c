@@ -7,7 +7,6 @@
 
 
 int empty_test();
-int optimize_test();
 int pow_41_test();
 int pow_42_test();
 int pow_41_51_test();
@@ -15,6 +14,8 @@ int comb_42_test();
 int comb_55_test();
 int pow_41_comb_52_test();
 int pack_test();
+int pack_without_renum_test();
+int optimize_test();
 
 
 
@@ -30,6 +31,7 @@ struct test_item
 struct test_item tests[] = {
     TEST_ITEM(empty),
     TEST_ITEM(optimize),
+    TEST_ITEM(pack_without_renum),
     TEST_ITEM(pack),
     TEST_ITEM(pow_41_comb_52),
     TEST_ITEM(comb_55),
@@ -387,14 +389,14 @@ int pow_41_comb_52_test()
 
 pack_value_t mod7(unsigned int n, const input_t * path)
 {
-    return ((3*path[0] + path[1] + path[2]) % 7) + 111;
+    return ((3*path[0] + path[1] + path[2]) % 7) + 11;
 }
 
 void build_pack(void * script)
 {
     script_step_pow(script, 4, 1);
     script_step_comb(script, 5, 2);
-    script_step_pack(script, mod7);
+    script_step_pack(script, mod7, 0);
 }
 
 int check_pack(const void * ofsm)
@@ -417,7 +419,7 @@ int check_pack(const void * ofsm)
             return 1;
         }
 
-        size_t expected = (3*c[0] + c[1] + c[2]) % 7;
+        pack_value_t expected = (3*c[0] + c[1] + c[2]) % 7;
         if (expected != state) {
             fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
             print_int_array("input =", c, 3);
@@ -436,11 +438,58 @@ int pack_test()
 
 
 
+void build_pack_without_renum(void * script)
+{
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
+    script_step_pack(script, mod7, PACK_FLAG__SKIP_RENUMERING);
+}
+
+int check_pack_without_renum(const void * ofsm)
+{
+    int c[3];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
+    for (c[2]=0; c[2]<5; ++c[2]) {
+        int state = ofsm_execute(ofsm, 3, c);
+        if (c[1] == c[2]) {
+            if (state == -1) continue;
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
+        if (state < 11 || state >= 18) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 11 - 17.\n", state);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+
+        input_t path[3] = { c[0], c[1], c[2] };
+        pack_value_t expected = mod7(3, path);
+        if (expected != state) {
+            fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
+            print_int_array("input =", c, 3);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int pack_without_renum_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_pack_without_renum, check_pack_without_renum);
+}
+
+
+
 void build_optimize(void * script)
 {
     script_step_pow(script, 4, 1);
     script_step_comb(script, 5, 2);
-    script_step_pack(script, mod7);
+    script_step_pack(script, mod7, 0);
     script_step_optimize(script, 3, NULL);
 }
 

@@ -265,6 +265,7 @@ struct step_data_comb
 struct step_data_pack
 {
     pack_func * f;
+    unsigned int flags;
 };
 
 struct step_data_optimize
@@ -639,7 +640,9 @@ static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
 
 static void do_pack(struct script * restrict me, const struct step_data_pack * args)
 {
-    verbose("START pack step, f = %p.", args->f);
+    int skip_renumering = (args->flags & PACK_FLAG__SKIP_RENUMERING) != 0;
+
+    verbose("START pack step, skip_renumering = %d, f = %p.", skip_renumering, args->f);
 
 
 
@@ -659,28 +662,28 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
 
-    size_t sizes[4];
+    size_t sizes[3];
     sizes[0] = 0;
-    sizes[1] = old_qoutputs * sizeof(struct ofsm_pack_decode);
+    sizes[1] = (1 + old_qoutputs) * sizeof(struct ofsm_pack_decode);
     sizes[2] = old_qoutputs * sizeof(state_t);
-    sizes[3] = old_qoutputs * sizeof(state_t);
 
-    void * ptrs[4];
-    multialloc(4, sizes, ptrs, 32);
+    void * ptrs[3];
+    multialloc(3, sizes, ptrs, 32);
     void * ptr = ptrs[0];
 
     if (ptr == NULL) {
         ERRHEADER;
-        errmsg("  multialloc(4, {%lu, %lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2], sizes[3]);
+        errmsg("  multialloc(4, {%lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2]);
         me->status = STATUS__FAILED;
         return;
     }
 
     struct ofsm_pack_decode * decode_table = ptrs[1];
     state_t * translate = ptrs[2];
-    state_t * backref = ptrs[3];
 
 
+
+    pack_value_t max_value = 0;
 
     { verbose("  --> calculate pack values.");
 
@@ -689,11 +692,15 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
         for (size_t output = 0; output < old_qoutputs; ++output) {
             curr->output = output;
             curr->value = args->f(nflake, path);
+            if (curr->value > max_value) max_value = curr->value;
             path += nflake;
             ++curr;
         }
 
-    } verbose("  <<< calculate pack values.");
+        curr->output = INVALID_STATE;
+        curr->value = INVALID_PACK_VALUE;
+
+    } verbose("  <<< calculate pack values, max value is %lu.", max_value);
 
 
 
@@ -706,7 +713,31 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     state_t new_qoutputs = 0;
 
-    { verbose("  --> calc output_translate table.");
+    if (skip_renumering) {
+        verbose("  --> calc output_translate table without renumering.");
+
+        new_qoutputs = max_value + 1;
+
+        const struct ofsm_pack_decode * left = decode_table;
+        const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
+
+        while (left != end) {
+
+            const struct ofsm_pack_decode * right = left + 1;
+            while (right != end && right->value == left->value) {
+                ++right;
+            }
+
+            state_t new_output = left->value != INVALID_PACK_VALUE ? left->value : INVALID_STATE;
+            for (; left != right; ++left) {
+                translate[left->output] = new_output;
+            }
+        }
+
+        verbose("  <<< calc output_translate table without renumering.");
+
+    } else {
+        verbose("  --> calc output_translate table with renumering.");
 
         const struct ofsm_pack_decode * left = decode_table;
         const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
@@ -721,7 +752,6 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             state_t new_output;
             if (left->value != INVALID_PACK_VALUE) {
                 new_output = new_qoutputs++;
-                backref[new_output] = left->output;
             } else {
                 new_output = INVALID_STATE;
             }
@@ -731,7 +761,8 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-    } verbose("  <<< calc output_translate table.");
+        verbose("  <<< calc output_translate table with renumering.");
+    }
 
 
 
@@ -767,13 +798,21 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     { verbose("  --> update paths.");
 
-        size_t sz = sizeof(input_t) * nflake;
         input_t * restrict new_path = infant->paths[1];
         const input_t * old_paths = oldman.paths[1];
-        for (state_t new_output = 0; new_output < new_qoutputs; ++new_output) {
-            state_t old_output = backref[new_output];
-            memcpy(new_path, old_paths + old_output * nflake, sz);
-            new_path += nflake;
+        const struct ofsm_pack_decode * decode = decode_table;
+        size_t sz = sizeof(input_t) * nflake;
+        for (state_t output = 0; output < new_qoutputs; ++output) {
+            if (output == decode->value) {
+                state_t old_output = decode->output;
+                memcpy(new_path, old_paths + old_output * nflake, sz);
+                new_path += nflake;
+                do ++decode; while (decode->value == output);
+            } else {
+                for (unsigned int i=0; i < nflake; ++i) {
+                    *new_path++ = INVALID_INPUT;
+                }
+            }
         }
 
     } verbose("  <<< update paths.");
@@ -1213,12 +1252,13 @@ static void add_step_comb(struct script * restrict me, input_t qinputs, unsigned
     data->m = m;
 }
 
-static void add_step_pack(struct script * restrict me, pack_func f)
+static void add_step_pack(struct script * restrict me, pack_func f, unsigned int flags)
 {
     struct step * restrict step = me->last;
     step->type = STEP__PACK;
     struct step_data_pack * restrict data = data = &step->data.pack;
     data->f = f;
+    data->flags = flags;
 }
 
 static void add_step_optimize(struct script * restrict me, unsigned int nflake, hash_func f)
@@ -1244,10 +1284,10 @@ void script_step_comb(void * restrict script, input_t qinputs, unsigned int m)
     }
 }
 
-void script_step_pack(void * restrict script, pack_func f)
+void script_step_pack(void * restrict script, pack_func f, unsigned int flags)
 {
     if (append_step(script) != NULL) {
-        add_step_pack(script, f);
+        add_step_pack(script, f, flags);
     }
 }
 

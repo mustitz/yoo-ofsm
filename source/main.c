@@ -109,7 +109,7 @@ pack_value_t calc_rank(unsigned int n, const input_t * path)
 void build_hand5_script(void * script)
 {
     script_step_comb(script, 52, 5);
-    script_step_pack(script, calc_rank);
+    script_step_pack(script, calc_rank, 0);
     script_step_optimize(script, 5, NULL);
     script_step_optimize(script, 4, NULL);
     script_step_optimize(script, 3, NULL);
@@ -214,7 +214,7 @@ pack_value_t omaha_simplify_5(unsigned int n, const input_t * path)
 void build_omaha7_script(void * script)
 {
     script_step_comb(script, 52, 5);
-    script_step_pack(script, omaha_simplify_5);
+    script_step_pack(script, omaha_simplify_5, 0);
     script_step_comb(script, 52, 2);
 }
 

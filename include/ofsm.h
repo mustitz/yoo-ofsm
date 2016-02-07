@@ -10,6 +10,8 @@
 #define state_t         uint32_t
 #define pack_value_t    uint64_t
 
+#define PACK_FLAG__SKIP_RENUMERING     1
+
 #define INVALID_INPUT (~(input_t)0)
 #define INVALID_STATE (~(state_t)0)
 #define INVALID_PACK_VALUE (~(pack_value_t)0)
@@ -25,7 +27,7 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
 
 void script_step_pow(void * restrict script, input_t qinputs, unsigned int m);
 void script_step_comb(void * restrict script, input_t qinputs, unsigned int m);
-void script_step_pack(void * restrict script, pack_func f);
+void script_step_pack(void * restrict script, pack_func f, unsigned int flags);
 void script_step_optimize(void * restrict script, unsigned int nflake, hash_func f);
 
 int ofsm_execute(const void * ofsm, unsigned int n, const int * inputs);
