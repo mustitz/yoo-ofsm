@@ -1266,6 +1266,27 @@ int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * arra
     return 0;
 }
 
+int ofsm_save_binary_array(FILE * f, const struct ofsm_array * array)
+{
+    struct array_header header;
+    header.start_from = array->start_from;
+    header.qflakes = array->qflakes;
+    header.len = array->len;
+    size_t sz = sizeof(struct array_header);
+    size_t written = fwrite(&header, 1, sz, f);
+    if (written != sz) {
+        return 1;
+    }
+
+    sz = header.len * sizeof(unsigned int);
+    written = fwrite(array->array, 1, sz, f);
+    if (written != sz) {
+        return 1;
+    }
+
+    return 0;
+}
+
 
 
 const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, state_t output)

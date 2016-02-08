@@ -27,6 +27,13 @@ struct ofsm_array
     unsigned int * array;
 };
 
+struct array_header
+{
+    uint32_t start_from;
+    uint32_t qflakes;
+    uint64_t len;
+};
+
 typedef void build_script_func(void * script);
 typedef int check_ofsm_func(const void * ofsm);
 typedef pack_value_t pack_func(unsigned int n, const input_t * path);
@@ -42,6 +49,8 @@ void script_step_optimize(void * restrict script, unsigned int nflake, hash_func
 int ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
 int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
 const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output);
+
 int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
+int ofsm_save_binary_array(FILE * f, const struct ofsm_array * array);
 
 #endif

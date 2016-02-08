@@ -2,6 +2,7 @@
 
 #include "poker.h"
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -101,6 +102,28 @@ uint64_t eval_slow_robust_rank5(const card_t * cards)
 }
 
 
+static void save_binary(const char * file_name, const struct ofsm_array * array)
+{
+    const char * mode = "wb";
+    FILE * f = fopen(file_name, mode);
+    if (f == NULL) {
+        fprintf(stderr, "fopen(“%s”, “%s”) failed with NULL as return value\n", file_name, mode);
+        if (errno != 0) {
+            fprintf(stderr, "  errno = %d: %s\n", errno, strerror(errno));
+        }
+    }
+
+    int errcode = ofsm_save_binary_array(f, array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_save_binary_array(f, &Array) failed with %d as error code.\n", errcode);
+    }
+
+    if (ferror(f)) {
+        fprintf(stderr, "I/O during saving binary file, ferror(f) returns nonzero.\n");
+    }
+
+    fclose(f);
+}
 
 uint64_t minmax_hash(unsigned int n, const state_t * jumps)
 {
@@ -150,6 +173,7 @@ int check_holdem5(const void * ofsm)
     }
 
     ofsm_print_array(stdout, "fsm5_data", &array, 52);
+    save_binary("holdem5.bin", &array);
 
     free(array.array);
     return 0;
@@ -354,6 +378,7 @@ int check_omaha7(const void * ofsm)
     }
 
     ofsm_print_array(stdout, "omaha7_data", &array, 52);
+    save_binary("omaha7.bin", &array);
 
     free(array.array);
     return 0;
