@@ -15,6 +15,9 @@ int pow_41_comb_52_test();
 int pack_test();
 int pack_without_renum_test();
 int optimize_test();
+int optimize_with_rnd_hash_test();
+int optimize_with_zero_hash_test();
+int optimize_with_invalid_hash_test();
 
 
 
@@ -29,6 +32,9 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(optimize_with_invalid_hash),
+    TEST_ITEM(optimize_with_zero_hash),
+    TEST_ITEM(optimize_with_rnd_hash),
     TEST_ITEM(optimize),
     TEST_ITEM(pack_without_renum),
     TEST_ITEM(pack),
@@ -763,6 +769,49 @@ void build_optimize(void * script)
     script_step_optimize(script, 3, NULL);
 }
 
+static uint64_t rnd_hash(unsigned int n, const state_t * jumps)
+{
+    uint64_t result = 0;
+    for (unsigned int i = 0; i < 1; ++i) {
+        result += jumps[i];
+    }
+    return result % 2;
+}
+
+void build_optimize_with_rnd_hash(void * script)
+{
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
+    script_step_pack(script, mod7, 0);
+    script_step_optimize(script, 3, rnd_hash);
+}
+
+static uint64_t zero_hash(unsigned int n, const state_t * jumps)
+{
+    return 0;
+}
+
+void build_optimize_with_zero_hash(void * script)
+{
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
+    script_step_pack(script, mod7, 0);
+    script_step_optimize(script, 3, zero_hash);
+}
+
+static uint64_t invalid_hash(unsigned int n, const state_t * jumps)
+{
+    return INVALID_HASH;
+}
+
+void build_optimize_with_invalid_hash(void * script)
+{
+    script_step_pow(script, 4, 1);
+    script_step_comb(script, 5, 2);
+    script_step_pack(script, mod7, 0);
+    script_step_optimize(script, 3, invalid_hash);
+}
+
 int check_optimize(const void * ofsm)
 {
     static const unsigned int NFLAKE = 3;
@@ -833,4 +882,22 @@ int optimize_test()
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_optimize, check_optimize);
+}
+
+int optimize_with_rnd_hash_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_optimize_with_rnd_hash, check_optimize);
+}
+
+int optimize_with_zero_hash_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_optimize_with_zero_hash, check_optimize);
+}
+
+int optimize_with_invalid_hash_test()
+{
+    char * argv[2] = { "outsider", "-v" };
+    return execute(1, argv, build_optimize_with_invalid_hash, check_optimize);
 }
