@@ -864,6 +864,11 @@ int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
     return 1;
 }
 
+static uint64_t get_first_jump(unsigned int n, const state_t * jumps)
+{
+    return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
+}
+
 static void do_optimize(struct script * restrict me, const struct step_data_optimize * args)
 {
     struct ofsm * restrict ofsm = me->ofsm;
@@ -912,6 +917,8 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
     { verbose("  --> calc state hashes and sort.");
 
+        hash_func * f = args->f != NULL ? args->f : get_first_jump;
+
         uint64_t counter = 0;
         double start = get_app_age();
 
@@ -921,11 +928,8 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         state_t state = 0;
         for (; ptr != end; ++ptr) {
             ptr->old = state++;
-            ptr->hash = 0;
-            if (args->f != NULL) {
-                ptr->hash = args->f(qinputs, jumps);
-                jumps += qinputs;
-            }
+            ptr->hash = f(qinputs, jumps);
+            jumps += qinputs;
 
             if ((++counter & 0xFF) == 0) {
                 double now = get_app_age();
@@ -962,10 +966,17 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 ++right;
             }
 
-            ++new_qstates;
-            left->new = left->old;
-            struct state_info * base = left;
-            while (++left != right) {
+            struct state_info * base;
+            if (left->hash != INVALID_HASH || left == state_infos) {
+                base = left;
+                ++new_qstates;
+                left->new = left->old;
+                ++left;
+            } else {
+                base = state_infos;
+            }
+
+            while (left != right) {
 
                 // Current state is unmerged by default
                 left->new = left->old;
@@ -1009,9 +1020,9 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 }
 
                 new_qstates += left->new == left->old;
+                ++left;
             }
         }
-
     } verbose("  <<< merge states.");
 
 
@@ -1037,12 +1048,13 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         const struct state_info * end = state_infos + old_qstates;
         for (; ptr != end; ++ptr) {
             if (ptr->new != ptr->old) {
-                ptr->index = state_infos[ptr->new].index;
+                state_infos[ptr->old].index = state_infos[ptr->new].index;
                 continue;
             }
 
-            ptr->index = new_qstate++;
-            memcpy(new_jumps + ptr->index * qinputs, old_jumps + ptr->old * qinputs, qinputs * sizeof(state_t));
+            state_infos[ptr->old].index = new_qstate++;
+            memcpy(new_jumps, old_jumps + ptr->old * qinputs, qinputs * sizeof(state_t));
+            new_jumps += qinputs;
         }
 
         free(flake->jumps[0]);
