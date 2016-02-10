@@ -30,6 +30,7 @@ struct ofsm_array
 
 struct array_header
 {
+    char name[16];
     uint32_t start_from;
     uint32_t qflakes;
     uint64_t len;
@@ -52,6 +53,6 @@ int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array
 const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output);
 
 int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
-int ofsm_save_binary_array(FILE * f, const struct ofsm_array * array);
+int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array);
 
 #endif

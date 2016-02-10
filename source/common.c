@@ -1278,12 +1278,15 @@ int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * arra
     return 0;
 }
 
-int ofsm_save_binary_array(FILE * f, const struct ofsm_array * array)
+int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array)
 {
     struct array_header header;
+    memset(header.name, 0, 16);
     header.start_from = array->start_from;
     header.qflakes = array->qflakes;
     header.len = array->len;
+    strncpy(header.name, name, 16);
+
     size_t sz = sizeof(struct array_header);
     size_t written = fwrite(&header, 1, sz, f);
     if (written != sz) {

@@ -102,7 +102,7 @@ uint64_t eval_slow_robust_rank5(const card_t * cards)
 }
 
 
-static void save_binary(const char * file_name, const struct ofsm_array * array)
+static void save_binary(const char * file_name, const char * name, const struct ofsm_array * array)
 {
     const char * mode = "wb";
     FILE * f = fopen(file_name, mode);
@@ -113,7 +113,7 @@ static void save_binary(const char * file_name, const struct ofsm_array * array)
         }
     }
 
-    int errcode = ofsm_save_binary_array(f, array);
+    int errcode = ofsm_save_binary_array(f, name, array);
     if (errcode != 0) {
         fprintf(stderr, "ofsm_save_binary_array(f, &Array) failed with %d as error code.\n", errcode);
     }
@@ -173,7 +173,7 @@ int check_holdem5(const void * ofsm)
     }
 
     ofsm_print_array(stdout, "fsm5_data", &array, 52);
-    save_binary("holdem5.bin", &array);
+    save_binary("holdem5.bin", "OFSM Holdem 5", &array);
 
     free(array.array);
     return 0;
@@ -378,7 +378,7 @@ int check_omaha7(const void * ofsm)
     }
 
     ofsm_print_array(stdout, "omaha7_data", &array, 52);
-    save_binary("omaha7.bin", &array);
+    save_binary("omaha7.bin", "OFSM Omaha 7", &array);
 
     free(array.array);
     return 0;
