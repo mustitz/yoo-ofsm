@@ -10,6 +10,11 @@
 const unsigned int * const fsm5 = fsm5_data;
 
 
+void build_holdem_5(void * script);
+int check_holdem_5(const void * ofsm);
+
+void build_six_plus_5(void * script);
+int check_six_plus_5(const void * ofsm);
 
 const char * card_str[] = {
     "2s", "2c", "2d", "2h",
@@ -102,7 +107,7 @@ uint64_t eval_slow_robust_rank5(const card_t * cards)
 }
 
 
-static void save_binary(const char * file_name, const char * name, const struct ofsm_array * array)
+void save_binary(const char * file_name, const char * name, const struct ofsm_array * array)
 {
     const char * mode = "wb";
     FILE * f = fopen(file_name, mode);
@@ -139,45 +144,6 @@ uint64_t minmax_hash(unsigned int n, const state_t * jumps)
 
 
 
-pack_value_t calc_holdem5(unsigned int n, const input_t * path)
-{
-    if (n != 5) {
-        fprintf(stderr, "Assertion failed: omaha_simplify_5 requires n = 5, but %u as passed.\n", n);
-    }
-    card_t cards[5];
-    for (size_t i=0; i<n; ++i) {
-        cards[i] = path[i];
-    }
-
-    return eval_slow_robust_rank5(cards);
-}
-
-void build_holdem5_script(void * script)
-{
-    script_step_comb(script, 52, 5);
-    script_step_pack(script, calc_holdem5, 0);
-    script_step_optimize(script, 5, NULL);
-    script_step_optimize(script, 4, NULL);
-    script_step_optimize(script, 3, NULL);
-    script_step_optimize(script, 2, NULL);
-    script_step_optimize(script, 1, NULL);
-}
-
-int check_holdem5(const void * ofsm)
-{
-    struct ofsm_array array;
-    int errcode = ofsm_get_array(ofsm, 1, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.\n", errcode);
-        return 1;
-    }
-
-    ofsm_print_array(stdout, "fsm5_data", &array, 52);
-    save_binary("holdem5.bin", "OFSM Holdem 5", &array);
-
-    free(array.array);
-    return 0;
-}
 
 
 
@@ -394,8 +360,9 @@ struct selector
 };
 
 struct selector selectors[] = {
+    { "holdem-5", build_holdem_5, check_holdem_5 },
+    { "six-plus-5", build_six_plus_5, check_six_plus_5 },
     { "omaha7", build_omaha7_script, check_omaha7 },
-    { "holdem5", build_holdem5_script, check_holdem5 },
     { NULL, NULL }
 };
 

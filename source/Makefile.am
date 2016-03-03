@@ -13,4 +13,4 @@ libyoofsm_a_SOURCES = common.c
 
 yoo_ofsm_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS)
 yoo_ofsm_LDADD = libyoofsm.a $(YOOSTDLIB_LIBS)
-yoo_ofsm_SOURCES = main.c
+yoo_ofsm_SOURCES = main.c deck-36.c deck-52.c
