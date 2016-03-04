@@ -22,10 +22,10 @@
 
 struct ofsm_array
 {
-    unsigned int start_from;
-    unsigned int qflakes;
+    uint32_t start_from;
+    uint32_t qflakes;
     uint64_t len;
-    unsigned int * array;
+    uint32_t * array;
 };
 
 struct array_header

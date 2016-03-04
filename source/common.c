@@ -1293,7 +1293,7 @@ int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array 
         return 1;
     }
 
-    sz = header.len * sizeof(unsigned int);
+    sz = header.len * sizeof(uint32_t);
     written = fwrite(array->array, 1, sz, f);
     if (written != sz) {
         return 1;

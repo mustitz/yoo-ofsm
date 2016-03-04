@@ -16,6 +16,9 @@ int check_holdem_5(const void * ofsm);
 void build_six_plus_5(void * script);
 int check_six_plus_5(const void * ofsm);
 
+void build_six_plus_7(void * script);
+int check_six_plus_7(const void * ofsm);
+
 const char * card_str[] = {
     "2s", "2c", "2d", "2h",
     "3s", "3c", "3d", "3h",
@@ -362,6 +365,7 @@ struct selector
 struct selector selectors[] = {
     { "holdem-5", build_holdem_5, check_holdem_5 },
     { "six-plus-5", build_six_plus_5, check_six_plus_5 },
+    { "six-plus-7", build_six_plus_7, check_six_plus_7 },
     { "omaha7", build_omaha7_script, check_omaha7 },
     { NULL, NULL }
 };

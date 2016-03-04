@@ -1,6 +1,8 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define CARD(nominal, suite)  (nominal*4 + suite)
 #define SUITE(card)           (card & 3)
@@ -105,7 +107,7 @@
 #define HAND_TYPE__FIRST_BIT           56
 #define PREFIX(hand_type)     ((uint64_t)HAND_TYPE__##hand_type << HAND_TYPE__FIRST_BIT)
 
-typedef int card_t;
+typedef uint32_t card_t;
 
 const char * card36_str[] = {
     "6s", "6c", "6d", "6h",
@@ -122,7 +124,7 @@ const char * card36_str[] = {
 const char * nominal36_str = "6789TJQKA";
 const char * suite36_str = "hdcs";
 
-static uint64_t eval_slow_robust_rank5(const card_t * cards)
+static uint64_t eval_rank5_via_slow_robust(const card_t * cards)
 {
     int nominal_stat[9] = { 0 };
     uint64_t suite_mask = 0;
@@ -188,21 +190,253 @@ static uint64_t eval_slow_robust_rank5(const card_t * cards)
     return rank | prefix;
 }
 
+const uint32_t * six_plus_fsm5;
+const uint32_t * six_plus_fsm7;
+
+static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
+{
+    uint32_t current = 52;
+    current = six_plus_fsm5[current + cards[0]];
+    current = six_plus_fsm5[current + cards[1]];
+    current = six_plus_fsm5[current + cards[2]];
+    current = six_plus_fsm5[current + cards[3]];
+    current = six_plus_fsm5[current + cards[4]];
+    return current;
+}
+
+static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
+{
+    #define NEW_WAY(p, n1, n2, n3, n4) \
+        { \
+            uint32_t current = p; \
+            current = six_plus_fsm5[current + cards[n1]]; \
+            current = six_plus_fsm5[current + cards[n2]]; \
+            current = six_plus_fsm5[current + cards[n3]]; \
+            current = six_plus_fsm5[current + cards[n4]]; \
+            if (current > result) result = current; \
+        }
+
+    uint32_t result = 0;
+    uint32_t start = 52;
+
+    uint32_t s0 = six_plus_fsm5[start + cards[0]];
+    uint32_t s1 = six_plus_fsm5[start + cards[1]];
+    uint32_t s2 = six_plus_fsm5[start + cards[2]];
+
+    NEW_WAY(s0, 1, 2, 3, 4);
+    NEW_WAY(s0, 1, 2, 3, 5);
+    NEW_WAY(s0, 1, 2, 3, 6);
+    NEW_WAY(s0, 1, 2, 4, 5);
+    NEW_WAY(s0, 1, 2, 4, 6);
+    NEW_WAY(s0, 1, 2, 5, 6);
+    NEW_WAY(s0, 1, 3, 4, 5);
+    NEW_WAY(s0, 1, 3, 4, 6);
+    NEW_WAY(s0, 1, 3, 5, 6);
+    NEW_WAY(s0, 1, 4, 5, 6);
+    NEW_WAY(s0, 2, 3, 4, 5);
+    NEW_WAY(s0, 2, 3, 4, 6);
+    NEW_WAY(s0, 2, 3, 5, 6);
+    NEW_WAY(s0, 2, 4, 5, 6);
+    NEW_WAY(s0, 3, 4, 5, 6);
+    NEW_WAY(s1, 2, 3, 4, 5);
+    NEW_WAY(s1, 2, 3, 4, 6);
+    NEW_WAY(s1, 2, 3, 5, 6);
+    NEW_WAY(s1, 2, 4, 5, 6);
+    NEW_WAY(s1, 3, 4, 5, 6);
+    NEW_WAY(s2, 3, 4, 5, 6);
+
+    #undef NEW_WAY
+
+    return result;
+}
+
+static inline uint32_t eval_rank7_via_fsm5_opt(const card_t * cards)
+{
+    uint32_t result = 0;
+    uint32_t start = 52;
+
+    uint32_t s0 = six_plus_fsm5[start + cards[0]];
+    uint32_t s1 = six_plus_fsm5[start + cards[1]];
+    uint32_t s2 = six_plus_fsm5[start + cards[2]];
+
+    #define NEW_STATE(x, y) uint32_t x##y = six_plus_fsm5[x + cards[y]];
+    #define LAST_STATE(x, y) { uint32_t tmp = six_plus_fsm5[x + cards[y]]; if (tmp > result) result = tmp; }
+
+    NEW_STATE(s0, 1);
+    NEW_STATE(s0, 2);
+    NEW_STATE(s0, 3);
+    NEW_STATE(s1, 2);
+    NEW_STATE(s1, 3);
+    NEW_STATE(s2, 3);
+
+    NEW_STATE(s01, 2);
+    NEW_STATE(s01, 3);
+    NEW_STATE(s01, 4);
+    NEW_STATE(s02, 3);
+    NEW_STATE(s02, 4);
+    NEW_STATE(s03, 4);
+    NEW_STATE(s12, 3);
+    NEW_STATE(s12, 4);
+    NEW_STATE(s13, 4);
+    NEW_STATE(s23, 4);
+
+    NEW_STATE(s012, 3);
+    NEW_STATE(s012, 4);
+    NEW_STATE(s012, 5);
+    NEW_STATE(s013, 4);
+    NEW_STATE(s013, 5);
+    NEW_STATE(s014, 5);
+    NEW_STATE(s023, 4);
+    NEW_STATE(s023, 5);
+    NEW_STATE(s024, 5);
+    NEW_STATE(s034, 5);
+    NEW_STATE(s123, 4);
+    NEW_STATE(s123, 5);
+    NEW_STATE(s124, 5);
+    NEW_STATE(s134, 5);
+    NEW_STATE(s234, 5);
+
+    LAST_STATE(s0123, 4);
+    LAST_STATE(s0123, 5);
+    LAST_STATE(s0123, 6);
+    LAST_STATE(s0124, 5);
+    LAST_STATE(s0124, 6);
+    LAST_STATE(s0125, 6);
+    LAST_STATE(s0134, 5);
+    LAST_STATE(s0134, 6);
+    LAST_STATE(s0135, 6);
+    LAST_STATE(s0145, 6);
+    LAST_STATE(s0234, 5);
+    LAST_STATE(s0234, 6);
+    LAST_STATE(s0235, 6);
+    LAST_STATE(s0245, 6);
+    LAST_STATE(s0345, 6);
+    LAST_STATE(s1234, 5);
+    LAST_STATE(s1234, 6);
+    LAST_STATE(s1235, 6);
+    LAST_STATE(s1245, 6);
+    LAST_STATE(s1345, 6);
+    LAST_STATE(s2345, 6);
+
+    #undef NEW_STATE
+    #undef LAST_STATE
+
+    return result;
+}
+
+static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
+{
+    uint32_t current = 52;
+    current = six_plus_fsm7[current + cards[0]];
+    current = six_plus_fsm7[current + cards[1]];
+    current = six_plus_fsm7[current + cards[2]];
+    current = six_plus_fsm7[current + cards[3]];
+    current = six_plus_fsm7[current + cards[4]];
+    current = six_plus_fsm7[current + cards[5]];
+    current = six_plus_fsm7[current + cards[6]];
+    return current;
+}
+
 #include "ofsm.h"
 
+#define FILENAME_FSM5  "six-plus-5.bin"
+#define SIGNATURE_FSM5 "OFSM Six Plus 5"
+
 void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
+
+static void load_fsm5()
+{
+    if (six_plus_fsm5 != NULL) return;
+
+    FILE * f = fopen(FILENAME_FSM5, "rb");
+    if (f == NULL) {
+        fprintf(stderr, "Error: Can not open file “%s”, error %d, %s\n.", FILENAME_FSM5, errno, strerror(errno));
+        errno = 0;
+        return;
+    }
+
+    struct array_header header;
+    size_t sz = sizeof(struct array_header);
+    size_t was_read = fread(&header, 1, sz, f);
+    if (was_read != sz) {
+        fprintf(stderr, "Error: Can not read %lu bytes from file “%s”", sz, FILENAME_FSM5);
+        if (errno != 0) {
+            fprintf(stderr, ", error %d, %s", errno, strerror(errno));
+            errno = 0;
+        }
+        if (feof(f)) {
+            fprintf(stderr, ", unexpected EOF");
+        }
+        fprintf(stderr, ".\n");
+        fclose(f);
+        return;
+    }
+
+    if (strncmp(header.name, SIGNATURE_FSM5, 16) != 0) {
+        fclose(f);
+        fprintf(stderr, "Error: Wrong signature for file “%s”.\n", FILENAME_FSM5);
+        fprintf(stderr, "  Header:   “%*s”\n", 16, header.name);
+        fprintf(stderr, "  Expected: “%s”\n", SIGNATURE_FSM5);
+        return;
+    }
+
+    if (header.start_from != 36) {
+        fclose(f);
+        fprintf(stderr, "Error: Wrong start_from value for file “%s”.\n", FILENAME_FSM5);
+        fprintf(stderr, "  Header:   “%u”\n", header.start_from);
+        fprintf(stderr, "  Expected: “%u”\n", 16);
+        return;
+    }
+
+    if (header.qflakes != 5) {
+        fclose(f);
+        fprintf(stderr, "Error: Wrong qflakes value for file “%s”.\n", FILENAME_FSM5);
+        fprintf(stderr, "  Header:   “%u”\n", header.qflakes);
+        fprintf(stderr, "  Expected: “%u”\n", 5);
+        return;
+    }
+
+    sz = header.len * sizeof(uint32_t);
+    void * ptr = malloc(sz);
+    if (ptr == NULL) {
+        fclose(f);
+        fprintf(stderr, "Error: allocation error, malloc(%lu) failed with a NULL as a result.\n", sz);
+        return;
+    }
+
+    was_read = fread(ptr, 1, sz, f);
+
+    if (was_read == sz) {
+        six_plus_fsm5 = ptr;
+    } else {
+        fprintf(stderr, "Error: Can not read %lu bytes from file “%s”", sz, FILENAME_FSM5);
+        if (errno != 0) {
+            fprintf(stderr, ", error %d, %s", errno, strerror(errno));
+            errno = 0;
+        }
+        if (feof(f)) {
+            fprintf(stderr, ", unexpected EOF");
+        }
+        fprintf(stderr, ".\n");
+        free(ptr);
+    }
+
+    fclose(f);
+}
 
 pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
 {
     if (n != 5) {
-        fprintf(stderr, "Assertion failed: omaha_simplify_5 requires n = 5, but %u as passed.\n", n);
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        exit(1);
     }
-    card_t cards[5];
+
+    card_t cards[n];
     for (size_t i=0; i<n; ++i) {
         cards[i] = path[i];
     }
 
-    return eval_slow_robust_rank5(cards);
+    return eval_rank5_via_slow_robust(cards);
 }
 
 void build_six_plus_5(void * script)
@@ -227,6 +461,56 @@ int check_six_plus_5(const void * ofsm)
 
     // ofsm_print_array(stdout, "fsm5_data", &array, 52);
     save_binary("six-plus-5.bin", "OFSM Six Plus 5", &array);
+
+    free(array.array);
+    return 0;
+}
+
+pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
+{
+    if (n != 7) {
+        fprintf(stderr, "Assertion failed: calc_six_plus_7 requires n = 7, but %u as passed.\n", n);
+        abort();
+    }
+
+    card_t cards[n];
+    for (size_t i=0; i<n; ++i) {
+        cards[i] = path[i];
+    }
+
+    return eval_rank5_via_fsm5(cards);
+}
+
+void build_six_plus_7(void * script)
+{
+    load_fsm5();
+    if (six_plus_fsm5 == NULL) {
+        return;
+    }
+
+    script_step_comb(script, 36, 7);
+    // Forget suites
+    script_step_pack(script, calc_six_plus_7, 0);
+    script_step_optimize(script, 7, NULL);
+    script_step_optimize(script, 6, NULL);
+    script_step_optimize(script, 5, NULL);
+    script_step_optimize(script, 4, NULL);
+    script_step_optimize(script, 3, NULL);
+    script_step_optimize(script, 2, NULL);
+    script_step_optimize(script, 1, NULL);
+}
+
+int check_six_plus_7(const void * ofsm)
+{
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.\n", errcode);
+        return 1;
+    }
+
+    // ofsm_print_array(stdout, "fsm5_data", &array, 52);
+    save_binary("six-plus-7.bin", "OFSM Six Plus 7", &array);
 
     free(array.array);
     return 0;
