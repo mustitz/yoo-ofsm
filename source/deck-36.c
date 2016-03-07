@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "yoo-combinatoric.h"
+#include "yoo-stdlib.h"
+
 #define CARD(nominal, suite)  (nominal*4 + suite)
 #define SUITE(card)           (card & 3)
 #define NOMINAL(card)         (card >> 2)
@@ -74,26 +77,6 @@
 #define CARD_6d    CARD(NOMINAL_6, SUITE_D)
 #define CARD_6h    CARD(NOMINAL_6, SUITE_H)
 
-#define CARD_5s    CARD(NOMINAL_5, SUITE_S)
-#define CARD_5c    CARD(NOMINAL_5, SUITE_C)
-#define CARD_5d    CARD(NOMINAL_5, SUITE_D)
-#define CARD_5h    CARD(NOMINAL_5, SUITE_H)
-
-#define CARD_4s    CARD(NOMINAL_4, SUITE_S)
-#define CARD_4c    CARD(NOMINAL_4, SUITE_C)
-#define CARD_4d    CARD(NOMINAL_4, SUITE_D)
-#define CARD_4h    CARD(NOMINAL_4, SUITE_H)
-
-#define CARD_3s    CARD(NOMINAL_3, SUITE_S)
-#define CARD_3c    CARD(NOMINAL_3, SUITE_C)
-#define CARD_3d    CARD(NOMINAL_3, SUITE_D)
-#define CARD_3h    CARD(NOMINAL_3, SUITE_H)
-
-#define CARD_2s    CARD(NOMINAL_2, SUITE_S)
-#define CARD_2c    CARD(NOMINAL_2, SUITE_C)
-#define CARD_2d    CARD(NOMINAL_2, SUITE_D)
-#define CARD_2h    CARD(NOMINAL_2, SUITE_H)
-
 #define HAND_TYPE__HIGH_CARD            1
 #define HAND_TYPE__ONE_PAIR             2
 #define HAND_TYPE__TWO_PAIR             3
@@ -110,15 +93,15 @@
 typedef uint32_t card_t;
 
 const char * card36_str[] = {
-    "6s", "6c", "6d", "6h",
-    "7s", "7c", "7d", "7h",
-    "8s", "8c", "8d", "8h",
-    "9s", "9c", "9d", "9h",
-    "Ts", "Tc", "Td", "Th",
-    "Js", "Jc", "Jd", "Jh",
-    "Qs", "Qc", "Qd", "Qh",
-    "Ks", "Kc", "Kd", "Kh",
-    "As", "Ac", "Ad", "Ah"
+    "6h", "6d", "6c", "6s",
+    "7h", "7d", "7c", "7s",
+    "8h", "8d", "8c", "8s",
+    "9h", "9d", "9c", "9s",
+    "Th", "Td", "Tc", "Ts",
+    "Jh", "Jd", "Jc", "Js",
+    "Qh", "Qd", "Qc", "Qs",
+    "Kh", "Kd", "Kc", "Ks",
+    "Ah", "Ad", "Ac", "As"
 };
 
 const char * nominal36_str = "6789TJQKA";
@@ -195,7 +178,7 @@ const uint32_t * six_plus_fsm7;
 
 static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
 {
-    uint32_t current = 52;
+    uint32_t current = 36;
     current = six_plus_fsm5[current + cards[0]];
     current = six_plus_fsm5[current + cards[1]];
     current = six_plus_fsm5[current + cards[2]];
@@ -217,7 +200,7 @@ static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
         }
 
     uint32_t result = 0;
-    uint32_t start = 52;
+    uint32_t start = 36;
 
     uint32_t s0 = six_plus_fsm5[start + cards[0]];
     uint32_t s1 = six_plus_fsm5[start + cards[1]];
@@ -253,7 +236,7 @@ static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
 static inline uint32_t eval_rank7_via_fsm5_opt(const card_t * cards)
 {
     uint32_t result = 0;
-    uint32_t start = 52;
+    uint32_t start = 36;
 
     uint32_t s0 = six_plus_fsm5[start + cards[0]];
     uint32_t s1 = six_plus_fsm5[start + cards[1]];
@@ -326,7 +309,7 @@ static inline uint32_t eval_rank7_via_fsm5_opt(const card_t * cards)
 
 static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
 {
-    uint32_t current = 52;
+    uint32_t current = 36;
     current = six_plus_fsm7[current + cards[0]];
     current = six_plus_fsm7[current + cards[1]];
     current = six_plus_fsm7[current + cards[2]];
@@ -341,25 +324,25 @@ static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
 
 #define FILENAME_FSM5  "six-plus-5.bin"
 #define SIGNATURE_FSM5 "OFSM Six Plus 5"
+#define FILENAME_FSM7  "six-plus-7.bin"
+#define SIGNATURE_FSM7 "OFSM Six Plus 7"
 
 void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
 
-static void load_fsm5()
+static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes)
 {
-    if (six_plus_fsm5 != NULL) return;
-
-    FILE * f = fopen(FILENAME_FSM5, "rb");
+    FILE * f = fopen(filename, "rb");
     if (f == NULL) {
-        fprintf(stderr, "Error: Can not open file “%s”, error %d, %s\n.", FILENAME_FSM5, errno, strerror(errno));
+        fprintf(stderr, "Error: Can not open file “%s”, error %d, %s.\n", filename, errno, strerror(errno));
         errno = 0;
-        return;
+        return NULL;
     }
 
     struct array_header header;
     size_t sz = sizeof(struct array_header);
     size_t was_read = fread(&header, 1, sz, f);
     if (was_read != sz) {
-        fprintf(stderr, "Error: Can not read %lu bytes from file “%s”", sz, FILENAME_FSM5);
+        fprintf(stderr, "Error: Can not read %lu bytes from file “%s”", sz, filename);
         if (errno != 0) {
             fprintf(stderr, ", error %d, %s", errno, strerror(errno));
             errno = 0;
@@ -369,31 +352,31 @@ static void load_fsm5()
         }
         fprintf(stderr, ".\n");
         fclose(f);
-        return;
+        return NULL;
     }
 
-    if (strncmp(header.name, SIGNATURE_FSM5, 16) != 0) {
+    if (strncmp(header.name, signature, 16) != 0) {
         fclose(f);
-        fprintf(stderr, "Error: Wrong signature for file “%s”.\n", FILENAME_FSM5);
+        fprintf(stderr, "Error: Wrong signature for file “%s”.\n", filename);
         fprintf(stderr, "  Header:   “%*s”\n", 16, header.name);
-        fprintf(stderr, "  Expected: “%s”\n", SIGNATURE_FSM5);
-        return;
+        fprintf(stderr, "  Expected: “%s”\n", signature);
+        return NULL;
     }
 
-    if (header.start_from != 36) {
+    if (header.start_from != start_from) {
         fclose(f);
-        fprintf(stderr, "Error: Wrong start_from value for file “%s”.\n", FILENAME_FSM5);
+        fprintf(stderr, "Error: Wrong start_from value for file “%s”.\n", filename);
         fprintf(stderr, "  Header:   “%u”\n", header.start_from);
-        fprintf(stderr, "  Expected: “%u”\n", 16);
-        return;
+        fprintf(stderr, "  Expected: “%u”\n", start_from);
+        return NULL;
     }
 
-    if (header.qflakes != 5) {
+    if (header.qflakes != qflakes) {
         fclose(f);
-        fprintf(stderr, "Error: Wrong qflakes value for file “%s”.\n", FILENAME_FSM5);
+        fprintf(stderr, "Error: Wrong qflakes value for file “%s”.\n", filename);
         fprintf(stderr, "  Header:   “%u”\n", header.qflakes);
-        fprintf(stderr, "  Expected: “%u”\n", 5);
-        return;
+        fprintf(stderr, "  Expected: “%u”\n", qflakes);
+        return NULL;
     }
 
     sz = header.len * sizeof(uint32_t);
@@ -401,15 +384,13 @@ static void load_fsm5()
     if (ptr == NULL) {
         fclose(f);
         fprintf(stderr, "Error: allocation error, malloc(%lu) failed with a NULL as a result.\n", sz);
-        return;
+        return NULL;
     }
 
     was_read = fread(ptr, 1, sz, f);
 
-    if (was_read == sz) {
-        six_plus_fsm5 = ptr;
-    } else {
-        fprintf(stderr, "Error: Can not read %lu bytes from file “%s”", sz, FILENAME_FSM5);
+    if (was_read != sz) {
+        fprintf(stderr, "Error: Can not read %lu bytes from file “%s”", sz, filename);
         if (errno != 0) {
             fprintf(stderr, ", error %d, %s", errno, strerror(errno));
             errno = 0;
@@ -419,9 +400,26 @@ static void load_fsm5()
         }
         fprintf(stderr, ".\n");
         free(ptr);
+        ptr = NULL;
     }
 
     fclose(f);
+    return ptr;
+
+}
+
+static void load_fsm5()
+{
+    if (six_plus_fsm5 != NULL) return;
+
+    six_plus_fsm5 = load_fsm(FILENAME_FSM5, SIGNATURE_FSM5, 36, 5);
+}
+
+static void load_fsm7()
+{
+    if (six_plus_fsm7 != NULL) return;
+
+    six_plus_fsm7 = load_fsm(FILENAME_FSM7, SIGNATURE_FSM7, 36, 7);
 }
 
 pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
@@ -478,7 +476,12 @@ pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
         cards[i] = path[i];
     }
 
-    return eval_rank5_via_fsm5(cards);
+    uint32_t result = eval_rank7_via_fsm5_opt(cards);
+    if (result == 0) {
+        return INVALID_PACK_VALUE;
+    } else {
+        return result - 1;
+    }
 }
 
 void build_six_plus_7(void * script)
@@ -490,7 +493,8 @@ void build_six_plus_7(void * script)
 
     script_step_comb(script, 36, 7);
     // Forget suites
-    script_step_pack(script, calc_six_plus_7, 0);
+    script_step_pack(script, calc_six_plus_7, PACK_FLAG__SKIP_RENUMERING);
+
     script_step_optimize(script, 7, NULL);
     script_step_optimize(script, 6, NULL);
     script_step_optimize(script, 5, NULL);
@@ -514,4 +518,264 @@ int check_six_plus_7(const void * ofsm)
 
     free(array.array);
     return 0;
+}
+
+
+
+void test_suite_start(const char * text)
+{
+    static const char * dots = "..........................................................................................";
+    int has_printed = printf("%s", text);
+    if (has_printed < 99) {
+        printf("%.*s", 99 - has_printed, dots);
+    }
+    fflush(stdout);
+}
+
+void test_suite_passed()
+{
+    printf("OK\n");
+    fflush(stdout);
+}
+
+void test_suite_failed()
+{
+    printf("FAIL\n");
+    fflush(stdout);
+}
+
+const card_t quick_ordered_hand5[] = {
+    CARD_6h, CARD_8c, CARD_9c, CARD_Tc, CARD_Qs,
+    CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_As,
+    CARD_6s, CARD_6c, CARD_9c, CARD_Qd, CARD_As,
+    CARD_Ts, CARD_Tc, CARD_6c, CARD_7d, CARD_8c,
+    CARD_7s, CARD_7d, CARD_6s, CARD_6c, CARD_Ad,
+    CARD_As, CARD_Ah, CARD_Kh, CARD_Kc, CARD_Tc,
+    CARD_As, CARD_9c, CARD_8d, CARD_7h, CARD_6h,
+    CARD_6c, CARD_7c, CARD_8c, CARD_9s, CARD_Ts,
+    CARD_Ad, CARD_Kc, CARD_Qs, CARD_Js, CARD_Ts,
+    CARD_Jc, CARD_Jd, CARD_Jh, CARD_9c, CARD_7h,
+    CARD_Ks, CARD_Kc, CARD_Kd, CARD_Qs, CARD_6d,
+    CARD_6s, CARD_6c, CARD_6h, CARD_As, CARD_Ad,
+    CARD_Js, CARD_Jd, CARD_Jh, CARD_9s, CARD_9d,
+    CARD_As, CARD_Qs, CARD_Ts, CARD_7s, CARD_6s,
+    CARD_Ad, CARD_Kd, CARD_Td, CARD_9d, CARD_7d,
+    CARD_8c, CARD_8s, CARD_8d, CARD_8h, CARD_6c,
+    CARD_8s, CARD_8c, CARD_8d, CARD_8h, CARD_Kc,
+    CARD_Ad, CARD_9d, CARD_8d, CARD_7d, CARD_6d,
+    CARD_Tc, CARD_9c, CARD_8c, CARD_7c, CARD_6c,
+    CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th, CARD_9h,
+    CARD_Ah, CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th,
+    0xFF
+};
+
+void quick_verify_eval_rank5_via_slow_robust()
+{
+    test_suite_start("Quick verify eval_rank5_via_slow_robust");
+
+
+    uint64_t prev_rank = 0;
+
+    const card_t * current = quick_ordered_hand5;
+    for (; *current != 0xFF; current += 5) {
+        uint64_t rank = eval_rank5_via_slow_robust(current);
+        if (rank < prev_rank) {
+            test_suite_failed();
+            printf("  Wrong order!\n");
+            printf("  Previous: %s %s %s %s %s - 0x%lX\n",
+                card36_str[current[-5]],
+                card36_str[current[-4]],
+                card36_str[current[-3]],
+                card36_str[current[-2]],
+                card36_str[current[-1]],
+                prev_rank);
+            printf("  Current:  %s %s %s %s %s - 0x%lX\n",
+                card36_str[current[0]],
+                card36_str[current[1]],
+                card36_str[current[2]],
+                card36_str[current[3]],
+                card36_str[current[4]],
+                rank);
+            return;
+        }
+        prev_rank = rank;
+    }
+
+    test_suite_passed();
+}
+
+void quick_verify_eval_rank5_via_fsm5()
+{
+    test_suite_start("Quick verify eval_rank5_via_fsm5");
+
+
+    uint64_t prev_rank = 0;
+
+    const card_t * current = quick_ordered_hand5;
+    for (; *current != 0xFF; current += 5) {
+        uint64_t rank = eval_rank5_via_fsm5(current);
+        if (rank < prev_rank) {
+            test_suite_failed();
+            printf("  Wrong order!\n");
+            printf("  Previous: %s %s %s %s %s - %lu\n",
+                card36_str[current[-5]],
+                card36_str[current[-4]],
+                card36_str[current[-3]],
+                card36_str[current[-2]],
+                card36_str[current[-1]],
+                prev_rank);
+            printf("  Current:  %s %s %s %s %s - %lu\n",
+                card36_str[current[0]],
+                card36_str[current[1]],
+                card36_str[current[2]],
+                card36_str[current[3]],
+                card36_str[current[4]],
+                rank);
+            return;
+        }
+        prev_rank = rank;
+    }
+
+    test_suite_passed();
+}
+
+void verify_equivalence_for_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5()
+{
+    test_suite_start("Verify equivalence for eval_rank5_via_slow_robust() and eval_rank5_via_fsm5()");
+
+    static uint64_t saved[9999];
+
+    uint64_t mask = 0x1F;
+    uint64_t last = 1ull << 36;
+
+    for (; mask < last; mask = next_combination_mask(mask)) {
+        card_t cards[5];
+        uint64_t tmp = mask;
+        cards[0] = extract_rbit64(&tmp);
+        cards[1] = extract_rbit64(&tmp);
+        cards[2] = extract_rbit64(&tmp);
+        cards[3] = extract_rbit64(&tmp);
+        cards[4] = extract_rbit64(&tmp);
+
+        uint64_t rank1 = eval_rank5_via_fsm5(cards);
+        uint64_t rank2 = eval_rank5_via_slow_robust(cards);
+
+        if (rank1 <= 0 || rank1 > 9999) {
+            test_suite_failed();
+            printf("  Wrong rank 1!\n");
+            printf("  Hand: %s %s %s %s %s\n",
+                card36_str[cards[0]],
+                card36_str[cards[1]],
+                card36_str[cards[2]],
+                card36_str[cards[3]],
+                card36_str[cards[4]]);
+            printf("  Rank 1: %lu\n", rank1);
+            printf("  Rank 2: 0x%lX\n", rank2);
+            return;
+        }
+
+        if (rank2 == 0) {
+            test_suite_failed();
+            printf("  Wrong rank 2!\n");
+            printf("  Hand: %s %s %s %s %s\n",
+                card36_str[cards[0]],
+                card36_str[cards[1]],
+                card36_str[cards[2]],
+                card36_str[cards[3]],
+                card36_str[cards[4]]);
+            printf("  Rank 1: %lu\n", rank1);
+            printf("  Rank 2: 0x%lX\n", rank2);
+            return;
+        }
+
+        if (saved[rank1] == 0) {
+            saved[rank1] = rank2;
+            continue;
+        }
+
+        if (saved[rank1] != rank2) {
+            printf("  Rank mismatch for hand %s %s %s %s %s:\n",
+                card36_str[cards[0]],
+                card36_str[cards[1]],
+                card36_str[cards[2]],
+                card36_str[cards[3]],
+                card36_str[cards[4]]);
+            printf("  Saved rank: 0x%lX\n", saved[rank1]);
+            printf("  Caclulated: 0x%lX\n", saved[rank2]);
+        }
+    }
+
+    test_suite_passed();
+}
+
+void verify_permutations_for_eval_rank5_via_fsm5()
+{
+    test_suite_start("Verify permutations for eval_rank5_via_fsm5()");
+
+    test_suite_passed();
+}
+
+void verify_equivalence_for_eval_rank7_via_fsm5_opt_and_eval_rank7_via_fsm7()
+{
+    test_suite_start("Verify equivalence for eval_rank7_via_fsm5_opt() and eval_rank7_via_fsm7()");
+
+    uint64_t mask = 0x7F;
+    uint64_t last = 1ull << 36;
+
+    for (; mask < last; mask = next_combination_mask(mask)) {
+        card_t cards[7];
+        uint64_t tmp = mask;
+        cards[0] = extract_rbit64(&tmp);
+        cards[1] = extract_rbit64(&tmp);
+        cards[2] = extract_rbit64(&tmp);
+        cards[3] = extract_rbit64(&tmp);
+        cards[4] = extract_rbit64(&tmp);
+        cards[5] = extract_rbit64(&tmp);
+        cards[6] = extract_rbit64(&tmp);
+
+        uint32_t rank1 = eval_rank7_via_fsm5_opt(cards);
+        uint32_t rank2 = eval_rank7_via_fsm7(cards);
+
+        if (rank1 != rank2) {
+            test_suite_failed();
+            printf("  Wrong rank pair!\n");
+            printf("  Hand: %s %s %s %s %s %s %s\n",
+                card36_str[cards[0]],
+                card36_str[cards[1]],
+                card36_str[cards[2]],
+                card36_str[cards[3]],
+                card36_str[cards[4]],
+                card36_str[cards[5]],
+                card36_str[cards[6]]);
+            printf("  Rank 1 (via fsm5): %u\n", rank1);
+            printf("  Rank 2 (via fsm7): %u\n", rank2);
+
+            uint32_t rank3 = eval_rank7_via_fsm5_brutte(cards);
+            printf("  Rank 3 (another):  %u\n", rank3);
+            // return;
+        }
+    }
+
+    test_suite_passed();
+}
+
+void verify_six_plus()
+{
+    load_fsm5();
+    if (six_plus_fsm5 == NULL) {
+        fprintf(stderr, "Fatal: Can not load OFSM 5 cards for Six Poker Plus.\n");
+        exit(1);
+    }
+
+    load_fsm7();
+    if (six_plus_fsm7 == NULL) {
+        fprintf(stderr, "Fatal: Can not load OFSM 5 cards for Six Poker Plus.\n");
+        exit(1);
+    }
+
+    quick_verify_eval_rank5_via_slow_robust();
+    quick_verify_eval_rank5_via_fsm5();
+    verify_equivalence_for_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5();
+    verify_permutations_for_eval_rank5_via_fsm5();
+    verify_equivalence_for_eval_rank7_via_fsm5_opt_and_eval_rank7_via_fsm7();
 }

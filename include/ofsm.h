@@ -54,5 +54,6 @@ const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t ou
 
 int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
 int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array);
+void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
 
 #endif
