@@ -200,7 +200,7 @@ static uint64_t eval_slow_robust_rank5(const card_t * cards)
     return rank | prefix;
 }
 
-#include "ofsm.h"
+#include "yoo-ofsm.h"
 
 void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
 

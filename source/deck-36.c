@@ -320,7 +320,7 @@ static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
     return current;
 }
 
-#include "ofsm.h"
+#include "yoo-ofsm.h"
 
 #define FILENAME_FSM5  "six-plus-5.bin"
 #define SIGNATURE_FSM5 "OFSM Six Plus 5"

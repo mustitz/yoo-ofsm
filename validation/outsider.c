@@ -1,4 +1,4 @@
-#include "ofsm.h"
+#include "yoo-ofsm.h"
 
 #include <stdlib.h>
 #include <string.h>

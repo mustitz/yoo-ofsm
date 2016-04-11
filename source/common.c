@@ -1,4 +1,4 @@
-#include <ofsm.h>
+#include "yoo-ofsm.h"
 
 #include <yoo-stdlib.h>
 #include <yoo-combinatoric.h>
