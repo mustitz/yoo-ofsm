@@ -148,7 +148,7 @@ fi
     while read line ; 
     do
         test_name="outsider-$line"
-        cmd="./outsider $line"
+        cmd="./.libs/lt-outsider $line"
         run_test ">>$log_file"
         flush_valgrind
         check_status

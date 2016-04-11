@@ -1,23 +1,32 @@
 *.o
+*.lo
 *.a
+*.la
 *.bin
 *.log
 *.trs
 *.swp
 
 .deps/
+.libs/
+
 Makefile
 Makefile.in
+yooofsmlib.pc
 
 /INSTALL
 /aclocal.m4
 /autom4te.cache/
 /compile
+/config.guess
 /config.log
 /config.status
+/config.sub
 /configure
 /depcomp
 /install-sh
+/libtool
+/ltmain.sh
 /missing
 /test-driver
 

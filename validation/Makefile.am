@@ -12,7 +12,7 @@ endif
 EXTRA_CFLAGS += -I${srcdir}/../include -D_GNU_SOURCE
 
 outsider_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS)
-outsider_LDADD = ../source/libyoofsm.a $(YOOSTDLIB_LIBS)
+outsider_LDADD = $(YOOSTDLIB_LIBS) -L./../source/.libs/ -lyooofsmlib
 outsider_SOURCES = outsider.c
 
 .PHONY : run-outsider

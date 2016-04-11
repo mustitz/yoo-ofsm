@@ -9,14 +9,15 @@ PKG_CHECK_MODULES([YOOSTDLIB], [yoostdlib >= 0.1])
 YOO_ENABLE_DEBUG
 YOO_WITH_VALGRIND
 
+AC_PROG_LIBTOOL
 AC_PROG_CC_C99
-AC_PROG_RANLIB
 AM_SILENT_RULES([yes])
 
 AC_CONFIG_FILES([
     Makefile 
-    source/Makefile 
+    yooofsmlib.pc
     include/Makefile
+    source/Makefile 
     validation/Makefile
     validation/validation.sh
 ],[
