@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libyooofsm
+Description: よ library for OFSM synthesis.
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lyooofsmlib
+Cflags: -I${includedir}
