@@ -24,9 +24,11 @@
 static void errmsg(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
 static void verbose(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
+static inline void print_msg(FILE * f, const char * fmt, ...) __attribute__ ((format (printf, 2, 3)));
 
 
 #define ERRHEADER errmsg("Error in function “%s”, file %s:%d.", __FUNCTION__, __FILE__, __LINE__)
+#define ERRLOCATION(f) print_msg(f, "Error in function “%s”, file %s:%d.", __FUNCTION__, __FILE__, __LINE__)
 
 static void verrmsg(const char * fmt, va_list args)
 {
@@ -42,6 +44,21 @@ static void errmsg(const char * fmt, ...)
     va_end(args);
 }
 
+static inline void vprint_msg(FILE * f, const char * fmt, va_list args)
+{
+    if (f != NULL) {
+        vfprintf(f, fmt, args);
+        fprintf(f, "\n");
+    }
+}
+
+static inline void print_msg(FILE * f, const char * fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vprint_msg(f, fmt, args);
+    va_end(args);
+}
 
 
 int opt_save_steps = 0;
@@ -1483,4 +1500,32 @@ int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array
 const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output)
 {
     return do_ofsm_get_path(ofsm, nflake, output);
+}
+
+
+
+struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream)
+{
+    struct mempool * restrict actual_mempool = mempool;
+
+    if (actual_mempool == NULL) {
+        actual_mempool = create_mempool(4000);
+        if (actual_mempool == NULL) {
+            ERRLOCATION(errstream);
+            print_msg(errstream, "create_mempool(4000) failed with NULL as return value.");
+            return NULL;
+        }
+    }
+
+    size_t sz = sizeof(struct ofsm_builder);
+    struct ofsm_builder * restrict result = mempool_alloc(actual_mempool, sz);
+    if (result == NULL) {
+        ERRLOCATION(errstream);
+        print_msg(errstream, "mempool_alloc(actual_mempool, %lu) failed with NULL as return value.", sz);
+    }
+
+    result->mempool = actual_mempool;
+    result->logstream = NULL;
+    result->errstream = errstream;
+    return result;
 }

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <yoo-stdlib.h>
+
 
 
 #define input_t         uint8_t
@@ -36,10 +38,14 @@ struct array_header
     uint64_t len;
 };
 
+
 typedef void build_script_func(void * script);
 typedef int check_ofsm_func(const void * ofsm);
 typedef pack_value_t pack_func(unsigned int n, const input_t * path);
 typedef uint64_t hash_func(unsigned int n, const state_t * jumps);
+
+
+
 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check);
 
@@ -55,5 +61,16 @@ const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t ou
 int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
 int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array);
 void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
+
+
+
+struct ofsm_builder
+{
+    struct mempool * restrict mempool;
+    FILE * logstream;
+    FILE * errstream;
+};
+
+struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream);
 
 #endif
