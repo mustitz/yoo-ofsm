@@ -72,5 +72,11 @@ struct ofsm_builder
 };
 
 struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream);
+void free_ofsm_builder(struct ofsm_builder * restrict me);
+
+int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m);
+int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags);
+int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, hash_func f);
+int ofsm_builder_make_array(struct ofsm_builder * restrict me);
 
 #endif

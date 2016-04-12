@@ -1529,3 +1529,8 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     result->errstream = errstream;
     return result;
 }
+
+void free_ofsm_builder(struct ofsm_builder * restrict me)
+{
+    free_mempool(me->mempool);
+}
