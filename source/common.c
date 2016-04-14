@@ -1527,10 +1527,38 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     result->mempool = actual_mempool;
     result->logstream = NULL;
     result->errstream = errstream;
+    result->ofsm_stack_first = 0;
+    result->ofsm_stack_last = 0;
     return result;
 }
 
 void free_ofsm_builder(struct ofsm_builder * restrict me)
 {
+    for (size_t i=me->ofsm_stack_first; i != me->ofsm_stack_last; i = (i+1) % OFSM_STACK_SZ) {
+        free_ofsm(me->ofsm_stack[i]);
+    }
+
     free_mempool(me->mempool);
+}
+
+int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
+{
+    const size_t last = me->ofsm_stack_last;
+    const size_t next = (last + 1) % OFSM_STACK_SZ;
+    if (next == me->ofsm_stack_first) {
+        ERRLOCATION(me->errstream);
+        print_msg(me->errstream, "ofsm_builder_push_comb failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
+        return 1;
+    }
+
+    struct ofsm * restrict ofsm = create_ofsm(me->mempool, 0);
+    if (ofsm == NULL) {
+        ERRLOCATION(me->errstream);
+        print_msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
+        return 1;
+    }
+
+    me->ofsm_stack[last] = ofsm;
+    me->ofsm_stack_last = next;
+    return 0;
 }

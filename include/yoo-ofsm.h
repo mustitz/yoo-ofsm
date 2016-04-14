@@ -20,6 +20,7 @@
 #define INVALID_PACK_VALUE (~(pack_value_t)0)
 #define INVALID_HASH (~0ull)
 
+#define OFSM_STACK_SZ   16
 
 
 struct ofsm_array
@@ -69,6 +70,9 @@ struct ofsm_builder
     struct mempool * restrict mempool;
     FILE * logstream;
     FILE * errstream;
+    void * ofsm_stack[OFSM_STACK_SZ];
+    size_t ofsm_stack_first;
+    size_t ofsm_stack_last;
 };
 
 struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream);
