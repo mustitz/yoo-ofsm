@@ -108,6 +108,10 @@ int main(int argc, char * argv[])
 
 
 
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me);
+
+
+
 static void print_path(const char * prefix, const input_t * path, size_t len)
 {
     fprintf(stderr, "%s", prefix);
@@ -910,32 +914,49 @@ int optimize_with_invalid_hash_test(void)
 
 
 
-/*
-void build_comb_42(void * script)
+int empty_builder_test(void)
 {
-    script_step_comb(script, 4, 2);
+    struct mempool * restrict mempool = create_mempool(2000);
+    struct ofsm_builder * restrict ofsm_builder = create_ofsm_builder(mempool, stderr);
+    free_ofsm_builder(ofsm_builder);
+    free_mempool(mempool);
+    return 0;
 }
 
-int check_comb_42(const void * ofsm)
+
+
+int new_comb_42_test(void)
 {
     static const unsigned int NFLAKE = 2;
+    static const unsigned int QOUTS = 6;
+    int errcode;
 
-    static int stat[6];
+    int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_array array;
-    int errcode = ofsm_get_array(ofsm, 1, &array);
+    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+
+    errcode = ofsm_builder_push_comb(me, 4, 2);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        fprintf(stderr, "ofsm_builder_push_comb(me, 4, 2) failed with %d as error code.", errcode);
         return 1;
     }
+
+    struct ofsm_array array;
+    errcode = ofsm_builder_make_array(me, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    const void * ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
+        unsigned int value = run_array(&array, c);
+        if (value < 0 || value > QOUTS) {
+            fprintf(stderr, "Invalid value (%d) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
         }
@@ -985,32 +1006,6 @@ int check_comb_42(const void * ofsm)
     }
 
     free(array.array);
-    return 0;
-}
-
-*/
-
-int empty_builder_test(void)
-{
-    struct mempool * restrict mempool = create_mempool(2000);
-    struct ofsm_builder * restrict ofsm_builder = create_ofsm_builder(mempool, stderr);
-    free_ofsm_builder(ofsm_builder);
-    free_mempool(mempool);
-    return 0;
-}
-
-int new_comb_42_test(void)
-{
-    int errcode;
-
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
-
-    errcode = ofsm_builder_push_comb(me, 4, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 4, 2) failed with %d as error code.", errcode);
-        return 1;
-    }
-
     free_ofsm_builder(me);
     return 0;
 }

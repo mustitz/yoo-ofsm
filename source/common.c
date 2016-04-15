@@ -1439,6 +1439,29 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
     }
 }
 
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+{
+    if (me->ofsm_stack_first == me->ofsm_stack_last) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_get_ofsm is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        return NULL;
+    }
+
+    return me->ofsm_stack[me->ofsm_stack_first];
+}
+
+int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
+{
+    const void * ofsm = ofsm_builder_get_ofsm(me);
+    if (ofsm == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_get_ofsm(me) failed with NULL as error value.");
+        return 1;
+    }
+
+    return ofsm_get_array(ofsm, delta_last, out);
+}
+
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
     int errcode;
