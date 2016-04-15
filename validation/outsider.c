@@ -7,6 +7,7 @@
 
 int empty_test(void);
 
+int new_comb_55_test(void);
 int new_comb_42_test(void);
 int empty_builder_test(void);
 
@@ -36,6 +37,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(new_comb_55),
     TEST_ITEM(new_comb_42),
     TEST_ITEM(empty_builder),
     TEST_ITEM(optimize_with_invalid_hash),
@@ -148,8 +150,8 @@ int check_pow_41(const void * ofsm)
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0]) {
-        int state = ofsm_execute(ofsm, NFLAKE, c);
-        if (state < 0 || state >= 4) {
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        if (state >= 4) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 3.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -198,15 +200,10 @@ int check_pow_42(const void * ofsm)
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
-        if (state < 0 || state >= 16) {
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        if (state >= 16) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 15.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -278,15 +275,10 @@ int check_pow_41_51(const void * ofsm)
     input_t c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
-        if (state < 0 || state >= 20) {
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        if (state >= 20) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 19.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -356,22 +348,17 @@ int check_comb_42(const void * ofsm)
     input_t c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[0] == c[1]) {
-            if (state == -1) continue;
+            if (state == INVALID_STATE) continue;
             fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
-        if (state < 0 || state >= 6) {
+        if (state >= 6) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 5.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -443,14 +430,8 @@ int check_comb_55(const void * ofsm)
     for (c[2]=0; c[2]<5; ++c[2])
     for (c[3]=0; c[3]<5; ++c[3])
     for (c[4]=0; c[4]<5; ++c[4]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
-
-        int state = ofsm_execute(ofsm, NFLAKE, c);
+        unsigned value = run_array(&array, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
         unsigned int mask = 0
             | (1 << c[0])
@@ -461,7 +442,7 @@ int check_comb_55(const void * ofsm)
         ;
 
         if (mask != 0x1F) {
-            if (state == -1) continue;
+            if (state == INVALID_STATE) continue;
             fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -537,22 +518,17 @@ int check_pow_41_comb_52(const void * ofsm)
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
-            if (state == -1) continue;
+            if (state == INVALID_STATE) continue;
             fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
-        if (state < 0 || state >= 40) {
+        if (state >= 40) {
             fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 39.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -627,30 +603,25 @@ int check_pack(const void * ofsm)
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
         int state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
-            if (state == -1) continue;
-            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            if (state == INVALID_STATE) continue;
+            fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE(%u).\n", state, INVALID_STATE);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
-        if (state < 0 || state >= 7) {
-            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 6.\n", state);
+        if (state >= 7) {
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 0 - 6.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
         pack_value_t expected = (3*c[0] + c[1] + c[2]) % 7;
         if (expected != state) {
-            fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
+            fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
             return 1;
         }
@@ -710,36 +681,31 @@ int check_pack_without_renum(const void * ofsm)
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
-            if (state == -1) continue;
-            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            if (state == INVALID_STATE) continue;
+            fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE (%u).\n", state, INVALID_STATE);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
         if (state < 11 || state >= 18) {
-            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 11 - 17.\n", state);
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 11 - 17.\n", state);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
         pack_value_t expected = mod7(NFLAKE, c);
         if (expected != state) {
-            fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
+            fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
         if (state != value) {
-            fprintf(stderr, "state & value mismatch: state = %d, value = %d.\n", state, value);
+            fprintf(stderr, "state & value mismatch: state = %u, value = %u.\n", state, value);
             print_path("input =", c, 3);
             return 1;
         }
@@ -752,7 +718,7 @@ int check_pack_without_renum(const void * ofsm)
 
         value = ofsm_execute(ofsm, NFLAKE, path);
         if (state != value) {
-            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            fprintf(stderr, "Invalid path in OFSM, state = %u, value = %u.\n", state, value);
             print_path("input =", c, NFLAKE);
             print_path("path =", path, NFLAKE);
             return 1;
@@ -843,29 +809,24 @@ int check_optimize(const void * ofsm)
             continue;
         }
 
-        int value = (unsigned int)run_array(&array, c);
-        if (value < 0) {
-            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
-        if (state < 0 || state >= 7) {
-            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 6.\n", state);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        if (state >= 7) {
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 0 - 6.\n", state);
             print_path("input =", c, 3);
             return 1;
         }
 
         size_t expected = (3*c[0] + c[1] + c[2]) % 7;
         if (expected != state) {
-            fprintf(stderr, "Unexpected state (%d) after script_execute: expected %lu.\n", state, expected);
+            fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
         if (state != value - 1) {
-            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.\n", state, value-1);
+            fprintf(stderr, "state & value mismatch: state = %u, value-1 = %u.\n", state, value-1);
             return 1;
         }
 
@@ -877,7 +838,7 @@ int check_optimize(const void * ofsm)
 
         value = ofsm_execute(ofsm, NFLAKE, path);
         if (state != value) {
-            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            fprintf(stderr, "Invalid path in OFSM, state = %u, value = %u.\n", state, value);
             print_path("input =", c, NFLAKE);
             print_path("path =", path, NFLAKE);
             return 1;
@@ -928,9 +889,11 @@ int empty_builder_test(void)
 int new_comb_42_test(void)
 {
     static const unsigned int NFLAKE = 2;
-    static const unsigned int QOUTS = 6;
-    int errcode;
+    static const state_t QOUTS = 6;
+    static const unsigned int DELTA = 1;
+    static const int EXPECTED_STAT = 2;
 
+    int errcode;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -943,7 +906,7 @@ int new_comb_42_test(void)
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, 1, &array);
+    errcode = ofsm_builder_make_array(me, DELTA, &array);
     if (errcode != 0) {
         fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
         return 1;
@@ -954,29 +917,39 @@ int new_comb_42_test(void)
     input_t c[2];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
-        unsigned int value = run_array(&array, c);
-        if (value < 0 || value > QOUTS) {
-            fprintf(stderr, "Invalid value (%d) after run_array, out of range 1 - %u.\n", value, QOUTS);
-            print_path("input =", c, NFLAKE);
-            return 1;
-        }
+        state_t value = run_array(&array, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[0] == c[1]) {
-            if (state == -1) continue;
-            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            if (value != 0) {
+                fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
+            if (state != INVALID_STATE) {
+                fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE (%u).\n", state, INVALID_STATE);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
+            continue;
+        }
+
+        if (value <= 0 || value > QOUTS) {
+            fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
-        if (state < 0 || state >= 6) {
-            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 5.\n", state);
+        if (state >= QOUTS) {
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 0 - %u.\n", state, QOUTS - 1);
             print_path("input =", c, NFLAKE);
             return 1;
         }
 
-        if (state != value - 1) {
-            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.\n", state, value-1);
+        if (state != value - DELTA) {
+            fprintf(stderr, "state & value-DELTA mismatch: state = %u, value = %u, DELTA = %u.\n", state, value, DELTA);
             print_path("input =", c, NFLAKE);
             return 1;
         }
@@ -987,9 +960,9 @@ int new_comb_42_test(void)
             return 1;
         }
 
-        value = ofsm_execute(ofsm, NFLAKE, path);
-        if (state != value) {
-            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != state2) {
+            fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
             print_path("path =", path, NFLAKE);
             return 1;
@@ -998,9 +971,117 @@ int new_comb_42_test(void)
         ++stat[state];
     }
 
-    for (int i=0; i<5; ++i) {
-        if (stat[i] != 2) {
-            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is 2.\n", i, stat[i]);
+    for (int i=0; i<QOUTS; ++i) {
+        if (stat[i] != EXPECTED_STAT) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is %d.\n", i, stat[i], EXPECTED_STAT);
+            return 1;
+        }
+    }
+
+    free(array.array);
+    free_ofsm_builder(me);
+    return 0;
+}
+
+int new_comb_55_test(void)
+{
+    static const unsigned int NFLAKE = 5;
+    static const unsigned int QOUTS = 1;
+    static const unsigned int DELTA = 1;
+    static const int EXPECTED_STAT = 120;
+
+    int errcode;
+    int stat[QOUTS];
+    memset(stat, 0, sizeof(stat));
+
+    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+
+    errcode = ofsm_builder_push_comb(me, 5, 5);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 5) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    struct ofsm_array array;
+    errcode = ofsm_builder_make_array(me, DELTA, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    const void * ofsm = ofsm_builder_get_ofsm(me);
+
+    input_t c[5];
+    for (c[0]=0; c[0]<5; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
+    for (c[2]=0; c[2]<5; ++c[2])
+    for (c[3]=0; c[3]<5; ++c[3])
+    for (c[4]=0; c[4]<5; ++c[4]) {
+        unsigned value = run_array(&array, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+
+        unsigned int mask = 0
+            | (1 << c[0])
+            | (1 << c[1])
+            | (1 << c[2])
+            | (1 << c[3])
+            | (1 << c[4])
+        ;
+
+        if (mask != 0x1F) {
+            if (value != 0) {
+                fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
+            if (state != INVALID_STATE) {
+                fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE (%u).\n", state, INVALID_STATE);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
+            continue;
+        }
+
+        if (value <= 0 || value > QOUTS) {
+            fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state >= QOUTS) {
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 0 - %u.\n", state, QOUTS - 1);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state != value - DELTA) {
+            fprintf(stderr, "state & value-DELTA mismatch: state = %u, value = %u, DELTA = %u.\n", state, value, DELTA);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != state2) {
+            fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<QOUTS; ++i) {
+        if (stat[i] != EXPECTED_STAT) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is %d.\n", i, stat[i], EXPECTED_STAT);
             return 1;
         }
     }

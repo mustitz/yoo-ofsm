@@ -56,7 +56,7 @@ void script_step_comb(void * restrict script, input_t qinputs, unsigned int m);
 void script_step_pack(void * restrict script, pack_func f, unsigned int flags);
 void script_step_optimize(void * restrict script, unsigned int nflake, hash_func f);
 
-int ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
+state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
 int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
 const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output);
 

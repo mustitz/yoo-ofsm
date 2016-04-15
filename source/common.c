@@ -1047,7 +1047,7 @@ static void run(struct script * restrict me)
     }
 }
 
-int do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
+state_t do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
 {
     if (n >= me->qflakes) {
         ERRLOCATION(stderr);
@@ -1071,11 +1071,11 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inpu
         input_t input = inputs[i];
 
         state = flake->jumps[1][state * flake->qinputs + input];
-        if (state == INVALID_STATE) return -1;
+        if (state == INVALID_STATE) return INVALID_STATE;
         if (state >= flake->qoutputs) {
             ERRLOCATION(stderr);
             msg(stderr, "Invalid OFSM, new state = %u more than qoutputs = %u.", state, flake->qoutputs);
-            return -1;
+            return INVALID_STATE;
         }
 
         ++flake;
@@ -1379,7 +1379,7 @@ void script_fail(void * restrict script)
     me->status = STATUS__FAILED;
 }
 
-int ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs)
+state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs)
 {
     return do_ofsm_execute(ofsm, n, inputs);
 }
