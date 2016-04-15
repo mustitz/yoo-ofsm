@@ -69,6 +69,7 @@ void save_binary(const char * file_name, const char * name, const struct ofsm_ar
 struct ofsm_builder
 {
     struct mempool * restrict mempool;
+    int own_mempool;
     FILE * logstream;
     FILE * errstream;
     void * ofsm_stack[OFSM_STACK_SZ];

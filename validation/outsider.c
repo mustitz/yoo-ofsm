@@ -5,23 +5,26 @@
 
 
 
-int empty_test();
-int pow_41_test();
-int pow_42_test();
-int pow_41_51_test();
-int comb_42_test();
-int comb_55_test();
-int pow_41_comb_52_test();
-int pack_test();
-int pack_without_renum_test();
-int optimize_test();
-int optimize_with_rnd_hash_test();
-int optimize_with_zero_hash_test();
-int optimize_with_invalid_hash_test();
+int empty_test(void);
+
+int empty_builder_test(void);
+
+int pow_41_test(void);
+int pow_42_test(void);
+int pow_41_51_test(void);
+int comb_42_test(void);
+int comb_55_test(void);
+int pow_41_comb_52_test(void);
+int pack_test(void);
+int pack_without_renum_test(void);
+int optimize_test(void);
+int optimize_with_rnd_hash_test(void);
+int optimize_with_zero_hash_test(void);
+int optimize_with_invalid_hash_test(void);
 
 
 
-typedef int (* test_f)();
+typedef int (* test_f)(void);
 
 struct test_item
 {
@@ -32,6 +35,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(empty_builder),
     TEST_ITEM(optimize_with_invalid_hash),
     TEST_ITEM(optimize_with_zero_hash),
     TEST_ITEM(optimize_with_rnd_hash),
@@ -81,7 +85,7 @@ void run_test(const char * name)
     exit(1);
 }
 
-int empty_test()
+int empty_test(void)
 {
     return 0;
 }
@@ -158,7 +162,7 @@ int check_pow_41(const void * ofsm)
     return 0;
 }
 
-int pow_41_test()
+int pow_41_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_pow_41, check_pow_41);
@@ -236,7 +240,7 @@ int check_pow_42(const void * ofsm)
     return 0;
 }
 
-int pow_42_test()
+int pow_42_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_pow_42, check_pow_42);
@@ -316,7 +320,7 @@ int check_pow_41_51(const void * ofsm)
     return 0;
 }
 
-int pow_41_51_test()
+int pow_41_51_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_pow_41_51, check_pow_41_51);
@@ -401,7 +405,7 @@ int check_comb_42(const void * ofsm)
     return 0;
 }
 
-int comb_42_test()
+int comb_42_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_comb_42, check_comb_42);
@@ -495,7 +499,7 @@ int check_comb_55(const void * ofsm)
     return 0;
 }
 
-int comb_55_test()
+int comb_55_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_comb_55, check_comb_55);
@@ -582,7 +586,7 @@ int check_pow_41_comb_52(const void * ofsm)
     return 0;
 }
 
-int pow_41_comb_52_test()
+int pow_41_comb_52_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_pow_41_comb_52, check_pow_41_comb_52);
@@ -670,7 +674,7 @@ int check_pack(const void * ofsm)
     return 0;
 }
 
-int pack_test()
+int pack_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_pack, check_pack);
@@ -753,7 +757,7 @@ int check_pack_without_renum(const void * ofsm)
     return 0;
 }
 
-int pack_without_renum_test()
+int pack_without_renum_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_pack_without_renum, check_pack_without_renum);
@@ -878,26 +882,117 @@ int check_optimize(const void * ofsm)
     return 0;
 }
 
-int optimize_test()
+int optimize_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_optimize, check_optimize);
 }
 
-int optimize_with_rnd_hash_test()
+int optimize_with_rnd_hash_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_optimize_with_rnd_hash, check_optimize);
 }
 
-int optimize_with_zero_hash_test()
+int optimize_with_zero_hash_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_optimize_with_zero_hash, check_optimize);
 }
 
-int optimize_with_invalid_hash_test()
+int optimize_with_invalid_hash_test(void)
 {
     char * argv[2] = { "outsider", "-v" };
     return execute(1, argv, build_optimize_with_invalid_hash, check_optimize);
+}
+
+
+
+/*
+void build_comb_42(void * script)
+{
+    script_step_comb(script, 4, 2);
+}
+
+int check_comb_42(const void * ofsm)
+{
+    static const unsigned int NFLAKE = 2;
+
+    static int stat[6];
+    memset(stat, 0, sizeof(stat));
+
+    struct ofsm_array array;
+    int errcode = ofsm_get_array(ofsm, 1, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    input_t c[2];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<4; ++c[1]) {
+        int value = (unsigned int)run_array(&array, c);
+        if (value < 0) {
+            fprintf(stderr, "Invalid value (%d) after run_array.\n", value);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        int state = ofsm_execute(ofsm, NFLAKE, c);
+        if (c[0] == c[1]) {
+            if (state == -1) continue;
+            fprintf(stderr, "Invalid state (%d) after script_execute: expected -1.\n", state);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state < 0 || state >= 6) {
+            fprintf(stderr, "Invalid state (%d) after script_execute: out of range 0 - 5.\n", state);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state != value - 1) {
+            fprintf(stderr, "state & value mismatch: state = %d, value-1 = %d.\n", state, value-1);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        value = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != value) {
+            fprintf(stderr, "Invalid path in OFSM, state = %d, value = %d.\n", state, value);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<5; ++i) {
+        if (stat[i] != 2) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is 2.\n", i, stat[i]);
+            return 1;
+        }
+    }
+
+    free(array.array);
+    return 0;
+}
+
+*/
+
+int empty_builder_test(void)
+{
+    struct mempool * restrict mempool = create_mempool(2000);
+    struct ofsm_builder * restrict ofsm_builder = create_ofsm_builder(mempool, stderr);
+    free_ofsm_builder(ofsm_builder);
+    free_mempool(mempool);
+    return 0;
 }
