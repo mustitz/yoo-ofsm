@@ -260,10 +260,8 @@ static void save(struct script * restrict me)
 {
 }
 
-static struct flake * create_flake(struct script * restrict me, input_t qinputs, uint64_t qoutputs, state_t qstates)
+static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs, uint64_t qoutputs, state_t qstates)
 {
-    struct ofsm * restrict ofsm = me->ofsm;
-
     unsigned int nflake = ofsm->qflakes;
     if (nflake >= ofsm->max_flakes) {
         ERRLOCATION(stderr);
@@ -383,7 +381,7 @@ static void do_pow_flake(struct script * restrict me, input_t qinputs)
     state_t qstates = prev->qoutputs;
     uint64_t qoutputs = qstates * qinputs;
 
-    const struct flake * flake = create_flake(me, qinputs, qoutputs, qstates);
+    const struct flake * flake = create_flake(me->ofsm, qinputs, qoutputs, qstates);
     if (flake == NULL) {
         ERRLOCATION(stderr);
         msg(stderr, "  create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
@@ -425,8 +423,8 @@ static state_t calc_comb_index(const struct choose_table * ct, const input_t * i
 {
 
     if (qinputs > 64) {
-        ERRLOCATION(stderr);
-        msg(stderr, "Sorting of inputs more then 64 is not supported yet.");
+        ERRLOCATION(ct->errstream);
+        msg(ct->errstream, "Sorting of inputs more then 64 is not supported yet.");
         return INVALID_STATE;
     }
 
@@ -479,7 +477,7 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
         uint64_t qoutputs = qstates * nn / dd;
 
         unsigned int nflake = ofsm->qflakes;
-        const struct flake * flake = create_flake(me, qinputs, qoutputs, qstates);
+        const struct flake * flake = create_flake(me->ofsm, qinputs, qoutputs, qstates);
 
         if (flake == NULL) {
             ERRLOCATION(stderr);
@@ -677,7 +675,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
     --ofsm->qflakes;
-    struct flake * restrict infant = create_flake(me, oldman.qinputs, new_qoutputs, oldman.qstates);
+    struct flake * restrict infant = create_flake(me->ofsm, oldman.qinputs, new_qoutputs, oldman.qstates);
     if (infant == NULL) {
         ERRLOCATION(stderr);
         msg(stderr, "create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
@@ -1423,11 +1421,14 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     result->errstream = errstream;
     result->ofsm_stack_first = 0;
     result->ofsm_stack_last = 0;
+    init_choose_table(&result->choose, 0, 0, errstream);
     return result;
 }
 
 void free_ofsm_builder(struct ofsm_builder * restrict me)
 {
+    clear_choose_table(&me->choose);
+
     for (size_t i=me->ofsm_stack_first; i != me->ofsm_stack_last; i = (i+1) % OFSM_STACK_SZ) {
         free_ofsm(me->ofsm_stack[i]);
     }
@@ -1437,6 +1438,7 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
 
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
+    int errcode;
     verbose(me->logstream, "START push compinatoric OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
 
     const size_t last = me->ofsm_stack_last;
@@ -1444,17 +1446,111 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     if (next == me->ofsm_stack_first) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "ofsm_builder_push_comb failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
+        verbose(me->logstream, "FAILED push combinatoric.");
         return 1;
+    }
+
+    struct choose_table * restrict ct = &me->choose;
+    errcode = rebuild_choose_table(ct, qinputs, m);
+    if (errcode != 0) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "rebuild_choose_table(ct, %u, %u, errstream) failed with %d as error code.", (unsigned int)qinputs, m, errcode);
+        verbose(me->logstream, "FAILED push combinatoric.");
+        return errcode;
     }
 
     struct ofsm * restrict ofsm = create_ofsm(me->mempool, 0);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
+        verbose(me->logstream, "FAILED push combinatoric.");
         return 1;
+    }
+
+    const struct flake * prev =  ofsm->flakes + ofsm->qflakes - 1;
+
+    uint64_t nn = qinputs;
+    uint64_t dd = 1;
+
+    for (unsigned int i=0; i<m; ++i) {
+        if (prev->qoutputs >= INVALID_STATE) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "state_t overflow: try to assign %u to qstates.", prev->qoutputs);
+            verbose(me->logstream, "FAILED push combinatoric.");
+            free_ofsm(ofsm);
+            return 1;
+        }
+
+        state_t qstates = prev->qoutputs;
+        uint64_t qoutputs = qstates * nn / dd;
+
+        unsigned int nflake = ofsm->qflakes;
+        const struct flake * flake = create_flake(ofsm, qinputs, qoutputs, qstates);
+
+        if (flake == NULL) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
+            verbose(me->logstream, "FAILED push combinatoric.");
+            free_ofsm(ofsm);
+            return 1;
+        }
+
+        state_t * restrict jumps = flake->jumps[1];
+
+        if (i > 0) {
+            for (state_t state = 0; state < qstates; ++state) {
+                input_t c[i+1];
+                const input_t * ptr = prev->paths[1] + (nflake-1) * (state+1) - i;
+                memcpy(c, ptr, i * sizeof(input_t));
+
+                for (input_t input = 0; input < qinputs; ++input) {
+                    c[i] = input;
+                    *jumps++ = calc_comb_index(ct, c, qinputs, i+1);
+                }
+            }
+        } else {
+            if (qstates != 1) {
+                ERRLOCATION(me->errstream);
+                msg(me->errstream, "Internal error: zero flake should return one output! But qstates = %u.", qstates);
+                verbose(me->logstream, "FAILED push combinatoric.");
+                free_ofsm(ofsm);
+                return 1;
+            }
+
+            for (input_t input = 0; input < qinputs; ++input) {
+                *jumps++ = input;
+            }
+        }
+
+        for (state_t state = 0; state < qstates; ++state) {
+            input_t c[i+1];
+            if (i > 0) {
+                const input_t * ptr = prev->paths[1] + (nflake-1) * (state+1) - i;
+                memcpy(c, ptr, i * sizeof(input_t));
+            }
+
+            for (uint64_t input = 0; input < qinputs; ++input) {
+                c[i] = input;
+                *jumps++ = calc_comb_index(ct, c, qinputs, i+1);
+            }
+        }
+
+        int errcode = calc_paths(flake, nflake);
+        if (errcode != 0) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+            verbose(me->logstream, "FAILED push combinatoric.");
+            free_ofsm(ofsm);
+            return 1;
+        }
+
+        prev = flake;
+        --nn;
+        ++dd;
     }
 
     me->ofsm_stack[last] = ofsm;
     me->ofsm_stack_last = next;
+    verbose(me->logstream, "DONE push combinatoric.");
     return 0;
 }

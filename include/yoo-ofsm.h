@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include <yoo-stdlib.h>
+#include <yoo-combinatoric.h>
 
 
 
@@ -73,6 +74,7 @@ struct ofsm_builder
     void * ofsm_stack[OFSM_STACK_SZ];
     size_t ofsm_stack_first;
     size_t ofsm_stack_last;
+    struct choose_table choose;
 };
 
 struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream);
