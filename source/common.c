@@ -1462,6 +1462,79 @@ int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_l
     return ofsm_get_array(ofsm, delta_last, out);
 }
 
+int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
+{
+    int errcode;
+    verbose(me->logstream, "START push power OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
+
+    const size_t last = me->ofsm_stack_last;
+    const size_t next = (last + 1) % OFSM_STACK_SZ;
+    if (next == me->ofsm_stack_first) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_push_pow failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
+        verbose(me->logstream, "FAILED push power.");
+        return 1;
+    }
+
+    struct ofsm * restrict ofsm = create_ofsm(me->mempool, 0);
+    if (ofsm == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
+        verbose(me->logstream, "FAILED push power.");
+        return 1;
+    }
+
+    const struct flake * prev =  ofsm->flakes + ofsm->qflakes - 1;
+
+    for (unsigned int i=0; i<m; ++i) {
+        if (prev->qoutputs == INVALID_STATE) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "state_t overflow: try to assign %u to qstates.", prev->qoutputs);
+            verbose(me->logstream, "FAILED push power.");
+            free_ofsm(ofsm);
+            return 1;
+        }
+
+        state_t qstates = prev->qoutputs;
+        uint64_t qoutputs = qstates * qinputs;
+
+        unsigned int nflake = ofsm->qflakes;
+        const struct flake * flake = create_flake(ofsm, qinputs, qoutputs, qstates);
+
+        if (flake == NULL) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
+            verbose(me->logstream, "FAILED push power.");
+            free_ofsm(ofsm);
+            return 1;
+        }
+
+        state_t * restrict jumps = flake->jumps[1];
+        state_t output = 0;
+
+        for (uint64_t state=0; state<qstates; ++state)
+        for (uint64_t input=0; input<qinputs; ++input) {
+            *jumps++ = output++;
+        }
+
+        errcode = calc_paths(flake, nflake);
+        if (errcode != 0) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+            verbose(me->logstream, "FAILED push power.");
+            free_ofsm(ofsm);
+            return 1;
+        }
+
+        prev = flake;
+    }
+
+    me->ofsm_stack[last] = ofsm;
+    me->ofsm_stack_last = next;
+    verbose(me->logstream, "DONE push combinatoric.");
+    return 0;
+}
+
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
     int errcode;
@@ -1499,7 +1572,7 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     uint64_t dd = 1;
 
     for (unsigned int i=0; i<m; ++i) {
-        if (prev->qoutputs >= INVALID_STATE) {
+        if (prev->qoutputs == INVALID_STATE) {
             ERRLOCATION(me->errstream);
             msg(me->errstream, "state_t overflow: try to assign %u to qstates.", prev->qoutputs);
             verbose(me->logstream, "FAILED push combinatoric.");
@@ -1512,7 +1585,6 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
 
         unsigned int nflake = ofsm->qflakes;
         const struct flake * flake = create_flake(ofsm, qinputs, qoutputs, qstates);
-
         if (flake == NULL) {
             ERRLOCATION(me->errstream);
             msg(me->errstream, "create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
