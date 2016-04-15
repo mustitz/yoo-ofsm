@@ -21,46 +21,6 @@
 
 
 
-static void errmsg(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
-static void verbose(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
-
-static inline void print_msg(FILE * f, const char * fmt, ...) __attribute__ ((format (printf, 2, 3)));
-
-
-#define ERRHEADER errmsg("Error in function “%s”, file %s:%d.", __FUNCTION__, __FILE__, __LINE__)
-#define ERRLOCATION(f) print_msg(f, "Error in function “%s”, file %s:%d.", __FUNCTION__, __FILE__, __LINE__)
-
-static void verrmsg(const char * fmt, va_list args)
-{
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
-}
-
-static void errmsg(const char * fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    verrmsg(fmt, args);
-    va_end(args);
-}
-
-static inline void vprint_msg(FILE * f, const char * fmt, va_list args)
-{
-    if (f != NULL) {
-        vfprintf(f, fmt, args);
-        fprintf(f, "\n");
-    }
-}
-
-static inline void print_msg(FILE * f, const char * fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vprint_msg(f, fmt, args);
-    va_end(args);
-}
-
-
 int opt_save_steps = 0;
 int opt_verbose = 0;
 int opt_help = 0;
@@ -102,10 +62,10 @@ static int parse_command_line(int argc, char * argv[])
                     opt_verbose = 1;
                     break;
                 case '?':
-                    errmsg("Invalid option.");
+                    msg(stderr, "Invalid option.");
                     return 1;
                 default:
-                    errmsg("getopt_long returns unexpected char \\x%02X.", c);
+                    msg(stderr, "getopt_long returns unexpected char \\x%02X.", c);
                     return 1;
             }
         }
@@ -116,8 +76,8 @@ static int parse_command_line(int argc, char * argv[])
     }
 
     if (optind < argc) {
-        errmsg("Function “execute” do not expected any extra command line arguments except options.");
-        verbose("optind = %d, argc = %d.", optind, argc);
+        msg(stderr, "Function “execute” do not expected any extra command line arguments except options.");
+        verbose(stderr, "optind = %d, argc = %d.", optind, argc);
         return 1;
     }
 
@@ -127,21 +87,6 @@ static int parse_command_line(int argc, char * argv[])
 
 
 
-static void vverbose(const char * fmt, va_list args)
-{
-    if (verbose_stream == NULL) return;
-    fprintf(verbose_stream, "[%12.6f] ", get_app_age());
-    vfprintf(verbose_stream, fmt, args);
-    fprintf(verbose_stream, "\n");
-}
-
-static void verbose(const char * fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vverbose(fmt, args);
-    va_end(args);
-}
 
 
 
@@ -171,16 +116,16 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
 
     struct ofsm * ofsm = mempool_alloc(mempool, sizeof(struct ofsm));
     if (ofsm == NULL) {
-        ERRHEADER;
-        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct ofsm));
+        ERRLOCATION(stderr);
+        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct ofsm));
         return NULL;
     }
 
     size_t sz = max_flakes * sizeof(struct flake);
     struct flake * flakes = mempool_alloc(mempool, sz);
     if (flakes == NULL) {
-        ERRHEADER;
-        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sz);
+        ERRLOCATION(stderr);
+        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sz);
         return NULL;
     }
 
@@ -206,57 +151,6 @@ void free_ofsm(struct ofsm * restrict me)
             free(ptr);
         }
     }
-}
-
-
-
-struct choose_table
-{
-    unsigned int n;
-    unsigned int m;
-    uint64_t * data;
-};
-
-int init_choose_table(struct choose_table * restrict me, unsigned int n, unsigned int m)
-{
-    if (me->n >= n && me->m >= m) {
-        return 0;
-    }
-
-    size_t sz = (n+1) * (m+1) * sizeof(uint64_t);
-    void * restrict data = malloc(sz);
-    if (data == NULL) {
-        ERRHEADER;
-        errmsg("malloc(%lu) fails with NULL value.", sz);
-        return 1;
-    }
-
-    init_choose(data, n+1, m+1);
-
-    if (me->data != NULL) {
-        free(data);
-    }
-
-    me->n = n;
-    me->m = m;
-    me->data = data;
-    return 0;
-}
-
-static void clear_choose_table(struct choose_table * restrict me)
-{
-    me->n = me->m = 0;
-    if (me != NULL && me->data != NULL) {
-        free(me->data);
-    }
-}
-
-static uint64_t choose(const struct choose_table * me, unsigned int n, unsigned int m)
-{
-    if (n > me->n) return 0;
-    if (m > me->m) return 0;
-    size_t index = (me->m + 1) * n + m;
-    return me->data[index];
 }
 
 
@@ -324,23 +218,23 @@ static struct script * create_script()
 {
     struct mempool * restrict mempool = create_mempool(4000);
     if (mempool == NULL) {
-        ERRHEADER;
-        errmsg("create_mempool(4000) failed with NULL as return value.");
+        ERRLOCATION(stderr);
+        msg(stderr, "create_mempool(4000) failed with NULL as return value.");
         return NULL;
     }
 
     struct script * restrict script = mempool_alloc(mempool, sizeof(struct script));
     if (script == NULL) {
-        ERRHEADER;
-        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct script));
+        ERRLOCATION(stderr);
+        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct script));
         free_mempool(mempool);
         return NULL;
     }
 
     struct ofsm * restrict ofsm = create_ofsm(mempool, 0);
     if (ofsm == NULL) {
-        ERRHEADER;
-        errmsg("create_ofsm(mempool, 0) failed with NULL value. Terminate script execution.");
+        ERRLOCATION(stderr);
+        msg(stderr, "create_ofsm(mempool, 0) failed with NULL value. Terminate script execution.");
         free_mempool(mempool);
         return NULL;
     }
@@ -372,8 +266,8 @@ static struct flake * create_flake(struct script * restrict me, input_t qinputs,
 
     unsigned int nflake = ofsm->qflakes;
     if (nflake >= ofsm->max_flakes) {
-        ERRHEADER;
-        errmsg("Overflow maximum flake count (%u), qflakes = %u.", ofsm->max_flakes, ofsm->qflakes);
+        ERRLOCATION(stderr);
+        msg(stderr, "Overflow maximum flake count (%u), qflakes = %u.", ofsm->max_flakes, ofsm->qflakes);
         return NULL;
     }
 
@@ -383,26 +277,26 @@ static struct flake * create_flake(struct script * restrict me, input_t qinputs,
     size_t path_sizes[2] = { 0, qoutputs * nflake * sizeof(input_t) };
     size_t total_sz = jump_sizes[1] + path_sizes[1];
 
-    verbose("  Try allocate data for jump table for flake %u: size = %lu.", nflake, jump_sizes[1]);
+    verbose(stderr, "  Try allocate data for jump table for flake %u: size = %lu.", nflake, jump_sizes[1]);
     multialloc(2, jump_sizes, jump_ptrs, 32);
 
     if (jump_ptrs[0] == NULL) {
-        ERRHEADER;
-        errmsg("multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", jump_sizes[0], jump_sizes[1]);
+        ERRLOCATION(stderr);
+        msg(stderr, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", jump_sizes[0], jump_sizes[1]);
         return NULL;
     }
 
-    verbose("  Try allocate data for path table for flake %u: size = %lu.", nflake, path_sizes[1]);
+    verbose(stderr, "  Try allocate data for path table for flake %u: size = %lu.", nflake, path_sizes[1]);
     multialloc(2, path_sizes, path_ptrs, 32);
 
     if (path_ptrs[0] == NULL) {
-        ERRHEADER;
-        errmsg("multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", path_sizes[0], path_sizes[1]);
+        ERRLOCATION(stderr);
+        msg(stderr, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", path_sizes[0], path_sizes[1]);
         free(jump_ptrs[0]);
         return NULL;
     }
 
-    verbose("  Allocation OK, jump_ptr = %p, path_ptr = %p.", jump_ptrs[0], path_ptrs[1]);
+    verbose(stderr, "  Allocation OK, jump_ptr = %p, path_ptr = %p.", jump_ptrs[0], path_ptrs[1]);
     struct flake * restrict flake = ofsm->flakes + nflake;
 
     flake->qinputs = qinputs;
@@ -413,7 +307,7 @@ static struct flake * create_flake(struct script * restrict me, input_t qinputs,
     flake->paths[0] = path_ptrs[0];
     flake->paths[1] = path_ptrs[1];
 
-    verbose("  New flake %u: qinputs = %u, qoutputs = %lu, qstates = %u, total_sz = %lu.", nflake, qinputs, qoutputs, qstates, total_sz);
+    verbose(stderr, "  New flake %u: qinputs = %u, qoutputs = %lu, qstates = %u, total_sz = %lu.", nflake, qinputs, qoutputs, qstates, total_sz);
 
     ++ofsm->qflakes;
     return flake;
@@ -437,14 +331,14 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
     }
 
     if (nflake < 1) {
-        ERRHEADER;
-        errmsg("Assertion failed: invalid nflake value (%u). It should be positive (1, 2, 3...).", nflake);
+        ERRLOCATION(stderr);
+        msg(stderr, "Assertion failed: invalid nflake value (%u). It should be positive (1, 2, 3...).", nflake);
         return 1;
     }
 
     if (nflake == 1 && qstates != 1) {
-        ERRHEADER;
-        errmsg("Assertion failed: for nflake = 1 qstates (%u) should be 1.", qstates);
+        ERRLOCATION(stderr);
+        msg(stderr, "Assertion failed: for nflake = 1 qstates (%u) should be 1.", qstates);
         return 1;
     }
 
@@ -480,7 +374,7 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
 
 static void do_pow_flake(struct script * restrict me, input_t qinputs)
 {
-    verbose("  Append flake with %u inputs.", qinputs);
+    verbose(stderr, "  Append flake with %u inputs.", qinputs);
 
     struct ofsm * restrict ofsm = me->ofsm;
     unsigned int nflake = ofsm->qflakes;
@@ -491,8 +385,8 @@ static void do_pow_flake(struct script * restrict me, input_t qinputs)
 
     const struct flake * flake = create_flake(me, qinputs, qoutputs, qstates);
     if (flake == NULL) {
-        ERRHEADER;
-        errmsg("  create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
+        ERRLOCATION(stderr);
+        msg(stderr, "  create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
         me->status = STATUS__FAILED;
         return;
     }
@@ -507,8 +401,8 @@ static void do_pow_flake(struct script * restrict me, input_t qinputs)
 
     int errcode = calc_paths(flake, nflake);
     if (errcode != 0) {
-        ERRHEADER;
-        errmsg("  calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+        ERRLOCATION(stderr);
+        msg(stderr, "  calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
         me->status = STATUS__FAILED;
         return;
     }
@@ -516,7 +410,7 @@ static void do_pow_flake(struct script * restrict me, input_t qinputs)
 
 static void do_pow(struct script * restrict me, const struct step_data_pow * args)
 {
-    verbose("START append power step, qinputs = %u, m = %u.", args->qinputs, args->m);
+    verbose(stderr, "START append power step, qinputs = %u, m = %u.", args->qinputs, args->m);
 
     for (unsigned int i=0; i<args->m; ++i) {
         if (me->status != STATUS__FAILED) {
@@ -524,15 +418,15 @@ static void do_pow(struct script * restrict me, const struct step_data_pow * arg
         }
     }
 
-    verbose("DONE append power step.");
+    verbose(stderr, "DONE append power step.");
 }
 
 static state_t calc_comb_index(const struct choose_table * ct, const input_t * inputs, unsigned int qinputs, unsigned int m)
 {
 
     if (qinputs > 64) {
-        ERRHEADER;
-        errmsg("Sorting of inputs more then 64 is not supported yet.");
+        ERRLOCATION(stderr);
+        msg(stderr, "Sorting of inputs more then 64 is not supported yet.");
         return INVALID_STATE;
     }
 
@@ -560,10 +454,10 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
 {
     input_t qinputs = args->qinputs;
 
-    verbose("START append combinatoric step, qinputs = %u, m = %u.", args->qinputs, args->m);
+    verbose(stderr, "START append combinatoric step, qinputs = %u, m = %u.", args->qinputs, args->m);
 
     struct choose_table * restrict ct = &me->choose;
-    init_choose_table(ct, args->qinputs, args->m);
+    init_choose_table(ct, args->qinputs, args->m, stderr);
 
     struct ofsm * restrict ofsm = me->ofsm;
     const struct flake * prev =  ofsm->flakes + ofsm->qflakes - 1;
@@ -575,8 +469,8 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
     for (int i=0; i<args->m; ++i) {
 
         if (prev->qoutputs >= INVALID_STATE) {
-            ERRHEADER;
-            errmsg("state_t overflow: try to assign %u to qstates.", prev->qoutputs);
+            ERRLOCATION(stderr);
+            msg(stderr, "state_t overflow: try to assign %u to qstates.", prev->qoutputs);
             me->status = STATUS__FAILED;
             return;
         }
@@ -588,8 +482,8 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
         const struct flake * flake = create_flake(me, qinputs, qoutputs, qstates);
 
         if (flake == NULL) {
-            ERRHEADER;
-            errmsg("  create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
+            ERRLOCATION(stderr);
+            msg(stderr, "  create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
             me->status = STATUS__FAILED;
             return;
         }
@@ -623,8 +517,8 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
 
         int errcode = calc_paths(flake, nflake);
         if (errcode != 0) {
-            ERRHEADER;
-            errmsg("  calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+            ERRLOCATION(stderr);
+            msg(stderr, "  calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
             me->status = STATUS__FAILED;
             return;
         }
@@ -635,7 +529,7 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
         ++dd;
     }
 
-    verbose("DONE append combinatoric step.");
+    verbose(stderr, "DONE append combinatoric step.");
 }
 
 struct ofsm_pack_decode {
@@ -658,14 +552,14 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 {
     int skip_renumering = (args->flags & PACK_FLAG__SKIP_RENUMERING) != 0;
 
-    verbose("START pack step, skip_renumering = %d, f = %p.", skip_renumering, args->f);
+    verbose(stderr, "START pack step, skip_renumering = %d, f = %p.", skip_renumering, args->f);
 
 
 
     struct ofsm * restrict ofsm = me->ofsm;
     if (ofsm->qflakes <= 1) {
-        ERRHEADER;
-        errmsg("Try to pack empty OFSM.");
+        ERRLOCATION(stderr);
+        msg(stderr, "Try to pack empty OFSM.");
         me->status = STATUS__FAILED;
         return;
     }
@@ -688,8 +582,8 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
     void * ptr = ptrs[0];
 
     if (ptr == NULL) {
-        ERRHEADER;
-        errmsg("  multialloc(4, {%lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2]);
+        ERRLOCATION(stderr);
+        msg(stderr, "  multialloc(4, {%lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2]);
         me->status = STATUS__FAILED;
         return;
     }
@@ -701,7 +595,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     pack_value_t max_value = 0;
 
-    { verbose("  --> calculate pack values.");
+    { verbose(stderr, "  --> calculate pack values.");
 
         struct ofsm_pack_decode * restrict curr = decode_table;
         const input_t * path = oldman.paths[1];
@@ -716,13 +610,13 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
         curr->output = INVALID_STATE;
         curr->value = INVALID_PACK_VALUE;
 
-    } verbose("  <<< calculate pack values, max value is %lu.", max_value);
+    } verbose(stderr, "  <<< calculate pack values, max value is %lu.", max_value);
 
 
 
-    { verbose("  --> sort new states.");
+    { verbose(stderr, "  --> sort new states.");
         qsort(decode_table, old_qoutputs, sizeof(struct ofsm_pack_decode), &cmp_ofsm_pack_decode);
-    } verbose("  <<< sort new states.");
+    } verbose(stderr, "  <<< sort new states.");
 
 
 
@@ -730,7 +624,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
     state_t new_qoutputs = 0;
 
     if (skip_renumering) {
-        verbose("  --> calc output_translate table without renumering.");
+        verbose(stderr, "  --> calc output_translate table without renumering.");
 
         new_qoutputs = max_value + 1;
 
@@ -750,10 +644,10 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-        verbose("  <<< calc output_translate table without renumering.");
+        verbose(stderr, "  <<< calc output_translate table without renumering.");
 
     } else {
-        verbose("  --> calc output_translate table with renumering.");
+        verbose(stderr, "  --> calc output_translate table with renumering.");
 
         const struct ofsm_pack_decode * left = decode_table;
         const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
@@ -777,7 +671,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-        verbose("  <<< calc output_translate table with renumering.");
+        verbose(stderr, "  <<< calc output_translate table with renumering.");
     }
 
 
@@ -785,8 +679,8 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
     --ofsm->qflakes;
     struct flake * restrict infant = create_flake(me, oldman.qinputs, new_qoutputs, oldman.qstates);
     if (infant == NULL) {
-        ERRHEADER;
-        errmsg("create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
+        ERRLOCATION(stderr);
+        msg(stderr, "create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
         me->status = STATUS__FAILED;
         free(ptr);
         return;
@@ -794,7 +688,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
 
-    { verbose("  --> update data.");
+    { verbose(stderr, "  --> update data.");
 
         const state_t * old = oldman.jumps[1];
         const state_t * end = old + oldman.qstates * oldman.qinputs;
@@ -808,11 +702,11 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-    } verbose("  <<< update data.");
+    } verbose(stderr, "  <<< update data.");
 
 
 
-    { verbose("  --> update paths.");
+    { verbose(stderr, "  --> update paths.");
 
         input_t * restrict new_path = infant->paths[1];
         const input_t * old_paths = oldman.paths[1];
@@ -833,14 +727,14 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-    } verbose("  <<< update paths.");
+    } verbose(stderr, "  <<< update paths.");
 
 
 
     free(oldman.jumps[0]);
     free(oldman.paths[0]);
     free(ptr);
-    verbose("DONE pack step, new qoutputs = %u.", new_qoutputs);
+    verbose(stderr, "DONE pack step, new qoutputs = %u.", new_qoutputs);
 }
 
 
@@ -890,22 +784,22 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 {
     struct ofsm * restrict ofsm = me->ofsm;
     if (ofsm->qflakes <= 1) {
-        ERRHEADER;
-        errmsg("Try to optmimize empty OFSM.");
+        ERRLOCATION(stderr);
+        msg(stderr, "Try to optmimize empty OFSM.");
         me->status = STATUS__FAILED;
         return;
     }
 
     unsigned int nflake = args->nflake;
     if (nflake <= 0 || nflake >= ofsm->qflakes) {
-        ERRHEADER;
-        errmsg("Invalid flake number (%u), expected value might be in range 1 - %u.", nflake, ofsm->qflakes - 1);
+        ERRLOCATION(stderr);
+        msg(stderr, "Invalid flake number (%u), expected value might be in range 1 - %u.", nflake, ofsm->qflakes - 1);
         me->status = STATUS__FAILED;
         return;
     }
 
     struct flake * restrict flake = ofsm->flakes + nflake;
-    verbose("START optimize step, nlayer  %d.", nflake);
+    verbose(stderr, "START optimize step, nlayer  %d.", nflake);
 
 
 
@@ -922,8 +816,8 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
     void * ptr = ptrs[0];
 
     if (ptr == NULL) {
-        ERRHEADER;
-        errmsg("  multialloc(2, {%lu, %lu}, ptrs, 32) failed for temporary optimizing data.", sizes[0], sizes[1]);
+        ERRLOCATION(stderr);
+        msg(stderr, "  multialloc(2, {%lu, %lu}, ptrs, 32) failed for temporary optimizing data.", sizes[0], sizes[1]);
         me->status = STATUS__FAILED;
         return;
     }
@@ -932,7 +826,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
 
 
-    { verbose("  --> calc state hashes and sort.");
+    { verbose(stderr, "  --> calc state hashes and sort.");
 
         hash_func * f = args->f != NULL ? args->f : get_first_jump;
 
@@ -952,23 +846,23 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 double now = get_app_age();
                 if (now - start > 10.0) {
                     uint64_t processed = ptr - state_infos;
-                    verbose("     processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
+                    verbose(stderr, "     processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
                     start = now;
                 }
             }
         }
 
-        verbose("        sorting...");
+        verbose(stderr, "        sorting...");
 
         qsort(state_infos, old_qstates, sizeof(struct state_info), cmp_state_info);
 
-    } verbose("  <<< calc state hashes and sort.");
+    } verbose(stderr, "  <<< calc state hashes and sort.");
 
 
 
     state_t new_qstates = 0;
 
-    { verbose("  --> merge states.");
+    { verbose(stderr, "  --> merge states.");
 
         double start = get_app_age();
         uint64_t counter = 0;
@@ -1029,7 +923,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                         uint64_t chunk_total = right - base;
                         double chunk_persent = 100.0 * chunk_processed / chunk_total;
 
-                        verbose("      processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
+                        verbose(stderr, "      processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
                             persent, chunk_persent, processed, total, chunk_processed, chunk_total, merged);
 
                         start = now;
@@ -1040,11 +934,11 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 ++left;
             }
         }
-    } verbose("  <<< merge states.");
+    } verbose(stderr, "  <<< merge states.");
 
 
 
-    { verbose("  --> replace old jumps with a new one.");
+    { verbose(stderr, "  --> replace old jumps with a new one.");
 
         state_t new_qstate = 0;
 
@@ -1052,8 +946,8 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         void * ptrs[2];
         multialloc(2, sizes, ptrs, 32);
         if (ptrs[0] == NULL) {
-            ERRHEADER;
-            errmsg("  multialloc(2, { %lu, %lu }, ptrs, 32) failed with NULL value during reallocating new jump table.", sizes[0], sizes[1]);
+            ERRLOCATION(stderr);
+            msg(stderr, "  multialloc(2, { %lu, %lu }, ptrs, 32) failed with NULL value during reallocating new jump table.", sizes[0], sizes[1]);
             me->status = STATUS__FAILED;
             free(ptr);
             return;
@@ -1079,11 +973,11 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         flake->jumps[1] = ptrs[1];
         flake->qstates = new_qstates;
 
-    } verbose("  <<< replace old jumps with a new one.");
+    } verbose(stderr, "  <<< replace old jumps with a new one.");
 
 
 
-    { verbose("  --> decode output states in the previous flake.");
+    { verbose(stderr, "  --> decode output states in the previous flake.");
 
         const struct flake * prev = flake - 1;
         state_t * restrict jump = prev->jumps[1];
@@ -1094,12 +988,12 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
             }
         }
 
-    } verbose("  <<< decode output states in the previous flake.");
+    } verbose(stderr, "  <<< decode output states in the previous flake.");
 
 
 
     free(ptr);
-    verbose("DONE optimize step, state count was requced from %u to %u.", old_qstates, new_qstates);
+    verbose(stderr, "DONE optimize step, state count was requced from %u to %u.", old_qstates, new_qstates);
 }
 
 static void do_step(struct script * restrict me)
@@ -1114,8 +1008,8 @@ static void do_step(struct script * restrict me)
         default: break;
     }
 
-    ERRHEADER;
-    errmsg("Insupported step type: %d.", me->step->type);
+    ERRLOCATION(stderr);
+    msg(stderr, "Insupported step type: %d.", me->step->type);
     me->status = STATUS__FAILED;
 }
 
@@ -1124,7 +1018,7 @@ static void run(struct script * restrict me)
     me->status = STATUS__EXECUTING;
 
     for (;;) {
-        verbose("New step.");
+        verbose(stderr, "New step.");
 
         if (me->step == NULL) {
             me->status = STATUS__DONE;
@@ -1132,22 +1026,22 @@ static void run(struct script * restrict me)
         }
 
         if (opt_save_steps) {
-            verbose("Start saving intermediate OFSM to file.");
+            verbose(stderr, "Start saving intermediate OFSM to file.");
             save(me);
-            verbose("DONE saving.");
+            verbose(stderr, "DONE saving.");
         }
 
         do_step(me);
 
         if (me->status == STATUS__INTERRUPTED) {
-            verbose("Start saving current OFSM to file after interrupting.");
+            verbose(stderr, "Start saving current OFSM to file after interrupting.");
             save(me);
-            verbose("DONE saving.");
+            verbose(stderr, "DONE saving.");
             return;
         }
 
         if (me->status == STATUS__FAILED) {
-            verbose("FAIL: current step turn status to error.");
+            verbose(stderr, "FAIL: current step turn status to error.");
             return;
         }
 
@@ -1158,16 +1052,16 @@ static void run(struct script * restrict me)
 int do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
 {
     if (n >= me->qflakes) {
-        ERRHEADER;
-        errmsg("Maximum input size is equal to qflakes = %u, but %u as passed as argument n.", me->qflakes, n);
+        ERRLOCATION(stderr);
+        msg(stderr, "Maximum input size is equal to qflakes = %u, but %u as passed as argument n.", me->qflakes, n);
         return -1;
     }
 
     for (int i=0; i<n; ++i) {
         const struct flake * flake = me->flakes + i + 1;
         if (inputs[i] >= flake->qinputs) {
-            ERRHEADER;
-            errmsg("Invalid input, the inputs[%d] = %u, it increases flake qinputs (%u).", i, inputs[i], flake->qinputs);
+            ERRLOCATION(stderr);
+            msg(stderr, "Invalid input, the inputs[%d] = %u, it increases flake qinputs (%u).", i, inputs[i], flake->qinputs);
             return -1;
         }
     }
@@ -1181,8 +1075,8 @@ int do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inpu
         state = flake->jumps[1][state * flake->qinputs + input];
         if (state == INVALID_STATE) return -1;
         if (state >= flake->qoutputs) {
-            ERRHEADER;
-            errmsg("Invalid OFSM, new state = %u more than qoutputs = %u.", state, flake->qoutputs);
+            ERRLOCATION(stderr);
+            msg(stderr, "Invalid OFSM, new state = %u more than qoutputs = %u.", state, flake->qoutputs);
             return -1;
         }
 
@@ -1199,8 +1093,8 @@ int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct 
     memset(out, 0, sizeof(struct ofsm_array));
 
     if (ofsm->qflakes <= 1) {
-        ERRHEADER;
-        errmsg("Invalid argument: try to build and for empty OFSM.");
+        ERRLOCATION(stderr);
+        msg(stderr, "Invalid argument: try to build and for empty OFSM.");
         return 1;
     }
 
@@ -1213,8 +1107,8 @@ int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct 
     }
 
     if (qinputs_err == 0) {
-        ERRHEADER;
-        errmsg("Assertion failed: maximum input count for all flakes is 0.");
+        ERRLOCATION(stderr);
+        msg(stderr, "Assertion failed: maximum input count for all flakes is 0.");
         return 1;
     }
 
@@ -1230,8 +1124,8 @@ int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct 
     size_t sz = out->len * sizeof(unsigned int);
     out->array = malloc(sz);
     if (out->array == NULL) {
-        ERRHEADER;
-        errmsg("malloc(%lu) failed with NULL as return value in “do_ofsm_get_table”.", sz);
+        ERRLOCATION(stderr);
+        msg(stderr, "malloc(%lu) failed with NULL as return value in “do_ofsm_get_table”.", sz);
         return 1;
     }
 
@@ -1324,16 +1218,16 @@ int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array 
 const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, state_t output)
 {
     if (nflake <= 0 || nflake >= ofsm->qflakes) {
-        ERRHEADER;
-        errmsg("Invalid argument “nflake” = %u, should be in range 1 - %u.", nflake, ofsm->qflakes - 1);
+        ERRLOCATION(stderr);
+        msg(stderr, "Invalid argument “nflake” = %u, should be in range 1 - %u.", nflake, ofsm->qflakes - 1);
         return NULL;
     }
 
     const struct flake * flake = ofsm->flakes + nflake;
 
     if (output >= flake->qoutputs) {
-        ERRHEADER;
-        errmsg("Invalid argument “output” = %u for given flake, should be in range 0 - %u.", output, flake->qoutputs - 1);
+        ERRLOCATION(stderr);
+        msg(stderr, "Invalid argument “output” = %u for given flake, should be in range 0 - %u.", output, flake->qoutputs - 1);
         return NULL;
     }
 
@@ -1345,8 +1239,8 @@ const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, 
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check)
 {
     if (build == NULL) {
-        ERRHEADER;
-        errmsg("Invalid argument “f” = NULL (build script function). Not NULL value is expected.");
+        ERRLOCATION(stderr);
+        msg(stderr, "Invalid argument “f” = NULL (build script function). Not NULL value is expected.");
         return 1;
     }
 
@@ -1356,30 +1250,30 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
         return errcode;
     }
 
-    verbose("Start OFSM synthesis.");
+    verbose(stderr, "Start OFSM synthesis.");
 
     struct script * restrict script;
     script = create_script();
     if (script == NULL) {
-        ERRHEADER;
-        errmsg("create_script failed with NULL value. Terminate script execution.");
+        ERRLOCATION(stderr);
+        msg(stderr, "create_script failed with NULL value. Terminate script execution.");
         return 1;
     }
 
     build(script);
     if (script->status == STATUS__FAILED) {
-        errmsg("build(script) failed. Terminate script execution.");
+        msg(stderr, "build(script) failed. Terminate script execution.");
     }
-    verbose("DONE: building script.");
+    verbose(stderr, "DONE: building script.");
 
     run(script);
-    verbose("DONE: running script.");
+    verbose(stderr, "DONE: running script.");
 
     if (script->status == STATUS__DONE) {
         if (check != NULL) {
             errcode = check(script->ofsm);
             if (errcode != 0) {
-                errmsg("Check failed with code %d.", errcode);
+                msg(stderr, "Check failed with code %d.", errcode);
                 script->status = STATUS__FAILED;
             }
         }
@@ -1387,7 +1281,7 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
 
     int exit_code = script->status == STATUS__DONE || script->status == STATUS__INTERRUPTED ? 0 : 1;
     free_script(script);
-    verbose("Exit function execute.");
+    verbose(stderr, "Exit function execute.");
     return exit_code;
 }
 
@@ -1400,8 +1294,8 @@ static struct step * append_step(struct script * restrict me)
 
     struct step * restrict step = mempool_alloc(me->mempool, sizeof(struct step));
     if (step == NULL) {
-        ERRHEADER;
-        errmsg("mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct step));
+        ERRLOCATION(stderr);
+        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct step));
         me->status = STATUS__FAILED;
         return NULL;
     }
@@ -1512,7 +1406,7 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
         actual_mempool = create_mempool(4000);
         if (actual_mempool == NULL) {
             ERRLOCATION(errstream);
-            print_msg(errstream, "create_mempool(4000) failed with NULL as return value.");
+            msg(errstream, "create_mempool(4000) failed with NULL as return value.");
             return NULL;
         }
     }
@@ -1521,7 +1415,7 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     struct ofsm_builder * restrict result = mempool_alloc(actual_mempool, sz);
     if (result == NULL) {
         ERRLOCATION(errstream);
-        print_msg(errstream, "mempool_alloc(actual_mempool, %lu) failed with NULL as return value.", sz);
+        msg(errstream, "mempool_alloc(actual_mempool, %lu) failed with NULL as return value.", sz);
     }
 
     result->mempool = actual_mempool;
@@ -1543,18 +1437,20 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
 
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
+    verbose(me->logstream, "START push compinatoric OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
+
     const size_t last = me->ofsm_stack_last;
     const size_t next = (last + 1) % OFSM_STACK_SZ;
     if (next == me->ofsm_stack_first) {
         ERRLOCATION(me->errstream);
-        print_msg(me->errstream, "ofsm_builder_push_comb failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
+        msg(me->errstream, "ofsm_builder_push_comb failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
         return 1;
     }
 
     struct ofsm * restrict ofsm = create_ofsm(me->mempool, 0);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
-        print_msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
+        msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
         return 1;
     }
 
