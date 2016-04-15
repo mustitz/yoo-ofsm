@@ -9,6 +9,7 @@ int empty_test(void);
 
 int new_comb_55_test(void);
 int new_comb_42_test(void);
+int new_pow_42_test(void);
 int new_pow_41_test(void);
 int empty_builder_test(void);
 
@@ -40,6 +41,7 @@ struct test_item tests[] = {
     TEST_ITEM(empty),
     TEST_ITEM(new_comb_55),
     TEST_ITEM(new_comb_42),
+    TEST_ITEM(new_pow_42),
     TEST_ITEM(new_pow_41),
     TEST_ITEM(empty_builder),
     TEST_ITEM(optimize_with_invalid_hash),
@@ -967,6 +969,91 @@ int new_pow_41_test(void)
     free_ofsm_builder(me);
     return 0;
 }
+
+
+
+int new_pow_42_test(void)
+{
+    static const unsigned int NFLAKE = 2;
+    static const state_t QOUTS = 16;
+    static const unsigned int DELTA = 1;
+    static const int EXPECTED_STAT = 1;
+
+    int errcode;
+    int stat[QOUTS];
+    memset(stat, 0, sizeof(stat));
+
+    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+
+    errcode = ofsm_builder_push_pow(me, 4, 2);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 2) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    struct ofsm_array array;
+    errcode = ofsm_builder_make_array(me, DELTA, &array);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    const void * ofsm = ofsm_builder_get_ofsm(me);
+
+    input_t c[NFLAKE];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<4; ++c[1]) {
+        state_t value = run_array(&array, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+
+        if (value <= 0 || value > QOUTS) {
+            fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state >= QOUTS) {
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 0 - %u.\n", state, QOUTS - 1);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state != value - DELTA) {
+            fprintf(stderr, "state & value-DELTA mismatch: state = %u, value = %u, DELTA = %u.\n", state, value, DELTA);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != state2) {
+            fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
+
+        ++stat[state];
+    }
+
+    for (int i=0; i<QOUTS; ++i) {
+        if (stat[i] != EXPECTED_STAT) {
+            fprintf(stderr, "Invalid stat[%d] = %d, excpected value is %d.\n", i, stat[i], EXPECTED_STAT);
+            return 1;
+        }
+    }
+
+    free(array.array);
+    free_ofsm_builder(me);
+    return 0;
+}
+
+
 
 int new_comb_42_test(void)
 {
