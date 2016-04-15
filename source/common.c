@@ -77,7 +77,7 @@ static int parse_command_line(int argc, char * argv[])
 
     if (optind < argc) {
         msg(stderr, "Function “execute” do not expected any extra command line arguments except options.");
-        verbose(stderr, "optind = %d, argc = %d.", optind, argc);
+        verbose(verbose_stream, "optind = %d, argc = %d.", optind, argc);
         return 1;
     }
 
@@ -275,7 +275,7 @@ static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs,
     size_t path_sizes[2] = { 0, qoutputs * nflake * sizeof(input_t) };
     size_t total_sz = jump_sizes[1] + path_sizes[1];
 
-    verbose(stderr, "  Try allocate data for jump table for flake %u: size = %lu.", nflake, jump_sizes[1]);
+    verbose(verbose_stream, "  Try allocate data for jump table for flake %u: size = %lu.", nflake, jump_sizes[1]);
     multialloc(2, jump_sizes, jump_ptrs, 32);
 
     if (jump_ptrs[0] == NULL) {
@@ -284,7 +284,7 @@ static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs,
         return NULL;
     }
 
-    verbose(stderr, "  Try allocate data for path table for flake %u: size = %lu.", nflake, path_sizes[1]);
+    verbose(verbose_stream, "  Try allocate data for path table for flake %u: size = %lu.", nflake, path_sizes[1]);
     multialloc(2, path_sizes, path_ptrs, 32);
 
     if (path_ptrs[0] == NULL) {
@@ -294,7 +294,7 @@ static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs,
         return NULL;
     }
 
-    verbose(stderr, "  Allocation OK, jump_ptr = %p, path_ptr = %p.", jump_ptrs[0], path_ptrs[1]);
+    verbose(verbose_stream, "  Allocation OK, jump_ptr = %p, path_ptr = %p.", jump_ptrs[0], path_ptrs[1]);
     struct flake * restrict flake = ofsm->flakes + nflake;
 
     flake->qinputs = qinputs;
@@ -305,7 +305,7 @@ static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs,
     flake->paths[0] = path_ptrs[0];
     flake->paths[1] = path_ptrs[1];
 
-    verbose(stderr, "  New flake %u: qinputs = %u, qoutputs = %lu, qstates = %u, total_sz = %lu.", nflake, qinputs, qoutputs, qstates, total_sz);
+    verbose(verbose_stream, "  New flake %u: qinputs = %u, qoutputs = %lu, qstates = %u, total_sz = %lu.", nflake, qinputs, qoutputs, qstates, total_sz);
 
     ++ofsm->qflakes;
     return flake;
@@ -372,7 +372,7 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
 
 static void do_pow_flake(struct script * restrict me, input_t qinputs)
 {
-    verbose(stderr, "  Append flake with %u inputs.", qinputs);
+    verbose(verbose_stream, "  Append flake with %u inputs.", qinputs);
 
     struct ofsm * restrict ofsm = me->ofsm;
     unsigned int nflake = ofsm->qflakes;
@@ -408,7 +408,7 @@ static void do_pow_flake(struct script * restrict me, input_t qinputs)
 
 static void do_pow(struct script * restrict me, const struct step_data_pow * args)
 {
-    verbose(stderr, "START append power step, qinputs = %u, m = %u.", args->qinputs, args->m);
+    verbose(verbose_stream, "START append power step, qinputs = %u, m = %u.", args->qinputs, args->m);
 
     for (unsigned int i=0; i<args->m; ++i) {
         if (me->status != STATUS__FAILED) {
@@ -416,7 +416,7 @@ static void do_pow(struct script * restrict me, const struct step_data_pow * arg
         }
     }
 
-    verbose(stderr, "DONE append power step.");
+    verbose(verbose_stream, "DONE append power step.");
 }
 
 static state_t calc_comb_index(const struct choose_table * ct, const input_t * inputs, unsigned int qinputs, unsigned int m)
@@ -452,7 +452,7 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
 {
     input_t qinputs = args->qinputs;
 
-    verbose(stderr, "START append combinatoric step, qinputs = %u, m = %u.", args->qinputs, args->m);
+    verbose(verbose_stream, "START append combinatoric step, qinputs = %u, m = %u.", args->qinputs, args->m);
 
     struct choose_table * restrict ct = &me->choose;
     init_choose_table(ct, args->qinputs, args->m, stderr);
@@ -527,7 +527,7 @@ static void do_comb(struct script * restrict me, const struct step_data_comb * a
         ++dd;
     }
 
-    verbose(stderr, "DONE append combinatoric step.");
+    verbose(verbose_stream, "DONE append combinatoric step.");
 }
 
 struct ofsm_pack_decode {
@@ -550,7 +550,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 {
     int skip_renumering = (args->flags & PACK_FLAG__SKIP_RENUMERING) != 0;
 
-    verbose(stderr, "START pack step, skip_renumering = %d, f = %p.", skip_renumering, args->f);
+    verbose(verbose_stream, "START pack step, skip_renumering = %d, f = %p.", skip_renumering, args->f);
 
 
 
@@ -593,7 +593,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
     pack_value_t max_value = 0;
 
-    { verbose(stderr, "  --> calculate pack values.");
+    { verbose(verbose_stream, "  --> calculate pack values.");
 
         struct ofsm_pack_decode * restrict curr = decode_table;
         const input_t * path = oldman.paths[1];
@@ -608,13 +608,13 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
         curr->output = INVALID_STATE;
         curr->value = INVALID_PACK_VALUE;
 
-    } verbose(stderr, "  <<< calculate pack values, max value is %lu.", max_value);
+    } verbose(verbose_stream, "  <<< calculate pack values, max value is %lu.", max_value);
 
 
 
-    { verbose(stderr, "  --> sort new states.");
+    { verbose(verbose_stream, "  --> sort new states.");
         qsort(decode_table, old_qoutputs, sizeof(struct ofsm_pack_decode), &cmp_ofsm_pack_decode);
-    } verbose(stderr, "  <<< sort new states.");
+    } verbose(verbose_stream, "  <<< sort new states.");
 
 
 
@@ -622,7 +622,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
     state_t new_qoutputs = 0;
 
     if (skip_renumering) {
-        verbose(stderr, "  --> calc output_translate table without renumering.");
+        verbose(verbose_stream, "  --> calc output_translate table without renumering.");
 
         new_qoutputs = max_value + 1;
 
@@ -642,10 +642,10 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-        verbose(stderr, "  <<< calc output_translate table without renumering.");
+        verbose(verbose_stream, "  <<< calc output_translate table without renumering.");
 
     } else {
-        verbose(stderr, "  --> calc output_translate table with renumering.");
+        verbose(verbose_stream, "  --> calc output_translate table with renumering.");
 
         const struct ofsm_pack_decode * left = decode_table;
         const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
@@ -669,7 +669,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-        verbose(stderr, "  <<< calc output_translate table with renumering.");
+        verbose(verbose_stream, "  <<< calc output_translate table with renumering.");
     }
 
 
@@ -686,7 +686,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
 
-    { verbose(stderr, "  --> update data.");
+    { verbose(verbose_stream, "  --> update data.");
 
         const state_t * old = oldman.jumps[1];
         const state_t * end = old + oldman.qstates * oldman.qinputs;
@@ -700,11 +700,11 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-    } verbose(stderr, "  <<< update data.");
+    } verbose(verbose_stream, "  <<< update data.");
 
 
 
-    { verbose(stderr, "  --> update paths.");
+    { verbose(verbose_stream, "  --> update paths.");
 
         input_t * restrict new_path = infant->paths[1];
         const input_t * old_paths = oldman.paths[1];
@@ -725,14 +725,14 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
             }
         }
 
-    } verbose(stderr, "  <<< update paths.");
+    } verbose(verbose_stream, "  <<< update paths.");
 
 
 
     free(oldman.jumps[0]);
     free(oldman.paths[0]);
     free(ptr);
-    verbose(stderr, "DONE pack step, new qoutputs = %u.", new_qoutputs);
+    verbose(verbose_stream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
 }
 
 
@@ -797,7 +797,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
     }
 
     struct flake * restrict flake = ofsm->flakes + nflake;
-    verbose(stderr, "START optimize step, nlayer  %d.", nflake);
+    verbose(verbose_stream, "START optimize step, nlayer  %d.", nflake);
 
 
 
@@ -824,7 +824,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
 
 
 
-    { verbose(stderr, "  --> calc state hashes and sort.");
+    { verbose(verbose_stream, "  --> calc state hashes and sort.");
 
         hash_func * f = args->f != NULL ? args->f : get_first_jump;
 
@@ -844,23 +844,23 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 double now = get_app_age();
                 if (now - start > 10.0) {
                     uint64_t processed = ptr - state_infos;
-                    verbose(stderr, "     processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
+                    verbose(verbose_stream, "     processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
                     start = now;
                 }
             }
         }
 
-        verbose(stderr, "        sorting...");
+        verbose(verbose_stream, "        sorting...");
 
         qsort(state_infos, old_qstates, sizeof(struct state_info), cmp_state_info);
 
-    } verbose(stderr, "  <<< calc state hashes and sort.");
+    } verbose(verbose_stream, "  <<< calc state hashes and sort.");
 
 
 
     state_t new_qstates = 0;
 
-    { verbose(stderr, "  --> merge states.");
+    { verbose(verbose_stream, "  --> merge states.");
 
         double start = get_app_age();
         uint64_t counter = 0;
@@ -921,7 +921,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                         uint64_t chunk_total = right - base;
                         double chunk_persent = 100.0 * chunk_processed / chunk_total;
 
-                        verbose(stderr, "      processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
+                        verbose(verbose_stream, "      processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
                             persent, chunk_persent, processed, total, chunk_processed, chunk_total, merged);
 
                         start = now;
@@ -932,11 +932,11 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
                 ++left;
             }
         }
-    } verbose(stderr, "  <<< merge states.");
+    } verbose(verbose_stream, "  <<< merge states.");
 
 
 
-    { verbose(stderr, "  --> replace old jumps with a new one.");
+    { verbose(verbose_stream, "  --> replace old jumps with a new one.");
 
         state_t new_qstate = 0;
 
@@ -971,11 +971,11 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         flake->jumps[1] = ptrs[1];
         flake->qstates = new_qstates;
 
-    } verbose(stderr, "  <<< replace old jumps with a new one.");
+    } verbose(verbose_stream, "  <<< replace old jumps with a new one.");
 
 
 
-    { verbose(stderr, "  --> decode output states in the previous flake.");
+    { verbose(verbose_stream, "  --> decode output states in the previous flake.");
 
         const struct flake * prev = flake - 1;
         state_t * restrict jump = prev->jumps[1];
@@ -986,12 +986,12 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
             }
         }
 
-    } verbose(stderr, "  <<< decode output states in the previous flake.");
+    } verbose(verbose_stream, "  <<< decode output states in the previous flake.");
 
 
 
     free(ptr);
-    verbose(stderr, "DONE optimize step, state count was requced from %u to %u.", old_qstates, new_qstates);
+    verbose(verbose_stream, "DONE optimize step, state count was requced from %u to %u.", old_qstates, new_qstates);
 }
 
 static void do_step(struct script * restrict me)
@@ -1016,7 +1016,7 @@ static void run(struct script * restrict me)
     me->status = STATUS__EXECUTING;
 
     for (;;) {
-        verbose(stderr, "New step.");
+        verbose(verbose_stream, "New step.");
 
         if (me->step == NULL) {
             me->status = STATUS__DONE;
@@ -1024,22 +1024,22 @@ static void run(struct script * restrict me)
         }
 
         if (opt_save_steps) {
-            verbose(stderr, "Start saving intermediate OFSM to file.");
+            verbose(verbose_stream, "Start saving intermediate OFSM to file.");
             save(me);
-            verbose(stderr, "DONE saving.");
+            verbose(verbose_stream, "DONE saving.");
         }
 
         do_step(me);
 
         if (me->status == STATUS__INTERRUPTED) {
-            verbose(stderr, "Start saving current OFSM to file after interrupting.");
+            verbose(verbose_stream, "Start saving current OFSM to file after interrupting.");
             save(me);
-            verbose(stderr, "DONE saving.");
+            verbose(verbose_stream, "DONE saving.");
             return;
         }
 
         if (me->status == STATUS__FAILED) {
-            verbose(stderr, "FAIL: current step turn status to error.");
+            verbose(verbose_stream, "FAIL: current step turn status to error.");
             return;
         }
 
@@ -1248,7 +1248,7 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
         return errcode;
     }
 
-    verbose(stderr, "Start OFSM synthesis.");
+    verbose(verbose_stream, "Start OFSM synthesis.");
 
     struct script * restrict script;
     script = create_script();
@@ -1262,10 +1262,10 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
     if (script->status == STATUS__FAILED) {
         msg(stderr, "build(script) failed. Terminate script execution.");
     }
-    verbose(stderr, "DONE: building script.");
+    verbose(verbose_stream, "DONE: building script.");
 
     run(script);
-    verbose(stderr, "DONE: running script.");
+    verbose(verbose_stream, "DONE: running script.");
 
     if (script->status == STATUS__DONE) {
         if (check != NULL) {
@@ -1279,7 +1279,7 @@ int execute(int argc, char * argv[], build_script_func build, check_ofsm_func ch
 
     int exit_code = script->status == STATUS__DONE || script->status == STATUS__INTERRUPTED ? 0 : 1;
     free_script(script);
-    verbose(stderr, "Exit function execute.");
+    verbose(verbose_stream, "Exit function execute.");
     return exit_code;
 }
 
