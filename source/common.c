@@ -1525,19 +1525,6 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
             }
         }
 
-        for (state_t state = 0; state < qstates; ++state) {
-            input_t c[i+1];
-            if (i > 0) {
-                const input_t * ptr = prev->paths[1] + (nflake-1) * (state+1) - i;
-                memcpy(c, ptr, i * sizeof(input_t));
-            }
-
-            for (uint64_t input = 0; input < qinputs; ++input) {
-                c[i] = input;
-                *jumps++ = calc_comb_index(ct, c, qinputs, i+1);
-            }
-        }
-
         int errcode = calc_paths(flake, nflake);
         if (errcode != 0) {
             ERRLOCATION(me->errstream);

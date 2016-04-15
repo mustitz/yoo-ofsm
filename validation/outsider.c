@@ -7,6 +7,7 @@
 
 int empty_test(void);
 
+int new_comb_42_test(void);
 int empty_builder_test(void);
 
 int pow_41_test(void);
@@ -35,6 +36,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(new_comb_42),
     TEST_ITEM(empty_builder),
     TEST_ITEM(optimize_with_invalid_hash),
     TEST_ITEM(optimize_with_zero_hash),
@@ -994,5 +996,21 @@ int empty_builder_test(void)
     struct ofsm_builder * restrict ofsm_builder = create_ofsm_builder(mempool, stderr);
     free_ofsm_builder(ofsm_builder);
     free_mempool(mempool);
+    return 0;
+}
+
+int new_comb_42_test(void)
+{
+    int errcode;
+
+    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+
+    errcode = ofsm_builder_push_comb(me, 4, 2);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 4, 2) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    free_ofsm_builder(me);
     return 0;
 }
