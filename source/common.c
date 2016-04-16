@@ -136,10 +136,10 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
     return ofsm;
 }
 
-void free_ofsm(struct ofsm * restrict me)
+void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
 {
     void * ptr;
-    for (unsigned int i=0; i<me->qflakes; ++i) {
+    for (unsigned int i=qflakes; i<me->qflakes; ++i) {
 
         ptr = me->flakes[i].jumps[0];
         if (ptr != NULL) {
@@ -151,6 +151,13 @@ void free_ofsm(struct ofsm * restrict me)
             free(ptr);
         }
     }
+
+    me->qflakes = qflakes;
+}
+
+void free_ofsm(struct ofsm * restrict me)
+{
+    ofsm_truncate(me, 1);
 }
 
 
@@ -1670,7 +1677,7 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
         return 1;
     }
 
-    struct ofsm * restrict first_ofsm = me->ofsm_stack[idx];
+    struct ofsm * restrict ofsm1 = me->ofsm_stack[idx];
 
     idx = (idx + 1) % OFSM_STACK_SZ;
 
@@ -1681,9 +1688,52 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
         return 1;
     }
 
-    struct ofsm * restrict second_ofsm = me->ofsm_stack[idx];
+    struct ofsm * restrict ofsm2 = me->ofsm_stack[idx];
 
-    verbose(me->logstream, "NOT IMPLEMENTED YET product %p %p", first_ofsm, second_ofsm);
+    unsigned int saved_qflakes1 = ofsm1->qflakes;
+    const struct flake * const last1 = ofsm1->flakes + saved_qflakes1 - 1;
+
+    for (int nflake2 = 1; nflake2 < ofsm2->qflakes; ++nflake2) {
+        const struct flake * flake2 = ofsm2->flakes + nflake2;
+        struct flake * restrict flake1 = create_flake(ofsm1, flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
+        if (flake1 == NULL) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "create_flake(ofsm1, %u, %u, %u) failed with NULL as result.", flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
+            verbose(me->logstream, "FAILED product.");
+            ofsm_truncate(ofsm1, saved_qflakes1);
+            return 1;
+        }
+
+        state_t * jump1 = flake1->jumps[1];
+        for (unsigned int output1 = 0; output1 < last1->qoutputs; ++output1) {
+            const state_t * jump2 = flake2->jumps[1];
+            for (unsigned int state2 = 0; state2 < flake2->qstates; ++state2)
+            for (unsigned int input2 = 0; input2 < flake2->qinputs; ++input2) {
+                *jump1++ = (*jump2++) + output1 * flake2->qoutputs;
+            }
+        }
+
+        input_t * path1 = flake1->paths[1];
+        unsigned int head_len = saved_qflakes1 - 1;
+        unsigned int tail_len = nflake2;
+
+        const input_t * head = last1->paths[1];
+        for (unsigned int output1 = 0; output1 < last1->qoutputs; ++output1) {
+            const input_t * tail = flake2->paths[1];
+            for (unsigned int output2 = 0; output2 < flake2->qoutputs; ++output2) {
+                if (head_len > 0) {
+                    memcpy(path1, head, head_len * sizeof(input_t));
+                    path1 += head_len;
+                }
+                memcpy(path1, tail, tail_len * sizeof(input_t));
+                path1 += tail_len;
+                tail += tail_len;
+            }
+            head += head_len;
+        }
+    }
+
+    verbose(me->logstream, "DONE product.");
     return 1;
 }
 
