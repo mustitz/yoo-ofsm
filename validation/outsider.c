@@ -1308,22 +1308,6 @@ int new_pow_41_pow_51_test(void)
         state_t value = run_array(&array, c);
         state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
-        if (c[0] == c[1]) {
-            if (value != 0) {
-                fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
-                print_path("input =", c, NFLAKE);
-                return 1;
-            }
-
-            if (state != INVALID_STATE) {
-                fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE (%u).\n", state, INVALID_STATE);
-                print_path("input =", c, NFLAKE);
-                return 1;
-            }
-
-            continue;
-        }
-
         if (value <= 0 || value > QOUTS) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
