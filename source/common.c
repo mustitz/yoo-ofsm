@@ -1473,6 +1473,8 @@ int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_l
     return ofsm_get_array(ofsm, delta_last, out);
 }
 
+
+
 int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
     int errcode;
@@ -1545,6 +1547,8 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
     verbose(me->logstream, "DONE push power.");
     return 0;
 }
+
+
 
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
@@ -1651,8 +1655,42 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     return 0;
 }
 
- int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags)
- {
+
+
+int ofsm_builder_do_product(struct ofsm_builder * restrict me)
+{
+    verbose(me->logstream, "START product.");
+
+    size_t idx = me->ofsm_stack_first;
+
+    if (idx == me->ofsm_stack_last) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_do_product(me) is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        verbose(me->logstream, "FAILED product.");
+        return 1;
+    }
+
+    struct ofsm * restrict first_ofsm = me->ofsm_stack[idx];
+
+    idx = (idx + 1) % OFSM_STACK_SZ;
+
+    if (idx == me->ofsm_stack_last) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_do_product(me) is called for OFSM stack with one element, but at least two is required, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        verbose(me->logstream, "FAILED product.");
+        return 1;
+    }
+
+    struct ofsm * restrict second_ofsm = me->ofsm_stack[idx];
+
+    verbose(me->logstream, "NOT IMPLEMENTED YET product %p %p", first_ofsm, second_ofsm);
+    return 1;
+}
+
+
+
+int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags)
+{
     verbose(me->logstream, "START packing.");
 
     struct ofsm * restrict ofsm = ofsm_builder_get_ofsm(me);
@@ -1843,4 +1881,4 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     verbose(me->errstream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
 
     return 0;
- }
+}
