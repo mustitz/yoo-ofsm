@@ -5,8 +5,7 @@
 
 
 
-int empty_test(void);
-
+int new_pack_test(void);
 int new_pow_41_comb_52_test(void);
 int new_pow_41_pow_51_test(void);
 int new_comb_55_test(void);
@@ -28,6 +27,8 @@ int optimize_with_rnd_hash_test(void);
 int optimize_with_zero_hash_test(void);
 int optimize_with_invalid_hash_test(void);
 
+int empty_test(void);
+
 
 
 typedef int (* test_f)(void);
@@ -41,6 +42,7 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+    TEST_ITEM(new_pack),
     TEST_ITEM(new_pow_41_comb_52),
     TEST_ITEM(new_pow_41_pow_51),
     TEST_ITEM(new_comb_55),
@@ -1470,5 +1472,12 @@ int new_pow_41_comb_52_test(void)
 
     free(array.array);
     free_ofsm_builder(me);
+    return 0;
+}
+
+
+
+int new_pack_test(void)
+{
     return 0;
 }
