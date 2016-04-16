@@ -1733,8 +1733,13 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
         }
     }
 
+    free_ofsm(ofsm2);
+    me->ofsm_stack_first = (me->ofsm_stack_first + 1) % OFSM_STACK_SZ; 
+    me->ofsm_stack[me->ofsm_stack_first] = ofsm1;
+
+
     verbose(me->logstream, "DONE product.");
-    return 1;
+    return 0;
 }
 
 
