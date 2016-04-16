@@ -1439,7 +1439,18 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
     }
 }
 
-const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+const void * ofsm_builder_get_ofsm_as_void(const struct ofsm_builder * me)
+{
+    if (me->ofsm_stack_first == me->ofsm_stack_last) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_get_ofsm_as_void is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        return NULL;
+    }
+
+    return me->ofsm_stack[me->ofsm_stack_first];
+}
+
+struct ofsm * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 {
     if (me->ofsm_stack_first == me->ofsm_stack_last) {
         ERRLOCATION(me->errstream);
@@ -1452,10 +1463,10 @@ const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 
 int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
 {
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * ofsm = ofsm_builder_get_ofsm_as_void(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_get_ofsm(me) failed with NULL as error value.");
+        msg(me->errstream, "ofsm_builder_get_ofsm_as_void(me) failed with NULL as error value.");
         return 1;
     }
 
@@ -1531,7 +1542,7 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
 
     me->ofsm_stack[last] = ofsm;
     me->ofsm_stack_last = next;
-    verbose(me->logstream, "DONE push combinatoric.");
+    verbose(me->logstream, "DONE push power.");
     return 0;
 }
 
@@ -1639,3 +1650,197 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     verbose(me->logstream, "DONE push combinatoric.");
     return 0;
 }
+
+ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags)
+ {
+    verbose(me->logstream, "START packing.");
+
+    struct ofsm * restrict ofsm = ofsm_builder_get_ofsm(me);
+
+    if (ofsm == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_get_ofsm(me) failed with NULL as error value.");
+        verbose(me->logstream, "FAILED packing.");
+        return 1;
+    }
+
+    if (ofsm->qflakes <= 1) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "Try to pack empty OFSM.");
+        verbose(me->logstream, "FAILED packing.");
+        return 1;
+    }
+
+    int skip_renumering = (flags & PACK_FLAG__SKIP_RENUMERING) != 0;
+    unsigned int nflake = ofsm->qflakes - 1;
+    const struct flake oldman =  ofsm->flakes[nflake];
+    uint64_t old_qoutputs = oldman.qoutputs;
+
+
+    size_t sizes[3];
+    sizes[0] = 0;
+    sizes[1] = (1 + old_qoutputs) * sizeof(struct ofsm_pack_decode);
+    sizes[2] = old_qoutputs * sizeof(state_t);
+
+    void * ptrs[3];
+    multialloc(3, sizes, ptrs, 32);
+    void * ptr = ptrs[0];
+
+    if (ptr == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "  multialloc(4, {%lu, %lu, %lu}, ptrs, 32) failed for temporary packing data.", sizes[0], sizes[1], sizes[2]);
+        verbose(me->logstream, "FAILED packing.");
+        return 1;
+    }
+
+    struct ofsm_pack_decode * decode_table = ptrs[1];
+    state_t * translate = ptrs[2];
+
+
+
+    pack_value_t max_value = 0;
+
+    { verbose(me->logstream, "  --> calculate pack values.");
+
+        struct ofsm_pack_decode * restrict curr = decode_table;
+        const input_t * path = oldman.paths[1];
+        for (size_t output = 0; output < old_qoutputs; ++output) {
+            curr->output = output;
+            curr->value = f(nflake, path);
+            if (curr->value > max_value) max_value = curr->value;
+            path += nflake;
+            ++curr;
+        }
+
+        curr->output = INVALID_STATE;
+        curr->value = INVALID_PACK_VALUE;
+
+    } verbose(me->logstream, "  <<< calculate pack values, max value is %lu.", max_value);
+
+
+
+    { verbose(me->logstream, "  --> sort new states.");
+        qsort(decode_table, old_qoutputs, sizeof(struct ofsm_pack_decode), &cmp_ofsm_pack_decode);
+    } verbose(me->logstream, "  <<< sort new states.");
+
+
+
+    state_t new_qoutputs = 0;
+
+    if (skip_renumering) {
+
+        verbose(me->logstream, "  --> calc output_translate table without renumering.");
+
+        new_qoutputs = max_value + 1;
+
+        const struct ofsm_pack_decode * left = decode_table;
+        const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
+
+        while (left != end) {
+
+            const struct ofsm_pack_decode * right = left + 1;
+            while (right != end && right->value == left->value) {
+                ++right;
+            }
+
+            state_t new_output = left->value != INVALID_PACK_VALUE ? left->value : INVALID_STATE;
+            for (; left != right; ++left) {
+                translate[left->output] = new_output;
+            }
+        }
+
+        verbose(me->logstream, "  <<< calc output_translate table without renumering.");
+
+    } else {
+
+        verbose(me->logstream, "  --> calc output_translate table with renumering.");
+
+        const struct ofsm_pack_decode * left = decode_table;
+        const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
+
+        while (left != end) {
+
+            const struct ofsm_pack_decode * right = left + 1;
+            while (right != end && right->value == left->value) {
+                ++right;
+            }
+
+            state_t new_output;
+            if (left->value != INVALID_PACK_VALUE) {
+                new_output = new_qoutputs++;
+            } else {
+                new_output = INVALID_STATE;
+            }
+
+            for (; left != right; ++left) {
+                translate[left->output] = new_output;
+            }
+        }
+
+        verbose(me->logstream, "  <<< calc output_translate table with renumering.");
+    }
+
+
+
+    --ofsm->qflakes;
+    struct flake * restrict infant = create_flake(ofsm, oldman.qinputs, new_qoutputs, oldman.qstates);
+    if (infant == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
+        verbose(me->logstream, "FAILED packing.");
+        free(ptr);
+        return 1;
+    }
+
+
+
+    { verbose(me->errstream, "  --> update data.");
+
+        const state_t * old = oldman.jumps[1];
+        const state_t * end = old + oldman.qstates * oldman.qinputs;
+        state_t * restrict new = infant->jumps[1];
+
+        for (; old != end; ++old) {
+            if (*old != INVALID_STATE) {
+                *new++ = translate[*old];
+            } else {
+                *new++ = INVALID_STATE;
+            }
+        }
+
+    } verbose(me->errstream, "  <<< update data.");
+
+
+
+    { verbose(me->errstream, "  --> update paths.");
+
+        input_t * restrict new_path = infant->paths[1];
+        const input_t * old_paths = oldman.paths[1];
+        const struct ofsm_pack_decode * decode = decode_table;
+        size_t sz = sizeof(input_t) * nflake;
+        for (state_t output = 0; output < new_qoutputs; ++output) {
+            pack_value_t value = decode->value;
+            state_t old_output = decode->output;
+            state_t new_output = translate[old_output];
+            if (output == new_output) {
+                memcpy(new_path, old_paths + old_output * nflake, sz);
+                new_path += nflake;
+                do ++decode; while (decode->value == value);
+            } else {
+                for (unsigned int i=0; i < nflake; ++i) {
+                    *new_path++ = INVALID_INPUT;
+                }
+            }
+        }
+
+    } verbose(me->errstream, "  <<< update paths.");
+
+
+
+    free(oldman.jumps[0]);
+    free(oldman.paths[0]);
+    free(ptr);
+    verbose(me->errstream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
+
+    return 0;
+ }
