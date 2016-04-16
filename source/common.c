@@ -1709,7 +1709,13 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
             const state_t * jump2 = flake2->jumps[1];
             for (unsigned int state2 = 0; state2 < flake2->qstates; ++state2)
             for (unsigned int input2 = 0; input2 < flake2->qinputs; ++input2) {
-                *jump1++ = (*jump2++) + output1 * flake2->qoutputs;
+                if (*jump2 == INVALID_STATE) {
+                    *jump1 = INVALID_STATE;
+                } else {
+                    *jump1 = (*jump2) + output1 * flake2->qoutputs;
+                }
+                ++jump1;
+                ++jump2;
             }
         }
 
