@@ -5,6 +5,9 @@
 
 
 
+int new_optimize_with_invalid_hash_test(void);
+int new_optimize_with_zero_hash_test(void);
+int new_optimize_with_rnd_hash_test(void);
 int new_optimize_test(void);
 int new_pack_without_renum_test(void);
 int new_pack_test(void);
@@ -45,6 +48,9 @@ struct test_item
 struct test_item tests[] = {
     TEST_ITEM(empty),
 
+    TEST_ITEM(new_optimize_with_invalid_hash),
+    TEST_ITEM(new_optimize_with_zero_hash),
+    TEST_ITEM(new_optimize_with_rnd_hash),
     TEST_ITEM(new_optimize),
     TEST_ITEM(new_pack_without_renum),
     TEST_ITEM(new_pack),
@@ -1696,7 +1702,7 @@ int new_pack_without_renum_test(void)
 
 
 
-int new_optimize_test(void)
+int new_optimize_test_with_hash(hash_func hash)
 {
     static const unsigned int NFLAKE = 3;
     static const state_t QOUTS = 40;
@@ -1730,7 +1736,7 @@ int new_optimize_test(void)
         return 1;
     }
 
-    errcode = ofsm_builder_optimize(me, 3, 1, invalid_hash);
+    errcode = ofsm_builder_optimize(me, 3, 1, hash);
     if (errcode != 0) {
         fprintf(stderr, "ofsm_builder_optimize(me, 3, 1, invalid_hash) failed with %d as error code.", errcode);
         return 1;
@@ -1800,4 +1806,24 @@ int new_optimize_test(void)
     free(array.array);
     free_ofsm_builder(me);
     return 0;
+}
+
+int new_optimize_test(void)
+{
+    return new_optimize_test_with_hash(NULL);
+}
+
+int new_optimize_with_rnd_hash_test(void)
+{
+    return new_optimize_test_with_hash(rnd_hash);
+}
+
+int new_optimize_with_zero_hash_test(void)
+{
+    return new_optimize_test_with_hash(zero_hash);
+}
+
+int new_optimize_with_invalid_hash_test(void)
+{
+    return new_optimize_test_with_hash(invalid_hash);
 }
