@@ -935,7 +935,7 @@ int new_pow_41_test(void)
         state_t value = run_array(&array, c);
         state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
-        if (value <= 0 || value > QOUTS) {
+        if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -1018,7 +1018,7 @@ int new_pow_42_test(void)
         state_t value = run_array(&array, c);
         state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
-        if (value <= 0 || value > QOUTS) {
+        if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -1117,7 +1117,7 @@ int new_comb_42_test(void)
             continue;
         }
 
-        if (value <= 0 || value > QOUTS) {
+        if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -1227,7 +1227,7 @@ int new_comb_55_test(void)
             continue;
         }
 
-        if (value <= 0 || value > QOUTS) {
+        if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -1322,7 +1322,7 @@ int new_pow_41_pow_51_test(void)
         state_t value = run_array(&array, c);
         state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
-        if (value <= 0 || value > QOUTS) {
+        if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
@@ -1434,7 +1434,7 @@ int new_pow_41_comb_52_test(void)
             continue;
         }
 
-        if (value <= 0 || value > QOUTS) {
+        if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
             print_path("input =", c, NFLAKE);
             return 1;
