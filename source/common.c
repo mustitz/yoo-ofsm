@@ -1740,7 +1740,7 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
     }
 
     free_ofsm(ofsm2);
-    me->ofsm_stack_first = (me->ofsm_stack_first + 1) % OFSM_STACK_SZ; 
+    me->ofsm_stack_first = (me->ofsm_stack_first + 1) % OFSM_STACK_SZ;
     me->ofsm_stack[me->ofsm_stack_first] = ofsm1;
 
 
@@ -1893,7 +1893,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 
 
 
-    { verbose(me->errstream, "  --> update data.");
+    { verbose(me->logstream, "  --> update data.");
 
         const state_t * old = oldman.jumps[1];
         const state_t * end = old + oldman.qstates * oldman.qinputs;
@@ -1907,11 +1907,11 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
             }
         }
 
-    } verbose(me->errstream, "  <<< update data.");
+    } verbose(me->logstream, "  <<< update data.");
 
 
 
-    { verbose(me->errstream, "  --> update paths.");
+    { verbose(me->logstream, "  --> update paths.");
 
         input_t * restrict new_path = infant->paths[1];
         const input_t * old_paths = oldman.paths[1];
@@ -1932,14 +1932,14 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
             }
         }
 
-    } verbose(me->errstream, "  <<< update paths.");
+    } verbose(me->logstream, "  <<< update paths.");
 
 
 
     free(oldman.jumps[0]);
     free(oldman.paths[0]);
     free(ptr);
-    verbose(me->errstream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
+    verbose(me->logstream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
 
     return 0;
 }
