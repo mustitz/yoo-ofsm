@@ -1584,8 +1584,6 @@ int new_pack_test(void)
     }
 
     free(array.array);
-    return 0;
-    // const void * ofsm = ofsm_builder_get_ofsm(me);
-
+    free_ofsm_builder(me);
     return 0;
 }
