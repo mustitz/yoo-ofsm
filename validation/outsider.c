@@ -5,6 +5,7 @@
 
 
 
+int new_optimize_test(void);
 int new_pack_without_renum_test(void);
 int new_pack_test(void);
 int new_pow_41_comb_52_test(void);
@@ -43,6 +44,8 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
+
+    TEST_ITEM(new_optimize),
     TEST_ITEM(new_pack_without_renum),
     TEST_ITEM(new_pack),
     TEST_ITEM(new_pow_41_comb_52),
@@ -52,6 +55,7 @@ struct test_item tests[] = {
     TEST_ITEM(new_pow_42),
     TEST_ITEM(new_pow_41),
     TEST_ITEM(empty_builder),
+
     TEST_ITEM(optimize_with_invalid_hash),
     TEST_ITEM(optimize_with_zero_hash),
     TEST_ITEM(optimize_with_rnd_hash),
@@ -1663,5 +1667,12 @@ int new_pack_without_renum_test(void)
 
     free(array.array);
     free_ofsm_builder(me);
+    return 0;
+}
+
+
+
+int new_optimize_test(void)
+{
     return 0;
 }
