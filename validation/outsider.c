@@ -1534,6 +1534,18 @@ int new_pack_test(void)
 
         int state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
+            if (value != 0) {
+                fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
+            if (state != INVALID_STATE) {
+                fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE (%u).\n", state, INVALID_STATE);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
             continue;
         }
 
@@ -1634,6 +1646,18 @@ int new_pack_without_renum_test(void)
 
         int state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
+            if (value != 0) {
+                fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
+            if (state != INVALID_STATE) {
+                fprintf(stderr, "Invalid state (%u) after script_execute: expected INVALID_STATE (%u).\n", state, INVALID_STATE);
+                print_path("input =", c, NFLAKE);
+                return 1;
+            }
+
             continue;
         }
 
@@ -1674,8 +1698,9 @@ int new_pack_without_renum_test(void)
 
 int new_optimize_test(void)
 {
-    // static const unsigned int NFLAKE = 3;
-    static const unsigned int DELTA = 1;
+    static const unsigned int NFLAKE = 3;
+    static const state_t QOUTS = 40;
+    static const unsigned int DELTA = 0;
 
     int errcode;
 
@@ -1718,6 +1743,59 @@ int new_optimize_test(void)
         return 1;
     }
 
+    const void * ofsm = ofsm_builder_get_ofsm(me);
+
+    input_t c[NFLAKE];
+    for (c[0]=0; c[0]<4; ++c[0])
+    for (c[1]=0; c[1]<5; ++c[1])
+    for (c[2]=0; c[2]<5; ++c[2]) {
+        state_t value = run_array(&array, c);
+        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+
+        if (c[1] == c[2]) {
+            continue;
+        }
+
+        if (value < DELTA || value >= QOUTS + DELTA) {
+            fprintf(stderr, "Invalid value (%u) after run_array, out of range %u - %u.\n", value, DELTA, DELTA + QOUTS - 1);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state >= QOUTS) {
+            fprintf(stderr, "Invalid state (%u) after script_execute: out of range 0 - %u.\n", state, QOUTS - 1);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        if (state != value - DELTA) {
+            fprintf(stderr, "state & value-DELTA mismatch: state = %u, value = %u, DELTA = %u.\n", state, value, DELTA);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        if (path == NULL) {
+            fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
+            return 1;
+        }
+
+        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        if (state != state2) {
+            fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
+            print_path("input =", c, NFLAKE);
+            print_path("path =", path, NFLAKE);
+            return 1;
+        }
+
+        size_t expected = (3*c[0] + c[1] + c[2]) % 7;
+        if (expected != state) {
+            fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
+            print_path("input =", c, NFLAKE);
+            return 1;
+        }
+
+    }
 
     free(array.array);
     free_ofsm_builder(me);
