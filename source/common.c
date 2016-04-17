@@ -1755,7 +1755,6 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
     verbose(me->logstream, "START packing.");
 
     struct ofsm * restrict ofsm = ofsm_builder_get_ofsm(me);
-
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "ofsm_builder_get_ofsm(me) failed with NULL as error value.");
@@ -1940,6 +1939,239 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
     free(oldman.paths[0]);
     free(ptr);
     verbose(me->logstream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
+
+    return 0;
+}
+
+
+
+int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, struct flake * restrict flake, hash_func * f)
+{
+    hash_func * hash = f != NULL ? f : get_first_jump;
+    state_t old_qstates = flake->qstates;
+    input_t qinputs = flake->qinputs;
+
+
+    size_t sizes[2];
+    sizes[0] = 0;
+    sizes[1] = old_qstates * sizeof(struct state_info);
+
+    void * ptrs[2];
+    multialloc(2, sizes, ptrs, 32);
+    void * ptr = ptrs[0];
+
+    if (ptr == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for temporary optimizing data.", sizes[0], sizes[1]);
+        return 1;
+    }
+
+    struct state_info * state_infos = ptrs[1];
+
+
+
+    { verbose(me->logstream, "  --> calc state hashes and sort.");
+
+        uint64_t counter = 0;
+        double start = get_app_age();
+
+        const state_t * jumps = flake->jumps[1];
+        struct state_info * restrict ptr = state_infos;
+        const struct state_info * end = state_infos + old_qstates;
+        state_t state = 0;
+        for (; ptr != end; ++ptr) {
+            ptr->old = state++;
+            ptr->hash = hash(qinputs, jumps);
+            jumps += qinputs;
+
+            if ((++counter & 0xFF) == 0) {
+                double now = get_app_age();
+                if (now - start > 10.0) {
+                    uint64_t processed = ptr - state_infos;
+                    verbose(me->logstream, "    processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
+                    start = now;
+                }
+            }
+        }
+
+        verbose(me->logstream, "    sorting...");
+
+        qsort(state_infos, old_qstates, sizeof(struct state_info), cmp_state_info);
+
+    } verbose(me->logstream, "  <<< calc state hashes and sort.");
+
+
+
+    state_t new_qstates = 0;
+
+    { verbose(me->logstream, "  --> merge states.");
+
+        double start = get_app_age();
+        uint64_t counter = 0;
+        uint64_t merged = 0;
+
+        const struct state_info * end = state_infos + old_qstates;
+        struct state_info * left = state_infos;
+
+        while (left != end) {
+            struct state_info * right = left + 1;
+            while (right != end && right->hash == left->hash) {
+                ++right;
+            }
+
+            struct state_info * base;
+            if (left->hash != INVALID_HASH || left == state_infos) {
+                base = left;
+                ++new_qstates;
+                left->new = left->old;
+                ++left;
+            } else {
+                base = state_infos;
+            }
+
+            while (left != right) {
+
+                // Current state is unmerged by default
+                left->new = left->old;
+
+                // Try to merge
+                for (struct state_info * ptr = base; ptr != left; ++ptr) {
+
+                    if (ptr->new != ptr->old) {
+                        // This state was merged with another one, no sence to merge.
+                        continue;
+                    }
+
+                    // Try to merge
+                    state_t * a = flake->jumps[1] + ptr->old * qinputs;
+                    state_t * b = flake->jumps[1] + left->old * qinputs;
+                    int was_merged = merge(qinputs, a, b) != 0;
+
+                    if (was_merged) {
+                        left->new = ptr->new;
+                        ++merged;
+                        break;
+                    }
+                }
+
+                if ((++counter & 0xFFF) == 0) {
+                    double now = get_app_age();
+                    if (now - start > 60.0) {
+                        uint64_t processed = left - state_infos;
+                        uint64_t total = old_qstates;
+                        double persent = 100.0 * processed / total;
+
+                        uint64_t chunk_processed = left - base;
+                        uint64_t chunk_total = right - base;
+                        double chunk_persent = 100.0 * chunk_processed / chunk_total;
+
+                        verbose(me->logstream, "    processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
+                            persent, chunk_persent, processed, total, chunk_processed, chunk_total, merged);
+
+                        start = now;
+                    }
+                }
+
+                new_qstates += left->new == left->old;
+                ++left;
+            }
+        }
+    } verbose(me->logstream, "  <<< merge states.");
+
+
+
+    { verbose(me->logstream, "  --> replace old jumps with a new one.");
+
+        state_t new_qstate = 0;
+
+        size_t sizes[2] = { 0, new_qstates * qinputs * sizeof(state_t) };
+        void * ptrs[2];
+        multialloc(2, sizes, ptrs, 32);
+        if (ptrs[0] == NULL) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "multialloc(2, { %lu, %lu }, ptrs, 32) failed with NULL value during reallocating new jump table.", sizes[0], sizes[1]);
+            free(ptr);
+            return 1;
+        }
+
+        state_t * new_jumps = ptrs[1];
+        const state_t * old_jumps = flake->jumps[1];
+        struct state_info * restrict ptr = state_infos;
+        const struct state_info * end = state_infos + old_qstates;
+        for (; ptr != end; ++ptr) {
+            if (ptr->new != ptr->old) {
+                state_infos[ptr->old].index = state_infos[ptr->new].index;
+                continue;
+            }
+
+            state_infos[ptr->old].index = new_qstate++;
+            memcpy(new_jumps, old_jumps + ptr->old * qinputs, qinputs * sizeof(state_t));
+            new_jumps += qinputs;
+        }
+
+        free(flake->jumps[0]);
+        flake->jumps[0] = ptrs[0];
+        flake->jumps[1] = ptrs[1];
+        flake->qstates = new_qstates;
+
+    } verbose(me->logstream, "  <<< replace old jumps with a new one.");
+
+
+
+    { verbose(me->logstream, "  --> decode output states in the previous flake.");
+
+        const struct flake * prev = flake - 1;
+        state_t * restrict jump = prev->jumps[1];
+        const state_t * end = jump + prev->qinputs * prev->qstates;
+        for (; jump != end; ++jump) {
+            if (*jump != INVALID_STATE) {
+                *jump = state_infos[*jump].index;
+            }
+        }
+
+    } verbose(me->logstream, "  <<< decode output states in the previous flake.");
+
+
+
+    free(ptr);
+    return 0;
+}
+
+int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f)
+{
+    struct ofsm * restrict ofsm = ofsm_builder_get_ofsm(me);
+    if (ofsm == NULL) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "ofsm_builder_optimize(me) failed with NULL as error value.");
+        return 1;
+    }
+
+    if (nflake <= 0 || nflake >= ofsm->qflakes) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "Invalid flake number (%u), expected value might be in range 1 - %u.", nflake, ofsm->qflakes - 1);
+        return 1;
+    }
+
+    if (qflakes == 0) --qflakes;
+
+    for (unsigned int i = 0; i < qflakes; ++i) {
+        unsigned int current_nflake = nflake - i;
+        if (current_nflake <= 0) {
+            break;
+        }
+
+        struct flake * restrict flake = ofsm->flakes + current_nflake;
+        verbose(me->logstream, "START optimize flake %u.", current_nflake);
+
+        int errcode = ofsm_builder_optimize_flake(me, flake, f);
+        if (errcode == 0) {
+            verbose(me->logstream, "DONE optimize flake %u.", current_nflake);
+        } else {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "ofsm_builder_optimize_flake(me, flake, f) failed with %d as error code.", errcode);
+            verbose(me->logstream, "FAILED optimize flake %u.", current_nflake);
+        }
+    }
 
     return 0;
 }
