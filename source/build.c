@@ -413,25 +413,25 @@ static int parse_command_line(int argc, char * argv[])
 
 static int create_holdem_5(void)
 {
-    // TODO
+    fprintf(stderr, "Not implemented create_holdem_5();\n");
     return 1;
 }
 
 static int create_six_plus_5(void)
 {
-    // TODO
+    fprintf(stderr, "Not implemented create_six_plus_5();\n");
     return 1;
 }
 
 static int create_six_plus_7(void)
 {
-    // TODO
+    fprintf(stderr, "Not implemented create_six_plus_7();\n");
     return 1;
 }
 
 static int create_omaha_7(void)
 {
-    // TODO
+    fprintf(stderr, "Not implemented create_omaha_7();\n");
     return 1;
 }
 
@@ -466,9 +466,9 @@ static void print_table_names(void)
 
 int main(int argc, char * argv[])
 {
-    int i = parse_command_line(argc, argv);
+    const int first_arg = parse_command_line(argc, argv);
 
-    if (i < 0) {
+    if (first_arg < 0) {
         usage();
         return 1;
     }
@@ -478,13 +478,42 @@ int main(int argc, char * argv[])
         return 0;
     }
 
-    if (i >= argc) {
+    if (first_arg >= argc) {
         print_table_names();
         return 0;
     }
 
-    printf("TODO: run on passed tables.\n");
+    int qerrors = 0;
+    const int qcalls = argc - first_arg;
+    create_func calls[qcalls];
+    for (int i=0; i<qcalls; ++i) {
+        const char * const table_name = argv[first_arg + i];
+        const struct poker_table * entry = poker_tables;
+        for (;; ++entry) {
+            if (entry->name == NULL) {
+                ++qerrors;
+                fprintf(stderr, "Table name “%s” is not found.\n", table_name);
+                break;
+            }
+            if (strcmp(table_name, entry->name) == 0) {
+                calls[i] = entry->create;
+                break;
+            }
+        }
+    }
 
+    if (qerrors > 0) {
+        return 1;
+    }
+
+    for (int j=0; j<qcalls; ++j) {
+        int err = calls[j]();
+        if (err != 0) {
+            return 1;
+        }
+    }
+
+/*
     const struct selector * selector = selectors;
     for (; selector->name != NULL; ++selector) {
         if (is_prefix(selector->name, &argc, argv)) {
@@ -496,6 +525,7 @@ int main(int argc, char * argv[])
     for (; selector->name != NULL; ++selector) {
         printf("%s\n", selector->name);
     }
+*/
 
     return 0;
 }
