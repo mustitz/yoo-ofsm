@@ -341,9 +341,9 @@ struct selector
 };
 
 struct selector selectors[] = {
-    { "holdem-5", build_holdem_5, check_holdem_5 },
     { "six-plus-5", build_six_plus_5, check_six_plus_5 },
     { "six-plus-7", build_six_plus_7, check_six_plus_7 },
+    { "holdem-5", build_holdem_5, check_holdem_5 },
     { "omaha7", build_omaha7_script, check_omaha7 },
     { NULL, NULL }
 };
@@ -363,6 +363,40 @@ int is_prefix(const char * prefix, int * argc, char * argv[])
 
 
 
+int opt_verbose = 0;
+int opt_help = 0;
+
+
+
+struct ofsm_builder * create_ob(void)
+{
+    struct ofsm_builder * restrict ob = create_ofsm_builder(NULL, stderr);
+    if (ob == NULL) return NULL;
+
+    if (opt_verbose) {
+        ob->logstream = stdout;
+    }
+
+    return ob;
+}
+
+
+
+int run_six_plus_5(struct ofsm_builder * restrict ob);
+static int create_six_plus_5(void)
+{
+    struct ofsm_builder * restrict const ob = create_ob();
+    if (ob == NULL) return 1;
+
+    printf("%s", "Creating six-plus-5...\n");
+    int err = run_six_plus_5(ob);
+
+    free_ofsm_builder(ob);
+    return err;
+}
+
+
+
 static void usage(void)
 {
     printf("%s",
@@ -371,9 +405,6 @@ static void usage(void)
         "  --verbose, -v   Output an extended logging information to stderr.\n"
     );
 }
-
-int opt_verbose = 0;
-int opt_help = 0;
 
 static int parse_command_line(int argc, char * argv[])
 {
@@ -411,21 +442,15 @@ static int parse_command_line(int argc, char * argv[])
 
 
 
-static int create_holdem_5(void)
-{
-    fprintf(stderr, "Not implemented create_holdem_5();\n");
-    return 1;
-}
-
-static int create_six_plus_5(void)
-{
-    fprintf(stderr, "Not implemented create_six_plus_5();\n");
-    return 1;
-}
-
 static int create_six_plus_7(void)
 {
     fprintf(stderr, "Not implemented create_six_plus_7();\n");
+    return 1;
+}
+
+static int create_holdem_5(void)
+{
+    fprintf(stderr, "Not implemented create_holdem_5();\n");
     return 1;
 }
 

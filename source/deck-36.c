@@ -448,6 +448,15 @@ void build_six_plus_5(void * script)
     script_step_optimize(script, 1, NULL);
 }
 
+int run_six_plus_5(struct ofsm_builder * restrict ob)
+{
+    return 0
+        || ofsm_builder_push_comb(ob, 36, 5)
+        || ofsm_builder_pack(ob, calc_six_plus_5, 0)
+        || ofsm_builder_optimize(ob, 5, 0, NULL)
+    ;
+}
+
 int check_six_plus_5(const void * ofsm)
 {
     struct ofsm_array array;
