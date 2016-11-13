@@ -361,6 +361,8 @@ int is_prefix(const char * prefix, int * argc, char * argv[])
     return 1;
 }
 
+
+
 static void usage(void)
 {
     printf("%s",
@@ -383,7 +385,7 @@ static int parse_command_line(int argc, char * argv[])
 
     for (;;) {
         int index = 0;
-        int c = getopt_long(argc, argv, "hv", long_options, &index);
+        const int c = getopt_long(argc, argv, "hv", long_options, &index);
         if (c == -1) break;
 
         if (c != 0) {
@@ -407,9 +409,69 @@ static int parse_command_line(int argc, char * argv[])
     return optind;
 }
 
+
+
+static int create_holdem_5(void)
+{
+    // TODO
+    return 1;
+}
+
+static int create_six_plus_5(void)
+{
+    // TODO
+    return 1;
+}
+
+static int create_six_plus_7(void)
+{
+    // TODO
+    return 1;
+}
+
+static int create_omaha_7(void)
+{
+    // TODO
+    return 1;
+}
+
+
+
+typedef int (*create_func)(void);
+
+struct poker_table
+{
+    const char * name;
+    create_func create;
+};
+
+struct poker_table poker_tables[] = {
+    { "holdem-5", create_holdem_5 },
+    { "six-plus-5", create_six_plus_5 },
+    { "six-plus-7", create_six_plus_7 },
+    { "omaha-7", create_omaha_7 },
+    { NULL, NULL }
+};
+
+static void print_table_names(void)
+{
+    const struct poker_table * entry = poker_tables;
+    for (;; ++entry) {
+        if (entry->name == NULL) {
+            break;
+        }
+        printf("%s\n", entry->name);
+    }
+}
+
 int main(int argc, char * argv[])
 {
     int i = parse_command_line(argc, argv);
+
+    if (i < 0) {
+        usage();
+        return 1;
+    }
 
     if (opt_help) {
         usage();
@@ -417,7 +479,7 @@ int main(int argc, char * argv[])
     }
 
     if (i >= argc) {
-        printf("TODO: print add tables.\n");
+        print_table_names();
         return 0;
     }
 
