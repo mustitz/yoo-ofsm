@@ -3,6 +3,7 @@
 #include "poker.h"
 
 #include <errno.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -360,8 +361,68 @@ int is_prefix(const char * prefix, int * argc, char * argv[])
     return 1;
 }
 
+static void usage(void)
+{
+    printf("%s",
+        "USAGE: yoo-build-poker-ofsm [OPTION] table1 [table2 ... tableN]\n"
+        "  --help, -h      Print usage and terminate.\n"
+        "  --verbose, -v   Output an extended logging information to stderr.\n"
+    );
+}
+
+int opt_verbose = 0;
+int opt_help = 0;
+
+static int parse_command_line(int argc, char * argv[])
+{
+    static struct option long_options[] = {
+        { "help",  no_argument, &opt_help, 1},
+        { "verbose", no_argument, &opt_verbose, 1 },
+        { NULL, 0, NULL, 0 }
+    };
+
+    for (;;) {
+        int index = 0;
+        int c = getopt_long(argc, argv, "hv", long_options, &index);
+        if (c == -1) break;
+
+        if (c != 0) {
+            switch (c) {
+                case 'h':
+                    opt_help = 1;
+                    break;
+                case 'v':
+                    opt_verbose = 1;
+                    break;
+                 case '?':
+                    fprintf(stderr, "Invalid option.\n");
+                    return -1;
+                default:
+                    fprintf(stderr, "getopt_long returns unexpected char \\x%02X.\n", c);
+                    return -1;
+            }
+        }
+    }
+
+    return optind;
+}
+
 int main(int argc, char * argv[])
 {
+    int i = parse_command_line(argc, argv);
+
+    if (opt_help) {
+        usage();
+        return 0;
+    }
+
+    if (i >= argc) {
+        printf("TODO: print add tables.\n");
+        return 0;
+    }
+
+    printf("TODO: run on passed tables.\n");
+
     const struct selector * selector = selectors;
     for (; selector->name != NULL; ++selector) {
         if (is_prefix(selector->name, &argc, argv)) {

@@ -47,7 +47,7 @@ static int parse_command_line(int argc, char * argv[])
 
     for (;;) {
         int index = 0;
-        int c = getopt_long(argc, argv, "ihsv", long_options, &index);
+        int c = getopt_long(argc, argv, "hsv", long_options, &index);
         if (c == -1) break;
 
         if (c != 0) {
