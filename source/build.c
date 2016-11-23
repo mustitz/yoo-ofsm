@@ -391,6 +391,17 @@ static int create_six_plus_5(void)
     printf("%s", "Creating six-plus-5...\n");
     int err = run_six_plus_5(ob);
 
+    struct ofsm_array array;
+    err = ofsm_builder_make_array(ob, 1, &array);
+    if (err != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
+
+    save_binary("six-plus-5.bin", "OFSM Six Plus 5", &array);
+
+    free(array.array);
     free_ofsm_builder(ob);
     return err;
 }
