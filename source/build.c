@@ -409,6 +409,30 @@ static int check_six_plus_5(void)
     return run_check_six_plus_5();
 }
 
+int run_create_six_plus_7(struct ofsm_builder * restrict ob);
+static int create_six_plus_7(void)
+{
+    struct ofsm_builder * restrict const ob = create_ob();
+    if (ob == NULL) return 1;
+
+    printf("%s", "Creating six-plus-7...\n");
+    int err = run_create_six_plus_7(ob);
+
+    struct ofsm_array array;
+    err = ofsm_builder_make_array(ob, 1, &array);
+    if (err != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
+
+    save_binary("six-plus-7.bin", "OFSM Six Plus 7", &array);
+
+    free(array.array);
+    free_ofsm_builder(ob);
+    return err;
+}
+
 
 
 static void usage(void)
@@ -459,12 +483,6 @@ static int parse_command_line(int argc, char * argv[])
 }
 
 
-
-static int create_six_plus_7(void)
-{
-    fprintf(stderr, "Not implemented create_six_plus_7();\n");
-    return 1;
-}
 
 static int create_holdem_5(void)
 {

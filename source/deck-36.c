@@ -113,104 +113,6 @@ static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
 
 
 
-/* Debug hand rank calculations */
-
-static uint64_t eval_rank5_via_slow_robust(const card_t * cards)
-{
-    int nominal_stat[9] = { 0 };
-    uint64_t suite_mask = 0;
-    uint64_t nominal_mask = 0;
-
-    for (int i=0; i<5; ++i) {
-        card_t card = cards[i];
-        int nominal = NOMINAL(card);
-        int suite = SUITE(card);
-        ++nominal_stat[nominal];
-        nominal_mask |= (1 << nominal);
-        suite_mask |= (1 << suite);
-    }
-
-    suite_mask &= suite_mask - 1;
-    int is_flush = suite_mask == 0;
-
-    int is_straight = 0
-        || nominal_mask == NOMINAL_MASK_5(A,K,Q,J,T)
-        || nominal_mask == NOMINAL_MASK_5(K,Q,J,T,9)
-        || nominal_mask == NOMINAL_MASK_5(Q,J,T,9,8)
-        || nominal_mask == NOMINAL_MASK_5(J,T,9,8,7)
-        || nominal_mask == NOMINAL_MASK_5(T,9,8,7,6)
-        || nominal_mask == NOMINAL_MASK_5(9,8,7,6,A)
-    ;
-
-    if (is_straight) {
-        if (nominal_mask == NOMINAL_MASK_5(9,8,7,6,A)) {
-            nominal_mask = NOMINAL_MASK_4(9,8,7,6);
-        }
-
-        uint64_t prefix = is_flush ? PREFIX(STRAIGHT_FLUSH) : PREFIX(STRAIGHT);
-        return prefix | nominal_mask;
-    }
-
-    if (is_flush) {
-        return PREFIX(FLUSH) | nominal_mask;
-    }
-
-    uint64_t rank = 0;
-    int stats[5] = { 0 };
-    for (int n=NOMINAL_6; n<=NOMINAL_A; ++n) {
-        if (nominal_stat[n] == 0) continue;
-        ++stats[nominal_stat[n]];
-        int shift = n + 9*nominal_stat[n] - 9;
-        rank |= 1ull << shift;
-    }
-
-    uint64_t prefix = 0;
-
-    if (0) ;
-    else if (stats[4] == 1 && stats[3] == 0 && stats[2] == 0 && stats[1] == 1) prefix = PREFIX(FOUR_OF_A_KIND);
-    else if (stats[4] == 0 && stats[3] == 1 && stats[2] == 1 && stats[1] == 0) prefix = PREFIX(FULL_HOUSE);
-    else if (stats[4] == 0 && stats[3] == 1 && stats[2] == 0 && stats[1] == 2) prefix = PREFIX(THREE_OF_A_KIND);
-    else if (stats[4] == 0 && stats[3] == 0 && stats[2] == 2 && stats[1] == 1) prefix = PREFIX(TWO_PAIR);
-    else if (stats[4] == 0 && stats[3] == 0 && stats[2] == 1 && stats[1] == 3) prefix = PREFIX(ONE_PAIR);
-    else if (stats[4] == 0 && stats[3] == 0 && stats[2] == 0 && stats[1] == 5) prefix = PREFIX(HIGH_CARD);
-    else {
-        fprintf(stderr, "Assertion failed: invalid stats array: %d, %d, %d, %d, %d.\n", stats[0], stats[1], stats[2], stats[3], stats[4]);
-        abort();
-    }
-
-    return rank | prefix;
-}
-
-
-
-/* Build OFSMs */
-
-pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
-{
-    if (n != 5) {
-        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
-        exit(1);
-    }
-
-    card_t cards[n];
-    for (size_t i=0; i<n; ++i) {
-        cards[i] = path[i];
-    }
-
-    return eval_rank5_via_slow_robust(cards);
-}
-
-int run_create_six_plus_5(struct ofsm_builder * restrict ob)
-{
-    return 0
-        || ofsm_builder_push_comb(ob, 36, 5)
-        || ofsm_builder_pack(ob, calc_six_plus_5, 0)
-        || ofsm_builder_optimize(ob, 5, 0, NULL)
-    ;
-}
-
-
-
 /* Load OFSMs */
 
 static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes)
@@ -296,6 +198,177 @@ static void load_fsm5(void)
     if (six_plus_fsm5 != NULL) return;
 
     six_plus_fsm5 = load_fsm("six-plus-5.bin", "OFSM Six Plus 5", 36, 5);
+}
+
+
+
+/* Debug hand rank calculations */
+
+static uint64_t eval_rank5_via_slow_robust(const card_t * cards)
+{
+    int nominal_stat[9] = { 0 };
+    uint64_t suite_mask = 0;
+    uint64_t nominal_mask = 0;
+
+    for (int i=0; i<5; ++i) {
+        card_t card = cards[i];
+        int nominal = NOMINAL(card);
+        int suite = SUITE(card);
+        ++nominal_stat[nominal];
+        nominal_mask |= (1 << nominal);
+        suite_mask |= (1 << suite);
+    }
+
+    suite_mask &= suite_mask - 1;
+    int is_flush = suite_mask == 0;
+
+    int is_straight = 0
+        || nominal_mask == NOMINAL_MASK_5(A,K,Q,J,T)
+        || nominal_mask == NOMINAL_MASK_5(K,Q,J,T,9)
+        || nominal_mask == NOMINAL_MASK_5(Q,J,T,9,8)
+        || nominal_mask == NOMINAL_MASK_5(J,T,9,8,7)
+        || nominal_mask == NOMINAL_MASK_5(T,9,8,7,6)
+        || nominal_mask == NOMINAL_MASK_5(9,8,7,6,A)
+    ;
+
+    if (is_straight) {
+        if (nominal_mask == NOMINAL_MASK_5(9,8,7,6,A)) {
+            nominal_mask = NOMINAL_MASK_4(9,8,7,6);
+        }
+
+        uint64_t prefix = is_flush ? PREFIX(STRAIGHT_FLUSH) : PREFIX(STRAIGHT);
+        return prefix | nominal_mask;
+    }
+
+    if (is_flush) {
+        return PREFIX(FLUSH) | nominal_mask;
+    }
+
+    uint64_t rank = 0;
+    int stats[5] = { 0 };
+    for (int n=NOMINAL_6; n<=NOMINAL_A; ++n) {
+        if (nominal_stat[n] == 0) continue;
+        ++stats[nominal_stat[n]];
+        int shift = n + 9*nominal_stat[n] - 9;
+        rank |= 1ull << shift;
+    }
+
+    uint64_t prefix = 0;
+
+    if (0) ;
+    else if (stats[4] == 1 && stats[3] == 0 && stats[2] == 0 && stats[1] == 1) prefix = PREFIX(FOUR_OF_A_KIND);
+    else if (stats[4] == 0 && stats[3] == 1 && stats[2] == 1 && stats[1] == 0) prefix = PREFIX(FULL_HOUSE);
+    else if (stats[4] == 0 && stats[3] == 1 && stats[2] == 0 && stats[1] == 2) prefix = PREFIX(THREE_OF_A_KIND);
+    else if (stats[4] == 0 && stats[3] == 0 && stats[2] == 2 && stats[1] == 1) prefix = PREFIX(TWO_PAIR);
+    else if (stats[4] == 0 && stats[3] == 0 && stats[2] == 1 && stats[1] == 3) prefix = PREFIX(ONE_PAIR);
+    else if (stats[4] == 0 && stats[3] == 0 && stats[2] == 0 && stats[1] == 5) prefix = PREFIX(HIGH_CARD);
+    else {
+        fprintf(stderr, "Assertion failed: invalid stats array: %d, %d, %d, %d, %d.\n", stats[0], stats[1], stats[2], stats[3], stats[4]);
+        abort();
+    }
+
+    return rank | prefix;
+}
+
+#define NEW_WAY(p, n1, n2, n3, n4) \
+    { \
+        uint32_t current = p; \
+        current = six_plus_fsm5[current + cards[n1]]; \
+        current = six_plus_fsm5[current + cards[n2]]; \
+        current = six_plus_fsm5[current + cards[n3]]; \
+        current = six_plus_fsm5[current + cards[n4]]; \
+        if (current > result) result = current; \
+    }
+
+static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
+{
+
+    uint32_t result = 0;
+    uint32_t start = 36;
+
+    uint32_t s0 = six_plus_fsm5[start + cards[0]];
+    uint32_t s1 = six_plus_fsm5[start + cards[1]];
+    uint32_t s2 = six_plus_fsm5[start + cards[2]];
+
+    NEW_WAY(s0, 1, 2, 3, 4);
+    NEW_WAY(s0, 1, 2, 3, 5);
+    NEW_WAY(s0, 1, 2, 3, 6);
+    NEW_WAY(s0, 1, 2, 4, 5);
+    NEW_WAY(s0, 1, 2, 4, 6);
+    NEW_WAY(s0, 1, 2, 5, 6);
+    NEW_WAY(s0, 1, 3, 4, 5);
+    NEW_WAY(s0, 1, 3, 4, 6);
+    NEW_WAY(s0, 1, 3, 5, 6);
+    NEW_WAY(s0, 1, 4, 5, 6);
+    NEW_WAY(s0, 2, 3, 4, 5);
+    NEW_WAY(s0, 2, 3, 4, 6);
+    NEW_WAY(s0, 2, 3, 5, 6);
+    NEW_WAY(s0, 2, 4, 5, 6);
+    NEW_WAY(s0, 3, 4, 5, 6);
+    NEW_WAY(s1, 2, 3, 4, 5);
+    NEW_WAY(s1, 2, 3, 4, 6);
+    NEW_WAY(s1, 2, 3, 5, 6);
+    NEW_WAY(s1, 2, 4, 5, 6);
+    NEW_WAY(s1, 3, 4, 5, 6);
+    NEW_WAY(s2, 3, 4, 5, 6);
+
+    return result;
+}
+
+#undef NEW_WAY
+
+
+
+/* Build OFSMs */
+
+pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
+{
+    if (n != 5) {
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        exit(1);
+    }
+
+    card_t cards[n];
+    for (size_t i=0; i<n; ++i) {
+        cards[i] = path[i];
+    }
+
+    return eval_rank5_via_slow_robust(cards);
+}
+
+pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
+{
+    if (n != 7) {
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        exit(1);
+    }
+
+    card_t cards[n];
+    for (size_t i=0; i<n; ++i) {
+        cards[i] = path[i];
+    }
+
+    return eval_rank7_via_fsm5_brutte(cards);
+}
+
+int run_create_six_plus_5(struct ofsm_builder * restrict ob)
+{
+    return 0
+        || ofsm_builder_push_comb(ob, 36, 5)
+        || ofsm_builder_pack(ob, calc_six_plus_5, 0)
+        || ofsm_builder_optimize(ob, 5, 0, NULL)
+    ;
+}
+
+int run_create_six_plus_7(struct ofsm_builder * restrict ob)
+{
+    load_fsm5();
+
+    return 0
+        || ofsm_builder_push_comb(ob, 36, 7)
+        || ofsm_builder_pack(ob, calc_six_plus_7, PACK_FLAG__SKIP_RENUMERING)
+        || ofsm_builder_optimize(ob, 7, 0, NULL)
+    ;
 }
 
 
@@ -608,52 +681,6 @@ int run_check_six_plus_5(void)
 
 /* OLD */
 
-static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
-{
-    #define NEW_WAY(p, n1, n2, n3, n4) \
-        { \
-            uint32_t current = p; \
-            current = six_plus_fsm5[current + cards[n1]]; \
-            current = six_plus_fsm5[current + cards[n2]]; \
-            current = six_plus_fsm5[current + cards[n3]]; \
-            current = six_plus_fsm5[current + cards[n4]]; \
-            if (current > result) result = current; \
-        }
-
-    uint32_t result = 0;
-    uint32_t start = 36;
-
-    uint32_t s0 = six_plus_fsm5[start + cards[0]];
-    uint32_t s1 = six_plus_fsm5[start + cards[1]];
-    uint32_t s2 = six_plus_fsm5[start + cards[2]];
-
-    NEW_WAY(s0, 1, 2, 3, 4);
-    NEW_WAY(s0, 1, 2, 3, 5);
-    NEW_WAY(s0, 1, 2, 3, 6);
-    NEW_WAY(s0, 1, 2, 4, 5);
-    NEW_WAY(s0, 1, 2, 4, 6);
-    NEW_WAY(s0, 1, 2, 5, 6);
-    NEW_WAY(s0, 1, 3, 4, 5);
-    NEW_WAY(s0, 1, 3, 4, 6);
-    NEW_WAY(s0, 1, 3, 5, 6);
-    NEW_WAY(s0, 1, 4, 5, 6);
-    NEW_WAY(s0, 2, 3, 4, 5);
-    NEW_WAY(s0, 2, 3, 4, 6);
-    NEW_WAY(s0, 2, 3, 5, 6);
-    NEW_WAY(s0, 2, 4, 5, 6);
-    NEW_WAY(s0, 3, 4, 5, 6);
-    NEW_WAY(s1, 2, 3, 4, 5);
-    NEW_WAY(s1, 2, 3, 4, 6);
-    NEW_WAY(s1, 2, 3, 5, 6);
-    NEW_WAY(s1, 2, 4, 5, 6);
-    NEW_WAY(s1, 3, 4, 5, 6);
-    NEW_WAY(s2, 3, 4, 5, 6);
-
-    #undef NEW_WAY
-
-    return result;
-}
-
 static inline uint32_t eval_rank7_via_fsm5_opt(const card_t * cards)
 {
     uint32_t result = 0;
@@ -757,6 +784,7 @@ static void load_fsm7()
     six_plus_fsm7 = load_fsm(FILENAME_FSM7, SIGNATURE_FSM7, 36, 7);
 }
 
+/*
 pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
 {
     if (n != 7) {
@@ -776,6 +804,7 @@ pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
         return result - 1;
     }
 }
+*/
 
 void build_six_plus_7(void * script)
 {
