@@ -319,6 +319,78 @@ static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
 
 
 
+/* Optimization packing */
+
+#define QNOMINALS 9
+pack_value_t pack_six_plus_5(unsigned int n, const input_t * path)
+{
+    uint64_t flash_masks[4] = { 0, 0, 0, 0};
+    for (int i=0; i<n; ++i) {
+        input_t card = path[i];
+        flash_masks[SUITE(card)] = 1ull << NOMINAL(card);
+    }
+
+    uint64_t flash_suite = 4;
+    unsigned int qflash_cards = 0;
+    uint64_t flash_mask = 0;
+    for (unsigned int s=0; s<4; ++s) {
+        const uint64_t mask = flash_masks[s];
+        const int bit_count = pop_count64(mask);
+        if (bit_count >= 3) {
+            qflash_cards = bit_count;
+            flash_suite = s;
+            flash_mask = mask;
+            break;
+        }
+    }
+
+    unsigned int qfolded_cards1 = 0;
+    int qnominals[QNOMINALS] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    for (unsigned int s=0; s<4; ++s) {
+        uint64_t mask = flash_masks[s];
+        while (mask != 0) {
+            const int n = extract_rbit64(&mask);
+            ++qnominals[n];
+            ++qfolded_cards1;
+        }
+    }
+
+    if (qflash_cards + qfolded_cards1 != n) {
+        fprintf(stderr, "Assertion failed: sum of folder and flash cards is not equal to total cards!\n");
+        fprintf(stderr, "  n = %u, qflash_cards = %u, qfolded_cards = %u\n", n, qflash_cards, qfolded_cards1);
+        exit(1);
+    }
+
+    int qfolded_cards2 = 0;
+    uint64_t folded_mask = 0;
+    for (int n=0; n<QNOMINALS; ++n)
+    for (int i=0; i<qnominals[n]; ++i) {
+        folded_mask <<= 4;
+        folded_mask |= n;
+        ++qfolded_cards2;
+    }
+
+    if (qfolded_cards1 != qfolded_cards2) {
+        fprintf(stderr, "Assertion failed: folded card mismatch! %d != %d\n", qfolded_cards1, qfolded_cards2);
+        exit(1);
+    }
+
+    int qfolded_avail = n - qfolded_cards1;
+    for (int i=0; i<qfolded_avail; ++i) {
+        folded_mask <<= 4;
+        folded_mask |= 0xF;
+    }
+
+    return 0
+        | (folded_mask << 0)
+        | (flash_suite << 60)
+        | (flash_mask << 45)
+    ;
+}
+#undef QNOMINALS
+
+
+
 /* Build OFSMs */
 
 pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
