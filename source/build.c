@@ -379,14 +379,14 @@ struct ofsm_builder * create_ob(void)
 
 
 
-int run_six_plus_5(struct ofsm_builder * restrict ob);
+int run_create_six_plus_5(struct ofsm_builder * restrict ob);
 static int create_six_plus_5(void)
 {
     struct ofsm_builder * restrict const ob = create_ob();
     if (ob == NULL) return 1;
 
     printf("%s", "Creating six-plus-5...\n");
-    int err = run_six_plus_5(ob);
+    int err = run_create_six_plus_5(ob);
 
     struct ofsm_array array;
     err = ofsm_builder_make_array(ob, 1, &array);
@@ -401,6 +401,12 @@ static int create_six_plus_5(void)
     free(array.array);
     free_ofsm_builder(ob);
     return err;
+}
+
+int run_check_six_plus_5(void);
+static int check_six_plus_5(void)
+{
+    return run_check_six_plus_5();
 }
 
 
@@ -480,14 +486,20 @@ struct poker_table
 {
     const char * name;
     create_func create;
+    create_func check;
 };
 
+static int stub(void)
+{
+    return 0;
+}
+
 struct poker_table poker_tables[] = {
-    { "six-plus-5", create_six_plus_5 },
-    { "six-plus-7", create_six_plus_7 },
-    { "holdem-5", create_holdem_5 },
-    { "omaha-7", create_omaha_7 },
-    { NULL, NULL }
+    { "six-plus-5", create_six_plus_5, check_six_plus_5 },
+    { "six-plus-7", create_six_plus_7, stub },
+    { "holdem-5", create_holdem_5, stub },
+    { "omaha-7", create_omaha_7, stub },
+    { NULL, NULL, NULL }
 };
 
 static void print_table_names(void)
@@ -533,7 +545,7 @@ int main(int argc, char * argv[])
                 break;
             }
             if (strcmp(table_name, entry->name) == 0) {
-                calls[i] = entry->create;
+                calls[i] = opt_check ? entry->check : entry->create;
                 break;
             }
         }
