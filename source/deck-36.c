@@ -475,6 +475,85 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
     return 0;
 }
 
+
+
+int test_permutations_for_eval_rank5_via_fsm5(void)
+{
+    static int permutation_table[121*5];
+
+    permutation_table[0] = 0;
+    permutation_table[1] = 1;
+    permutation_table[2] = 2;
+    permutation_table[3] = 3;
+    permutation_table[4] = 4;
+
+    int q = 1;
+    int * restrict current = permutation_table;
+    for (;;) {
+        memcpy(current + 5, current, 5 * sizeof(int));
+        current += 5;
+        int result = next_alphabetical_permutation(5, current);
+        if (result != 0) {
+            break;
+        }
+        ++q;
+    }
+
+    if (q != 120) {
+        printf("[FAIL]\n");
+        printf("  Wrong permutation count %d, expected value is 5! = 120.\n", q);
+        return 1;
+    }
+
+    uint64_t mask = 0x1F;
+    uint64_t last = 1ull << 36;
+    while (mask < last) {
+        card_t cards[5];
+        uint64_t tmp = mask;
+        cards[0] = extract_rbit64(&tmp);
+        cards[1] = extract_rbit64(&tmp);
+        cards[2] = extract_rbit64(&tmp);
+        cards[3] = extract_rbit64(&tmp);
+        cards[4] = extract_rbit64(&tmp);
+
+        uint32_t rank = eval_rank5_via_fsm5(cards);
+
+        for (int i=0; i<120; ++i) {
+            const int * perm = permutation_table + 5 * i;
+            card_t c[5];
+            c[0] = cards[perm[0]];
+            c[1] = cards[perm[1]];
+            c[2] = cards[perm[2]];
+            c[3] = cards[perm[3]];
+            c[4] = cards[perm[4]];
+            uint32_t r = eval_rank5_via_fsm5(c);
+
+            if (r != rank) {
+                printf("[FAIL]\n");
+                printf("  Base Hand: %s %s %s %s %s\n",
+                    card36_str[cards[0]],
+                    card36_str[cards[1]],
+                    card36_str[cards[2]],
+                    card36_str[cards[3]],
+                    card36_str[cards[4]]);
+                printf("  Base Rank: %u\n", rank);
+                printf("  Current Hand: %s %s %s %s %s\n",
+                    card36_str[c[0]],
+                    card36_str[c[1]],
+                    card36_str[c[2]],
+                    card36_str[c[3]],
+                    card36_str[c[4]]);
+                printf("  Current Rank: %u\n", r);
+                return 1;
+            }
+        }
+
+        mask = next_combination_mask(mask);
+    }
+
+    return 0;
+}
+
 int run_check_six_plus_5(void)
 {
     const int w = -128;
@@ -500,8 +579,17 @@ int run_check_six_plus_5(void)
     }
 
     {
-        printf("Run %*s ", w, "test equivalence between eval_rank5_via_slow_robust() and eval_rank5_via_fsm5 quick test for eval_rank5_via_fsm5() ...");
+        printf("Run %*s ", w, "test equivalence between eval_rank5_via_slow_robust() and eval_rank5_via_fsm5 ...");
         const int err = quick_test_for_eval_rank5_via_fsm5();
+        if (err) {
+            return 1;
+        }
+        printf("[ OK ]\n");
+    }
+
+    {
+        printf("Run %*s ", w, "test permutations for eval_rank5_via_fsm5() ...");
+        const int err = test_permutations_for_eval_rank5_via_fsm5();
         if (err) {
             return 1;
         }
@@ -654,7 +742,7 @@ static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
 }
 
 
-#define FILENAME_FSM5  "six-plus-5.bin"
+
 #define SIGNATURE_FSM5 "OFSM Six Plus 5"
 #define FILENAME_FSM7  "six-plus-7.bin"
 #define SIGNATURE_FSM7 "OFSM Six Plus 7"
