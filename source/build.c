@@ -14,9 +14,6 @@ const unsigned int * const fsm5 = fsm5_data;
 void build_holdem_5(void * script);
 int check_holdem_5(const void * ofsm);
 
-void build_six_plus_5(void * script);
-int check_six_plus_5(const void * ofsm);
-
 void build_six_plus_7(void * script);
 int check_six_plus_7(const void * ofsm);
 
@@ -341,7 +338,6 @@ struct selector
 };
 
 struct selector selectors[] = {
-    { "six-plus-5", build_six_plus_5, check_six_plus_5 },
     { "six-plus-7", build_six_plus_7, check_six_plus_7 },
     { "holdem-5", build_holdem_5, check_holdem_5 },
     { "omaha7", build_omaha7_script, check_omaha7 },
@@ -363,6 +359,7 @@ int is_prefix(const char * prefix, int * argc, char * argv[])
 
 
 
+int opt_check = 0;
 int opt_verbose = 0;
 int opt_help = 0;
 
@@ -420,6 +417,7 @@ static void usage(void)
 static int parse_command_line(int argc, char * argv[])
 {
     static struct option long_options[] = {
+        { "check", no_argument, &opt_check, 1 },
         { "help",  no_argument, &opt_help, 1},
         { "verbose", no_argument, &opt_verbose, 1 },
         { NULL, 0, NULL, 0 }
@@ -427,11 +425,14 @@ static int parse_command_line(int argc, char * argv[])
 
     for (;;) {
         int index = 0;
-        const int c = getopt_long(argc, argv, "hv", long_options, &index);
+        const int c = getopt_long(argc, argv, "hcv", long_options, &index);
         if (c == -1) break;
 
         if (c != 0) {
             switch (c) {
+                case 'c':
+                    opt_check = 1;
+                    break;
                 case 'h':
                     opt_help = 1;
                     break;
@@ -482,9 +483,9 @@ struct poker_table
 };
 
 struct poker_table poker_tables[] = {
-    { "holdem-5", create_holdem_5 },
     { "six-plus-5", create_six_plus_5 },
     { "six-plus-7", create_six_plus_7 },
+    { "holdem-5", create_holdem_5 },
     { "omaha-7", create_omaha_7 },
     { NULL, NULL }
 };
@@ -548,20 +549,6 @@ int main(int argc, char * argv[])
             return 1;
         }
     }
-
-/*
-    const struct selector * selector = selectors;
-    for (; selector->name != NULL; ++selector) {
-        if (is_prefix(selector->name, &argc, argv)) {
-            return execute(argc, argv, selector->build, selector->check);
-        }
-    }
-
-    selector = selectors;
-    for (; selector->name != NULL; ++selector) {
-        printf("%s\n", selector->name);
-    }
-*/
 
     return 0;
 }

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "yoo-combinatoric.h"
+#include "yoo-ofsm.h"
 #include "yoo-stdlib.h"
 
 #define CARD(nominal, suite)  (nominal*4 + suite)
@@ -107,6 +108,8 @@ const char * card36_str[] = {
 const char * nominal36_str = "6789TJQKA";
 const char * suite36_str = "hdcs";
 
+
+
 static uint64_t eval_rank5_via_slow_robust(const card_t * cards)
 {
     int nominal_stat[9] = { 0 };
@@ -172,6 +175,32 @@ static uint64_t eval_rank5_via_slow_robust(const card_t * cards)
 
     return rank | prefix;
 }
+
+pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
+{
+    if (n != 5) {
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        exit(1);
+    }
+
+    card_t cards[n];
+    for (size_t i=0; i<n; ++i) {
+        cards[i] = path[i];
+    }
+
+    return eval_rank5_via_slow_robust(cards);
+}
+
+int run_six_plus_5(struct ofsm_builder * restrict ob)
+{
+    return 0
+        || ofsm_builder_push_comb(ob, 36, 5)
+        || ofsm_builder_pack(ob, calc_six_plus_5, 0)
+        || ofsm_builder_optimize(ob, 5, 0, NULL)
+    ;
+}
+
+
 
 const uint32_t * six_plus_fsm5;
 const uint32_t * six_plus_fsm7;
@@ -320,7 +349,6 @@ static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
     return current;
 }
 
-#include "yoo-ofsm.h"
 
 #define FILENAME_FSM5  "six-plus-5.bin"
 #define SIGNATURE_FSM5 "OFSM Six Plus 5"
@@ -420,57 +448,6 @@ static void load_fsm7()
     if (six_plus_fsm7 != NULL) return;
 
     six_plus_fsm7 = load_fsm(FILENAME_FSM7, SIGNATURE_FSM7, 36, 7);
-}
-
-pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
-{
-    if (n != 5) {
-        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
-        exit(1);
-    }
-
-    card_t cards[n];
-    for (size_t i=0; i<n; ++i) {
-        cards[i] = path[i];
-    }
-
-    return eval_rank5_via_slow_robust(cards);
-}
-
-void build_six_plus_5(void * script)
-{
-    script_step_comb(script, 36, 5);
-    script_step_pack(script, calc_six_plus_5, 0);
-    script_step_optimize(script, 5, NULL);
-    script_step_optimize(script, 4, NULL);
-    script_step_optimize(script, 3, NULL);
-    script_step_optimize(script, 2, NULL);
-    script_step_optimize(script, 1, NULL);
-}
-
-int run_six_plus_5(struct ofsm_builder * restrict ob)
-{
-    return 0
-        || ofsm_builder_push_comb(ob, 36, 5)
-        || ofsm_builder_pack(ob, calc_six_plus_5, 0)
-        || ofsm_builder_optimize(ob, 5, 0, NULL)
-    ;
-}
-
-int check_six_plus_5(const void * ofsm)
-{
-    struct ofsm_array array;
-    int errcode = ofsm_get_array(ofsm, 1, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_get_array(ofsm, 0, &array) failed with %d as error code.\n", errcode);
-        return 1;
-    }
-
-    // ofsm_print_array(stdout, "fsm5_data", &array, 52);
-    save_binary("six-plus-5.bin", "OFSM Six Plus 5", &array);
-
-    free(array.array);
-    return 0;
 }
 
 pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
@@ -582,7 +559,6 @@ void quick_verify_eval_rank5_via_slow_robust()
 {
     test_suite_start("Quick verify eval_rank5_via_slow_robust");
 
-
     uint64_t prev_rank = 0;
 
     const card_t * current = quick_ordered_hand5;
@@ -616,7 +592,6 @@ void quick_verify_eval_rank5_via_slow_robust()
 void quick_verify_eval_rank5_via_fsm5()
 {
     test_suite_start("Quick verify eval_rank5_via_fsm5");
-
 
     uint64_t prev_rank = 0;
 
