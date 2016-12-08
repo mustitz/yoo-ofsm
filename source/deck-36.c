@@ -699,48 +699,40 @@ int test_permutations_for_eval_rank5_via_fsm5(void)
     return 0;
 }
 
-int run_check_six_plus_5(void)
+typedef int test_function(void);
+
+static inline int run_test(const char * name, test_function test)
 {
     const int w = -128;
 
+    const double start = get_app_age();
+    printf("Run %*s ", w, name);
+    fflush(stdout);
+    const int err = test();
+    if (err) {
+        return 1;
+    }
+    const double delta = get_app_age() - start;
+    printf("[ OK ] in %.2f s.\n", delta);
+    return 0;
+}
+
+#define RUN_TEST(f)                          \
+    do {                                     \
+        int err = run_test(#f "() ...", f);  \
+        if (err) return 1;                   \
+    } while (0)                              \
+
+int run_check_six_plus_5(void)
+{
     load_fsm5();
 
-    {
-        printf("Run %*s ", w, "quick test for eval_rank5_via_slow_robust() ...");
-        const int err = quick_test_for_eval_rank5_via_slow_robust();
-        if (err) {
-            return 1;
-        }
-        printf("[ OK ]\n");
-    }
+    RUN_TEST(quick_test_for_eval_rank5_via_slow_robust);
+    RUN_TEST(quick_test_for_eval_rank5_via_fsm5);
+    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
+    RUN_TEST(test_permutations_for_eval_rank5_via_fsm5);
 
-    {
-        printf("Run %*s ", w, "quick test for eval_rank5_via_fsm5() ...");
-        const int err = quick_test_for_eval_rank5_via_fsm5();
-        if (err) {
-            return 1;
-        }
-        printf("[ OK ]\n");
-    }
-
-    {
-        printf("Run %*s ", w, "test equivalence between eval_rank5_via_slow_robust() and eval_rank5_via_fsm5 ...");
-        const int err = quick_test_for_eval_rank5_via_fsm5();
-        if (err) {
-            return 1;
-        }
-        printf("[ OK ]\n");
-    }
-
-    {
-        printf("Run %*s ", w, "test permutations for eval_rank5_via_fsm5() ...");
-        const int err = test_permutations_for_eval_rank5_via_fsm5();
-        if (err) {
-            return 1;
-        }
-        printf("[ OK ]\n");
-    }
-
+    printf("All tests are successfully passed.\n");
     return 0;
 }
 
