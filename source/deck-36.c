@@ -120,6 +120,44 @@ static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
 
 
 
+/* Library */
+
+const char * card36_str[] = {
+    "6h", "6d", "6c", "6s",
+    "7h", "7d", "7c", "7s",
+    "8h", "8d", "8c", "8s",
+    "9h", "9d", "9c", "9s",
+    "Th", "Td", "Tc", "Ts",
+    "Jh", "Jd", "Jc", "Js",
+    "Qh", "Qd", "Qc", "Qs",
+    "Kh", "Kd", "Kc", "Ks",
+    "Ah", "Ad", "Ac", "As"
+};
+
+const char * nominal36_str = "6789TJQKA";
+const char * suite36_str = "hdcs";
+
+static inline void mask_to_cards(const int n, uint64_t mask, card_t * restrict cards)
+{
+    for (int i=0; i<n; ++i) {
+        cards[i] = extract_rbit64(&mask);
+    }
+}
+
+static inline void print_hand(const int n, const card_t * const cards)
+{
+    for (int i=0; i<n; ++i) {
+        printf(" %s", card36_str[cards[i]]);
+    }
+}
+
+static inline void gen_perm(const int n, card_t * restrict const dest, const card_t * const src, const int * perm)
+{
+    for (int i=0; i<n; ++i) {
+        dest[i] = src[perm[i]];
+    }
+}
+
 /* Load OFSMs */
 
 static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes, uint64_t * fsm_sz)
@@ -459,21 +497,6 @@ int run_create_six_plus_7(struct ofsm_builder * restrict ob)
 
 /* Tests with nice debug output */
 
-const char * card36_str[] = {
-    "6h", "6d", "6c", "6s",
-    "7h", "7d", "7c", "7s",
-    "8h", "8d", "8c", "8s",
-    "9h", "9d", "9c", "9s",
-    "Th", "Td", "Tc", "Ts",
-    "Jh", "Jd", "Jc", "Js",
-    "Qh", "Qd", "Qc", "Qs",
-    "Kh", "Kd", "Kc", "Ks",
-    "Ah", "Ad", "Ac", "As"
-};
-
-const char * nominal36_str = "6789TJQKA";
-const char * suite36_str = "hdcs";
-
 const card_t quick_ordered_hand5[] = {
     CARD_6h, CARD_8c, CARD_9c, CARD_Tc, CARD_Qs,
     CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_As,
@@ -509,20 +532,15 @@ static int quick_test_for_eval_rank5_via_slow_robust(int * restrict is_opencl)
         if (rank < prev_rank) {
             printf("[FAIL]\n");
             printf("  Wrong order!\n");
-            printf("  Previous: %s %s %s %s %s - 0x%lX\n",
-                card36_str[current[-5]],
-                card36_str[current[-4]],
-                card36_str[current[-3]],
-                card36_str[current[-2]],
-                card36_str[current[-1]],
-                prev_rank);
-            printf("  Current:  %s %s %s %s %s - 0x%lX\n",
-                card36_str[current[0]],
-                card36_str[current[1]],
-                card36_str[current[2]],
-                card36_str[current[3]],
-                card36_str[current[4]],
-                rank);
+
+            printf("  Previous:");
+            print_hand(5, current-5);
+            printf(" has rank 0x%lX\n", prev_rank);
+
+            printf("  Current:");
+            print_hand(5, current);
+            printf(" has rank 0x%lX\n", rank);
+
             return 1;
         }
         prev_rank = rank;
@@ -541,20 +559,15 @@ static int quick_test_for_eval_rank5_via_fsm5(int * restrict is_opencl)
         if (rank < prev_rank) {
             printf("[FAIL]\n");
             printf("  Wrong order!\n");
-            printf("  Previous: %s %s %s %s %s - %lu\n",
-                card36_str[current[-5]],
-                card36_str[current[-4]],
-                card36_str[current[-3]],
-                card36_str[current[-2]],
-                card36_str[current[-1]],
-                prev_rank);
-            printf("  Current:  %s %s %s %s %s - %lu\n",
-                card36_str[current[0]],
-                card36_str[current[1]],
-                card36_str[current[2]],
-                card36_str[current[3]],
-                card36_str[current[4]],
-                rank);
+
+            printf("  Previous:");
+            print_hand(5, current-5);
+            printf(" has rank %lu\n", prev_rank);
+
+            printf("  Current:");
+            print_hand(5, current);
+            printf(" has rank %lu\n", rank);
+
             return 1;
         }
         prev_rank = rank;
@@ -572,12 +585,7 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 
     for (; mask < last; mask = next_combination_mask(mask)) {
         card_t cards[5];
-        uint64_t tmp = mask;
-        cards[0] = extract_rbit64(&tmp);
-        cards[1] = extract_rbit64(&tmp);
-        cards[2] = extract_rbit64(&tmp);
-        cards[3] = extract_rbit64(&tmp);
-        cards[4] = extract_rbit64(&tmp);
+        mask_to_cards(5, mask, cards);
 
         uint64_t rank1 = eval_rank5_via_fsm5(cards);
         uint64_t rank2 = eval_rank5_via_slow_robust(cards);
@@ -585,12 +593,9 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
         if (rank1 <= 0 || rank1 > 9999) {
             printf("[FAIL]\n");
             printf("  Wrong rank 1!\n");
-            printf("  Hand: %s %s %s %s %s\n",
-                card36_str[cards[0]],
-                card36_str[cards[1]],
-                card36_str[cards[2]],
-                card36_str[cards[3]],
-                card36_str[cards[4]]);
+            printf("  Hand: ");
+            print_hand(5, cards);
+            printf("\n");
             printf("  Rank 1: %lu\n", rank1);
             printf("  Rank 2: 0x%lX\n", rank2);
             return 1;
@@ -599,12 +604,9 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
         if (rank2 == 0) {
             printf("[FAIL]\n");
             printf("  Wrong rank 2!\n");
-            printf("  Hand: %s %s %s %s %s\n",
-                card36_str[cards[0]],
-                card36_str[cards[1]],
-                card36_str[cards[2]],
-                card36_str[cards[3]],
-                card36_str[cards[4]]);
+            printf("  Hand: ");
+            print_hand(5, cards);
+            printf("\n");
             printf("  Rank 1: %lu\n", rank1);
             printf("  Rank 2: 0x%lX\n", rank2);
             return 1;
@@ -617,12 +619,9 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 
         if (saved[rank1] != rank2) {
             printf("[FAIL]\n");
-            printf("  Rank mismatch for hand %s %s %s %s %s:\n",
-                card36_str[cards[0]],
-                card36_str[cards[1]],
-                card36_str[cards[2]],
-                card36_str[cards[3]],
-                card36_str[cards[4]]);
+            printf("  Rank mismatch for hand");
+            print_hand(5, cards);
+            printf("\n");
             printf("  Saved rank: 0x%lX\n", saved[rank1]);
             printf("  Caclulated: 0x%lX\n", saved[rank2]);
             return 1;
@@ -637,7 +636,7 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
     int opencl__test_permutations(
-        const int32_t n, const uint32_t qdata,
+        const int32_t n, const uint32_t start_state, const uint32_t qdata,
         const int32_t * const perm_table, const uint64_t perm_table_sz,
         const uint32_t * const fsm, const uint64_t fsm_sz,
         const uint64_t * const data, const uint64_t data_sz,
@@ -691,14 +690,12 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
         }
 
         int result = opencl__test_permutations(
-            5, qdata,
+            5, 36, qdata,
             permutation_table, permutation_table_sz,
             six_plus_fsm5, six_plus_fsm5_sz,
             data, data_sz,
             report, report_sz
         );
-
-        free(data);
 
         if (result == 0) {
             const uint16_t * ptr = report;
@@ -706,12 +703,23 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
                 if (ptr[i] != 0) {
                     printf("[FAIL] (OpenCL)\n");
                     printf("  report[%u] = %u is nonzero.\n", i, ptr[i]);
+                    printf("  data[%u] = 0x%016lx is nonzero.\n", i, data[i]);
+
+                    card_t cards[5];
+                    mask_to_cards(5, data[i], cards);
+
+                    uint32_t r = eval_rank5_via_fsm5(cards);
+                    printf("  Base Hand:");
+                    print_hand(5, cards);
+                    printf(" has rank %u\n", r);
+
                     result = 1;
                     break;
                 }
             }
         }
 
+        free(data);
         free(report);
         return result;
     }
@@ -720,41 +728,26 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
     uint64_t last = 1ull << 36;
     while (mask < last) {
         card_t cards[5];
-        uint64_t tmp = mask;
-        cards[0] = extract_rbit64(&tmp);
-        cards[1] = extract_rbit64(&tmp);
-        cards[2] = extract_rbit64(&tmp);
-        cards[3] = extract_rbit64(&tmp);
-        cards[4] = extract_rbit64(&tmp);
+        mask_to_cards(5, mask, cards);
 
         uint32_t rank = eval_rank5_via_fsm5(cards);
 
         for (int i=0; i<120; ++i) {
             const int * perm = permutation_table + 5 * i;
             card_t c[5];
-            c[0] = cards[perm[0]];
-            c[1] = cards[perm[1]];
-            c[2] = cards[perm[2]];
-            c[3] = cards[perm[3]];
-            c[4] = cards[perm[4]];
+            gen_perm(5, c, cards, perm);
             uint32_t r = eval_rank5_via_fsm5(c);
 
             if (r != rank) {
                 printf("[FAIL]\n");
-                printf("  Base Hand: %s %s %s %s %s\n",
-                    card36_str[cards[0]],
-                    card36_str[cards[1]],
-                    card36_str[cards[2]],
-                    card36_str[cards[3]],
-                    card36_str[cards[4]]);
-                printf("  Base Rank: %u\n", rank);
-                printf("  Current Hand: %s %s %s %s %s\n",
-                    card36_str[c[0]],
-                    card36_str[c[1]],
-                    card36_str[c[2]],
-                    card36_str[c[3]],
-                    card36_str[c[4]]);
-                printf("  Current Rank: %u\n", r);
+
+                printf("  Base Hand:");
+                print_hand(5, cards);
+                printf(" has rank %u\n", rank);
+
+                printf("  Current Hand: ");
+                print_hand(5, c);
+                printf(" has rank %u\n", r);
                 return 1;
             }
         }
