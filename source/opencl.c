@@ -339,7 +339,12 @@ void free_opencl(void)
 {
 }
 
-int opencl__test_permutations_for_eval_rank5_via_fsm5(void)
+int opencl__test_permutations(
+    const cl_uint n, const cl_uint start_state, const cl_uint qdata,
+    const cl_int * const perm_table, const cl_long perm_table_sz,
+    const cl_uint * const fsm, const cl_long fsm_sz,
+    const cl_ulong * const data, const cl_long data_sz,
+    cl_short * restrict const report, const cl_long report_sz)
 {
     printf("[FAIL]\n");
     printf("  Not implemented.\n");
