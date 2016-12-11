@@ -629,24 +629,7 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 int test_permutations_for_eval_rank5_via_fsm5(void)
 {
     static int permutation_table[121*5];
-
-    permutation_table[0] = 0;
-    permutation_table[1] = 1;
-    permutation_table[2] = 2;
-    permutation_table[3] = 3;
-    permutation_table[4] = 4;
-
-    int q = 1;
-    int * restrict current = permutation_table;
-    for (;;) {
-        memcpy(current + 5, current, 5 * sizeof(int));
-        current += 5;
-        int result = next_alphabetical_permutation(5, current);
-        if (result != 0) {
-            break;
-        }
-        ++q;
-    }
+    const int q = gen_permutation_table(permutation_table, 5, 121*5);
 
     if (q != 120) {
         printf("[FAIL]\n");
