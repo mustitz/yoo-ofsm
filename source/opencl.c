@@ -86,13 +86,15 @@ void free_opencl(void)
 const char * test_permutations_source = "\
 __kernel\n\
 void test_permutations(\n\
-    const int n, const uint qdata,\n\
+    const uint n,\n\
     __global const int * perm_table,\n\
     __global const uint * fsm,\n\
     __global const ulong * data,\n\
     __global short * restrict report\n\
 )\n\
 {\n\
+    const uint i = get_global_id(0);\n\
+    report[i] = 0;\n\
 }\n\
 ";
 
@@ -196,12 +198,70 @@ int opencl__test_permutations(
             printf("  clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0x10000, msg, NULL) fails with code %d.", status);
         }
 
-        return 1;
+        goto release_program;
     }
 
-    printf("[FAIL] (OpenCL, not implemented)\n");
-    result = 1;
+    const char * kernel_name = "test_permutations";
+    cl_kernel kernel = clCreateKernel(program, kernel_name, &status);
+    if (status != CL_SUCCESS) {
+        printf("  clCreateKernel(program, “%s”, &status) fails with code %d.\n", kernel_name, status);
+        goto release_program;
+    }
 
+    /* Set arguments */
+
+    status = clSetKernelArg(kernel, 0, sizeof(cl_uint), &n);
+    if (status != CL_SUCCESS) {
+        printf("  clSetKernelArg(kernel, 0, %lu, &n = [%u]) fails with code %d.\n", sizeof(cl_uint), n, status);
+        goto release_kernel;
+    }
+
+    status = clSetKernelArg(kernel, 1, sizeof(cl_mem), &perm_table_mem);
+    if (status != CL_SUCCESS) {
+        printf("  clSetKernelArg(kernel, 1, %lu, &perm_table_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        goto release_kernel;
+    }
+
+    status = clSetKernelArg(kernel, 2, sizeof(cl_mem), &fsm_mem);
+    if (status != CL_SUCCESS) {
+        printf("  clSetKernelArg(kernel, 2, %lu, &fsm_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        goto release_kernel;
+    }
+
+    status = clSetKernelArg(kernel, 3, sizeof(cl_mem), &data_mem);
+    if (status != CL_SUCCESS) {
+        printf("  clSetKernelArg(kernel, 3, %lu, &data_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        goto release_kernel;
+    }
+
+    status = clSetKernelArg(kernel, 4, sizeof(cl_mem), &report_mem);
+    if (status != CL_SUCCESS) {
+        printf("  clSetKernelArg(kernel, 4, %lu, &report_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        goto release_kernel;
+    }
+
+    /* Run */
+
+    cl_ulong global_work_sz[1] = { qdata };
+    status = clEnqueueNDRangeKernel(cmd_queue, kernel, 1, NULL, global_work_sz, NULL, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("  clEnqueueNDRangeKernel(cmd_queue, kernel, 1, NULL, { %lu }, NULL, 0, NULL, NULL) fails with code %d.\n", global_work_sz[0], status);;
+        goto release_kernel;
+    }
+
+    /* Get report */
+
+    status = clEnqueueReadBuffer(cmd_queue, report_mem, CL_TRUE, 0, report_sz, report, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("  clEnqueueReadBuffer(cmd_queue, report_mem, CL_TRUE, 0, %lu, report, 0, NULL, NULL) fails with code %d.\n", report_sz, status);
+        goto release_kernel;
+    }
+
+    result = 0;
+
+    release_kernel:
+        clReleaseKernel(kernel);
+    release_program:
         clReleaseProgram(program);
     release_report_mem:
         clReleaseMemObject(report_mem);

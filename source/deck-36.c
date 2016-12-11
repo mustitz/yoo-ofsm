@@ -659,7 +659,7 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 
         const size_t qdata = 376992;
         const size_t data_sz = qdata * sizeof(uint64_t);
-        uint64_t * restrict data = malloc(data_sz);
+        uint64_t * data = malloc(data_sz);
         if (data == NULL) {
             printf("[FAIL] (OpenCL)\n");
             printf("  malloc(%lu) returns NULL.\n", data_sz);
@@ -675,6 +675,21 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
             return 1;
         }
 
+        uint64_t mask = 0x1F;
+        uint64_t last = 1ull << 36;
+        uint64_t * restrict ptr = data;
+        while (mask < last) {
+            *ptr++ = mask;
+            mask = next_combination_mask(mask);
+        }
+
+        if (ptr - data != qdata) {
+            printf("[FAIL] (OpenCL)\n");
+            printf("  Invalid qdata = %lu, calculated value is %lu.\n", qdata, ptr - data);
+            free(report);
+            free(data);
+        }
+
         int result = opencl__test_permutations(
             5, qdata,
             permutation_table, permutation_table_sz,
@@ -683,12 +698,23 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
             report, report_sz
         );
 
-        free(report);
         free(data);
+
+        if (result == 0) {
+            const uint16_t * ptr = report;
+            for (uint32_t i=0; i<qdata; ++i) {
+                if (ptr[i] != 0) {
+                    printf("[FAIL] (OpenCL)\n");
+                    printf("  report[%u] = %u is nonzero.\n", i, ptr[i]);
+                    result = 1;
+                    break;
+                }
+            }
+        }
+
+        free(report);
         return result;
     }
-
-
 
     uint64_t mask = 0x1F;
     uint64_t last = 1ull << 36;
