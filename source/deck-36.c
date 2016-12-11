@@ -104,6 +104,9 @@ typedef uint32_t card_t;
 const uint32_t * six_plus_fsm5;
 const uint32_t * six_plus_fsm7;
 
+uint64_t six_plus_fsm5_sz;
+uint64_t six_plus_fsm7_sz;
+
 static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
 {
     uint32_t current = 36;
@@ -119,7 +122,7 @@ static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
 
 /* Load OFSMs */
 
-static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes)
+static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes, uint64_t * fsm_sz)
 {
     FILE * f = fopen(filename, "rb");
     if (f == NULL) {
@@ -194,6 +197,11 @@ static void * load_fsm(const char * filename, const char * signature, uint32_t s
     }
 
     fclose(f);
+
+    if (fsm_sz != NULL) {
+        *fsm_sz = sz;
+    }
+
     return ptr;
 }
 
@@ -201,7 +209,7 @@ static void load_fsm5(void)
 {
     if (six_plus_fsm5 != NULL) return;
 
-    six_plus_fsm5 = load_fsm("six-plus-5.bin", "OFSM Six Plus 5", 36, 5);
+    six_plus_fsm5 = load_fsm("six-plus-5.bin", "OFSM Six Plus 5", 36, 5, &six_plus_fsm5_sz);
 }
 
 
@@ -628,9 +636,18 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 
 int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
-    static int permutation_table[121*5];
-    const int q = gen_permutation_table(permutation_table, 5, 121*5);
+    int opencl__test_permutations(
+        const int32_t n, const uint32_t qdata,
+        const int32_t * const perm_table, const uint64_t perm_table_sz,
+        const uint32_t * const fsm, const uint64_t fsm_sz,
+        const uint64_t * const data, const uint64_t data_sz,
+        uint16_t * restrict const report, const uint64_t report_sz
+    );
 
+    static int permutation_table[121*5];
+    static const size_t permutation_table_sz = sizeof(permutation_table);
+
+    const int q = gen_permutation_table(permutation_table, 5, 121*5);
     if (q != 120) {
         printf("[FAIL]\n");
         printf("  Wrong permutation count %d, expected value is 5! = 120.\n", q);
@@ -639,9 +656,37 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 
     if (opt_opencl) {
         *is_opencl = 1;
-        return 0;
-    }
 
+        const size_t qdata = 376992;
+        const size_t data_sz = qdata * sizeof(uint64_t);
+        uint64_t * restrict data = malloc(data_sz);
+        if (data == NULL) {
+            printf("[FAIL] (OpenCL)\n");
+            printf("  malloc(%lu) returns NULL.\n", data_sz);
+            return 1;
+        }
+
+        const size_t report_sz = qdata * sizeof(uint16_t);
+        uint16_t * restrict report = malloc(report_sz);
+        if (report == NULL) {
+            printf("[FAIL] (OpenCL)\n");
+            printf("  malloc(%lu) returns NULL.\n", report_sz);
+            free(data);
+            return 1;
+        }
+
+        int result = opencl__test_permutations(
+            5, qdata,
+            permutation_table, permutation_table_sz,
+            six_plus_fsm5, six_plus_fsm5_sz,
+            data, data_sz,
+            report, report_sz
+        );
+
+        free(report);
+        free(data);
+        return result;
+    }
 
 
 
@@ -849,7 +894,7 @@ static void load_fsm7()
 {
     if (six_plus_fsm7 != NULL) return;
 
-    six_plus_fsm7 = load_fsm(FILENAME_FSM7, SIGNATURE_FSM7, 36, 7);
+    six_plus_fsm7 = load_fsm(FILENAME_FSM7, SIGNATURE_FSM7, 36, 7, &six_plus_fsm7_sz);
 }
 
 /*
