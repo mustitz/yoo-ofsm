@@ -126,6 +126,19 @@ static inline uint32_t eval_rank5_via_fsm5(const card_t * cards)
     return current;
 }
 
+static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
+{
+    uint32_t current = 36;
+    current = six_plus_fsm7[current + cards[0]];
+    current = six_plus_fsm7[current + cards[1]];
+    current = six_plus_fsm7[current + cards[2]];
+    current = six_plus_fsm7[current + cards[3]];
+    current = six_plus_fsm7[current + cards[4]];
+    current = six_plus_fsm7[current + cards[5]];
+    current = six_plus_fsm7[current + cards[6]];
+    return current;
+}
+
 
 
 /* Library */
@@ -763,6 +776,125 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
     return 0;
 }
 
+
+
+int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
+{
+    static int permutation_table[5041*7];
+    static const size_t permutation_table_sz = sizeof(permutation_table);
+
+    const int q = gen_permutation_table(permutation_table, 7, 5041*7);
+    if (q != 5040) {
+        printf("[FAIL]\n");
+        printf("  Wrong permutation count %d, expected value is 7! = 5040.\n", q);
+        return 1;
+    }
+
+    if (opt_opencl) {
+        *is_opencl = 1;
+
+        const size_t qdata = 8347680;
+        const size_t data_sz = qdata * sizeof(uint64_t);
+        uint64_t * data = malloc(data_sz);
+        if (data == NULL) {
+            printf("[FAIL] (OpenCL)\n");
+            printf("  malloc(%lu) returns NULL.\n", data_sz);
+            return 1;
+        }
+
+        const size_t report_sz = qdata * sizeof(uint16_t);
+        uint16_t * restrict report = malloc(report_sz);
+        if (report == NULL) {
+            printf("[FAIL] (OpenCL)\n");
+            printf("  malloc(%lu) returns NULL.\n", report_sz);
+            free(data);
+            return 1;
+        }
+
+        uint64_t mask = 0x7F;
+        uint64_t last = 1ull << 36;
+        uint64_t * restrict ptr = data;
+        while (mask < last) {
+            *ptr++ = mask;
+            mask = next_combination_mask(mask);
+        }
+
+        if (ptr - data != qdata) {
+            printf("[FAIL] (OpenCL)\n");
+            printf("  Invalid qdata = %lu, calculated value is %lu.\n", qdata, ptr - data);
+            free(report);
+            free(data);
+        }
+
+        int result = opencl__test_permutations(
+            7, 36, qdata,
+            permutation_table, permutation_table_sz,
+            six_plus_fsm7, six_plus_fsm7_sz,
+            data, data_sz,
+            report, report_sz
+        );
+
+        if (result == 0) {
+            const uint16_t * ptr = report;
+            for (uint32_t i=0; i<qdata; ++i) {
+                if (ptr[i] != 0) {
+                    printf("[FAIL] (OpenCL)\n");
+                    printf("  report[%u] = %u is nonzero.\n", i, ptr[i]);
+                    printf("  data[%u] = 0x%016lx is nonzero.\n", i, data[i]);
+
+                    card_t cards[7];
+                    mask_to_cards(7, data[i], cards);
+
+                    uint32_t r = eval_rank7_via_fsm7(cards);
+                    printf("  Base Hand:");
+                    print_hand(7, cards);
+                    printf(" has rank %u\n", r);
+
+                    result = 1;
+                    break;
+                }
+            }
+        }
+
+        free(data);
+        free(report);
+        return result;
+    }
+
+    uint64_t mask = 0x7F;
+    uint64_t last = 1ull << 36;
+    while (mask < last) {
+        card_t cards[7];
+        mask_to_cards(7, mask, cards);
+
+        uint32_t rank = eval_rank7_via_fsm7(cards);
+
+        for (int i=0; i<5040; ++i) {
+            const int * perm = permutation_table + 7 * i;
+            card_t c[7];
+            gen_perm(7, c, cards, perm);
+            uint32_t r = eval_rank7_via_fsm7(c);
+
+            if (r != rank) {
+                printf("[FAIL]\n");
+
+                printf("  Base Hand:");
+                print_hand(7, cards);
+                printf(" has rank %u\n", rank);
+
+                printf("  Current Hand: ");
+                print_hand(7, c);
+                printf(" has rank %u\n", r);
+                return 1;
+            }
+        }
+
+        mask = next_combination_mask(mask);
+    }
+
+    return 0;
+}
+
 typedef int test_function(int * restrict);
 
 static inline int run_test(const char * name, test_function test)
@@ -823,7 +955,7 @@ int run_check_six_plus_7(void)
 //    RUN_TEST(quick_test_for_eval_rank5_via_slow_robust);
 //    RUN_TEST(quick_test_for_eval_rank5_via_fsm5);
 //    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
-//    RUN_TEST(test_permutations_for_eval_rank5_via_fsm5);
+    RUN_TEST(test_permutations_for_eval_rank7_via_fsm7);
 
     printf("All six plus 7 tests are successfully passed.\n");
     return 0;
@@ -910,19 +1042,6 @@ static inline uint32_t eval_rank7_via_fsm5_opt(const card_t * cards)
     #undef LAST_STATE
 
     return result;
-}
-
-static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
-{
-    uint32_t current = 36;
-    current = six_plus_fsm7[current + cards[0]];
-    current = six_plus_fsm7[current + cards[1]];
-    current = six_plus_fsm7[current + cards[2]];
-    current = six_plus_fsm7[current + cards[3]];
-    current = six_plus_fsm7[current + cards[4]];
-    current = six_plus_fsm7[current + cards[5]];
-    current = six_plus_fsm7[current + cards[6]];
-    return current;
 }
 
 
