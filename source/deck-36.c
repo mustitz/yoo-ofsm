@@ -491,7 +491,7 @@ const card_t quick_ordered_hand5[] = {
     0xFF
 };
 
-static int quick_test_for_eval_rank5_via_slow_robust(void)
+static int quick_test_for_eval_rank5_via_slow_robust(int * restrict is_opencl)
 {
     uint64_t prev_rank = 0;
 
@@ -523,7 +523,7 @@ static int quick_test_for_eval_rank5_via_slow_robust(void)
     return 0;
 }
 
-static int quick_test_for_eval_rank5_via_fsm5(void)
+static int quick_test_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
     uint64_t prev_rank = 0;
 
@@ -555,7 +555,7 @@ static int quick_test_for_eval_rank5_via_fsm5(void)
     return 0;
 }
 
-int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(void)
+int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
     static uint64_t saved[9999];
 
@@ -626,7 +626,7 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 
 
 
-int test_permutations_for_eval_rank5_via_fsm5(void)
+int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
     static int permutation_table[121*5];
     const int q = gen_permutation_table(permutation_table, 5, 121*5);
@@ -636,6 +636,14 @@ int test_permutations_for_eval_rank5_via_fsm5(void)
         printf("  Wrong permutation count %d, expected value is 5! = 120.\n", q);
         return 1;
     }
+
+    if (opt_opencl) {
+        *is_opencl = 1;
+        return 0;
+    }
+
+
+
 
     uint64_t mask = 0x1F;
     uint64_t last = 1ull << 36;
@@ -686,7 +694,7 @@ int test_permutations_for_eval_rank5_via_fsm5(void)
     return 0;
 }
 
-typedef int test_function(void);
+typedef int test_function(int * restrict);
 
 static inline int run_test(const char * name, test_function test)
 {
@@ -695,12 +703,14 @@ static inline int run_test(const char * name, test_function test)
     const double start = get_app_age();
     printf("Run %*s ", w, name);
     fflush(stdout);
-    const int err = test();
+
+    int is_opencl = 0;
+    const int err = test(&is_opencl);
     if (err) {
         return 1;
     }
     const double delta = get_app_age() - start;
-    printf("[ OK ] in %.2f s.\n", delta);
+    printf("[ OK ] in %.2f s.%s\n", delta, is_opencl ? " (OpenCL)" : "");
     return 0;
 }
 
@@ -990,9 +1000,10 @@ void verify_six_plus()
         exit(1);
     }
 
-    quick_test_for_eval_rank5_via_slow_robust();
-    quick_test_for_eval_rank5_via_fsm5();
-    test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5();
+    int is_opencl = 0;
+    quick_test_for_eval_rank5_via_slow_robust(&is_opencl);
+    quick_test_for_eval_rank5_via_fsm5(&is_opencl);
+    test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(&is_opencl);
 
     verify_permutations_for_eval_rank5_via_fsm5();
     verify_equivalence_for_eval_rank7_via_fsm5_opt_and_eval_rank7_via_fsm7();
