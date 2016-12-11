@@ -258,6 +258,13 @@ static void load_fsm5(void)
     six_plus_fsm5 = load_fsm("six-plus-5.bin", "OFSM Six Plus 5", 36, 5, &six_plus_fsm5_sz);
 }
 
+static void load_fsm7(void)
+{
+    if (six_plus_fsm7 != NULL) return;
+
+    six_plus_fsm7 = load_fsm("six-plus-7.bin", "OFSM Six Plus 7", 36, 7, &six_plus_fsm7_sz);
+}
+
 
 
 /* Debug hand rank calculations */
@@ -639,8 +646,6 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
     return 0;
 }
 
-
-
 int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
     static int permutation_table[121*5];
@@ -800,7 +805,27 @@ int run_check_six_plus_5(void)
     RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
     RUN_TEST(test_permutations_for_eval_rank5_via_fsm5);
 
-    printf("All tests are successfully passed.\n");
+    printf("All six plus 5 tests are successfully passed.\n");
+    return 0;
+}
+
+int run_check_six_plus_7(void)
+{
+    if (opt_opencl) {
+        int err = init_opencl(stderr);
+        if (err != 0) {
+            return err;
+        }
+    }
+
+    load_fsm7();
+
+//    RUN_TEST(quick_test_for_eval_rank5_via_slow_robust);
+//    RUN_TEST(quick_test_for_eval_rank5_via_fsm5);
+//    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
+//    RUN_TEST(test_permutations_for_eval_rank5_via_fsm5);
+
+    printf("All six plus 7 tests are successfully passed.\n");
     return 0;
 }
 
@@ -902,19 +927,8 @@ static inline uint32_t eval_rank7_via_fsm7(const card_t * cards)
 
 
 
-#define SIGNATURE_FSM5 "OFSM Six Plus 5"
-#define FILENAME_FSM7  "six-plus-7.bin"
-#define SIGNATURE_FSM7 "OFSM Six Plus 7"
-
 void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
 
-
-static void load_fsm7()
-{
-    if (six_plus_fsm7 != NULL) return;
-
-    six_plus_fsm7 = load_fsm(FILENAME_FSM7, SIGNATURE_FSM7, 36, 7, &six_plus_fsm7_sz);
-}
 
 /*
 pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)

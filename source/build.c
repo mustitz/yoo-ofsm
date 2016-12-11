@@ -15,7 +15,6 @@ void build_holdem_5(void * script);
 int check_holdem_5(const void * ofsm);
 
 void build_six_plus_7(void * script);
-int check_six_plus_7(const void * ofsm);
 
 int init_opencl(FILE * err);
 int free_opencl(void);
@@ -341,7 +340,6 @@ struct selector
 };
 
 struct selector selectors[] = {
-    { "six-plus-7", build_six_plus_7, check_six_plus_7 },
     { "holdem-5", build_holdem_5, check_holdem_5 },
     { "omaha7", build_omaha7_script, check_omaha7 },
     { NULL, NULL }
@@ -437,6 +435,12 @@ static int create_six_plus_7(void)
     return err;
 }
 
+int run_check_six_plus_7(void);
+static int check_six_plus_7(void)
+{
+    return run_check_six_plus_7();
+}
+
 
 
 static void usage(void)
@@ -520,7 +524,7 @@ static int stub(void)
 
 struct poker_table poker_tables[] = {
     { "six-plus-5", create_six_plus_5, check_six_plus_5 },
-    { "six-plus-7", create_six_plus_7, stub },
+    { "six-plus-7", create_six_plus_7, check_six_plus_7 },
     { "holdem-5", create_holdem_5, stub },
     { "omaha-7", create_omaha_7, stub },
     { NULL, NULL, NULL }
