@@ -17,6 +17,9 @@ int check_holdem_5(const void * ofsm);
 void build_six_plus_7(void * script);
 int check_six_plus_7(const void * ofsm);
 
+int init_opencl(FILE * err);
+int free_opencl(void);
+
 const char * card_str[] = {
     "2s", "2c", "2d", "2h",
     "3s", "3c", "3d", "3h",
@@ -362,6 +365,7 @@ int is_prefix(const char * prefix, int * argc, char * argv[])
 int opt_check = 0;
 int opt_verbose = 0;
 int opt_help = 0;
+int opt_opencl = -1;
 
 
 
@@ -447,6 +451,8 @@ static void usage(void)
 static int parse_command_line(int argc, char * argv[])
 {
     static struct option long_options[] = {
+        { "enable-opencl", no_argument, &opt_opencl, 1},
+        { "disable-opencl", no_argument, &opt_opencl, 0},
         { "check", no_argument, &opt_check, 1 },
         { "help",  no_argument, &opt_help, 1},
         { "verbose", no_argument, &opt_verbose, 1 },
@@ -531,6 +537,29 @@ static void print_table_names(void)
     }
 }
 
+#ifdef HAS_OPENCL
+    static int check_opencl(void)
+    {
+        if (opt_opencl < 0) {
+            opt_opencl = 1;
+        }
+        return 0;
+    }
+#else
+    static int check_opencl(void)
+    {
+        if (opt_opencl == 1) {
+            fprintf(stderr, "OpenCL is unsupported in the current build.\n");
+            fprintf(stderr, "Please, run ./configure with option --enable-opencl and rebuild source to use OpenCL features.\n");
+            return 1;
+        }
+        if (opt_opencl < 0) {
+            opt_opencl = 0;
+        }
+        return 0;
+    }
+#endif
+
 int main(int argc, char * argv[])
 {
     const int first_arg = parse_command_line(argc, argv);
@@ -550,7 +579,8 @@ int main(int argc, char * argv[])
         return 0;
     }
 
-    int qerrors = 0;
+    int qerrors = check_opencl();
+
     const int qcalls = argc - first_arg;
     create_func calls[qcalls];
     for (int i=0; i<qcalls; ++i) {
@@ -576,9 +606,11 @@ int main(int argc, char * argv[])
     for (int j=0; j<qcalls; ++j) {
         int err = calls[j]();
         if (err != 0) {
+            free_opencl();
             return 1;
         }
     }
 
+    free_opencl();
     return 0;
 }

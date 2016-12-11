@@ -8,6 +8,10 @@
 #include "yoo-ofsm.h"
 #include "yoo-stdlib.h"
 
+extern int opt_opencl;
+int init_opencl(FILE * err);
+int free_opencl(void);
+
 #define CARD(nominal, suite)  (nominal*4 + suite)
 #define SUITE(card)           (card & 3)
 #define NOMINAL(card)         (card >> 2)
@@ -725,6 +729,13 @@ static inline int run_test(const char * name, test_function test)
 
 int run_check_six_plus_5(void)
 {
+    if (opt_opencl) {
+        int err = init_opencl(stderr);
+        if (err != 0) {
+            return err;
+        }
+    }
+
     load_fsm5();
 
     RUN_TEST(quick_test_for_eval_rank5_via_slow_robust);
