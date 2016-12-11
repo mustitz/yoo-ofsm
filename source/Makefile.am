@@ -17,15 +17,15 @@ libyooofsmlib_la_LIBADD = $(YOOSTDLIB_LIBS)
 
 
 
-libyoodeck_a_CFLAGS = $(EXTRA_CFLAGS) -I../include/ $(YOOSTDLIB_CFLAGS)
+libyoodeck_a_CFLAGS = $(EXTRA_CFLAGS) -I../include/ $(YOOSTDLIB_CFLAGS) $(YOOCL_CFLAGS)
 libyoodeck_a_SOURCES = utils.c deck-36.c deck-52.c
 
 
 
-yoo_build_poker_ofsm_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS)
-yoo_build_poker_ofsm_LDADD = libyoodeck.a libyooofsmlib.la $(YOOSTDLIB_LIBS)
+yoo_build_poker_ofsm_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS) $(YOOCL_CFLAGS)
+yoo_build_poker_ofsm_LDADD = libyoodeck.a libyooofsmlib.la $(YOOSTDLIB_LIBS) $(YOOCL_LIBS)
 yoo_build_poker_ofsm_SOURCES = build.c
 
 yoo_verify_poker_ofsm_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS)
-yoo_verify_poker_ofsm_LDADD = libyoodeck.a libyooofsmlib.la $(YOOSTDLIB_LIBS)
+yoo_verify_poker_ofsm_LDADD = libyoodeck.a libyooofsmlib.la $(YOOSTDLIB_LIBS) $(YOOCL_LIBS)
 yoo_verify_poker_ofsm_SOURCES = verify.c
