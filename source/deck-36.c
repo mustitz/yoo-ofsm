@@ -14,7 +14,7 @@ int free_opencl(void);
 
 int opencl__test_permutations(
     const int32_t n, const uint32_t start_state, const uint32_t qdata,
-    const int32_t * const perm_table, const uint64_t perm_table_sz,
+    const int8_t * const perm_table, const uint64_t perm_table_sz,
     const uint32_t * const fsm, const uint64_t fsm_sz,
     const uint64_t * const data, const uint64_t data_sz,
     uint16_t * restrict const report, const uint64_t report_sz
@@ -659,12 +659,14 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
     return 0;
 }
 
+#define QPERMUTATIONS (121*5)
+
 int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
-    static int permutation_table[121*5];
+    static int permutation_table[QPERMUTATIONS];
     static const size_t permutation_table_sz = sizeof(permutation_table);
 
-    const int q = gen_permutation_table(permutation_table, 5, 121*5);
+    const int q = gen_permutation_table(permutation_table, 5, QPERMUTATIONS);
     if (q != 120) {
         printf("[FAIL]\n");
         printf("  Wrong permutation count %d, expected value is 5! = 120.\n", q);
@@ -673,6 +675,13 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 
     if (opt_opencl) {
         *is_opencl = 1;
+
+        static char packed_permutation_table[QPERMUTATIONS];
+        static const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
+
+        for (int i=0; i<QPERMUTATIONS; ++i) {
+            packed_permutation_table[i] = permutation_table[i];
+        }
 
         const size_t qdata = 376992;
         const size_t data_sz = qdata * sizeof(uint64_t);
@@ -709,7 +718,7 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 
         int result = opencl__test_permutations(
             5, 36, qdata,
-            permutation_table, permutation_table_sz,
+            packed_permutation_table, packed_permutation_table_sz,
             six_plus_fsm5, six_plus_fsm5_sz,
             data, data_sz,
             report, report_sz
@@ -776,14 +785,17 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
     return 0;
 }
 
+#undef QPERMUTATIONS
 
+
+#define QPERMUTATIONS (5041*7)
 
 int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
 {
-    static int permutation_table[5041*7];
+    static int permutation_table[QPERMUTATIONS];
     static const size_t permutation_table_sz = sizeof(permutation_table);
 
-    const int q = gen_permutation_table(permutation_table, 7, 5041*7);
+    const int q = gen_permutation_table(permutation_table, 7, QPERMUTATIONS);
     if (q != 5040) {
         printf("[FAIL]\n");
         printf("  Wrong permutation count %d, expected value is 7! = 5040.\n", q);
@@ -792,6 +804,13 @@ int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
 
     if (opt_opencl) {
         *is_opencl = 1;
+
+        static char packed_permutation_table[QPERMUTATIONS];
+        static const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
+
+        for (int i=0; i<QPERMUTATIONS; ++i) {
+            packed_permutation_table[i] = permutation_table[i];
+        }
 
         const size_t qdata = 8347680;
         const size_t data_sz = qdata * sizeof(uint64_t);
@@ -828,7 +847,7 @@ int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
 
         int result = opencl__test_permutations(
             7, 36, qdata,
-            permutation_table, permutation_table_sz,
+            packed_permutation_table, packed_permutation_table_sz,
             six_plus_fsm7, six_plus_fsm7_sz,
             data, data_sz,
             report, report_sz
@@ -894,6 +913,8 @@ int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
 
     return 0;
 }
+
+#undef QPERMUTATIONS
 
 typedef int test_function(int * restrict);
 
