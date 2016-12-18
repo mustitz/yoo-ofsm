@@ -19,4 +19,4 @@ libyooofsmlib_la_LIBADD = $(YOOSTDLIB_LIBS)
 
 yoo_build_poker_ofsm_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS) $(YOOCL_CFLAGS)
 yoo_build_poker_ofsm_LDADD = libyooofsmlib.la $(YOOSTDLIB_LIBS) $(YOOCL_LIBS)
-yoo_build_poker_ofsm_SOURCES = build.c opencl.c utils.c poker.c deck-36.c
+yoo_build_poker_ofsm_SOURCES = build.c opencl.c utils.c poker.c deck-36.c deck-52.c

@@ -27,14 +27,19 @@ typedef uint32_t card_t;
 
 
 
+extern const char * suite_str;
 extern const char * card36_str[];
 extern const char * nominal36_str;
-extern const char * suite36_str;
+extern const char * card52_str[];
+extern const char * nominal52_str;
 
 extern const card_t quick_ordered_hand5_for_deck36[];
 extern const card_t quick_ordered_hand7_for_deck36[];
+extern const card_t quick_ordered_hand5_for_deck52[];
+extern const card_t quick_ordered_hand7_for_deck52[];
 
-uint64_t eval_rank5_via_slow_robust_for_deck36(const card_t * cards);
+uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards);
+uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards);
 
 
 extern int opt_opencl;
@@ -62,5 +67,8 @@ int run_check_six_plus_5(void);
 
 int run_create_six_plus_7(struct ofsm_builder * restrict ob);
 int run_check_six_plus_7(void);
+
+int run_create_texas_5(struct ofsm_builder * restrict ob);
+int run_check_texas_5(void);
 
 #endif

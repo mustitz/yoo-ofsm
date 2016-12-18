@@ -1,14 +1,18 @@
 #include "poker.h"
 
-#define NOMINAL_A     8
-#define NOMINAL_K     7
-#define NOMINAL_Q     6
-#define NOMINAL_J     5
-#define NOMINAL_T     4
-#define NOMINAL_9     3
-#define NOMINAL_8     2
-#define NOMINAL_7     1
-#define NOMINAL_6     0
+#define NOMINAL_A     12
+#define NOMINAL_K     11
+#define NOMINAL_Q     10
+#define NOMINAL_J      9
+#define NOMINAL_T      8
+#define NOMINAL_9      7
+#define NOMINAL_8      6
+#define NOMINAL_7      5
+#define NOMINAL_6      4
+#define NOMINAL_5      3
+#define NOMINAL_4      2
+#define NOMINAL_3      1
+#define NOMINAL_2      0
 
 #define CARD_As    CARD(NOMINAL_A, SUITE_S)
 #define CARD_Ac    CARD(NOMINAL_A, SUITE_C)
@@ -55,13 +59,33 @@
 #define CARD_6d    CARD(NOMINAL_6, SUITE_D)
 #define CARD_6h    CARD(NOMINAL_6, SUITE_H)
 
+#define CARD_5s    CARD(NOMINAL_5, SUITE_S)
+#define CARD_5c    CARD(NOMINAL_5, SUITE_C)
+#define CARD_5d    CARD(NOMINAL_5, SUITE_D)
+#define CARD_5h    CARD(NOMINAL_5, SUITE_H)
+
+#define CARD_4s    CARD(NOMINAL_4, SUITE_S)
+#define CARD_4c    CARD(NOMINAL_4, SUITE_C)
+#define CARD_4d    CARD(NOMINAL_4, SUITE_D)
+#define CARD_4h    CARD(NOMINAL_4, SUITE_H)
+
+#define CARD_3s    CARD(NOMINAL_3, SUITE_S)
+#define CARD_3c    CARD(NOMINAL_3, SUITE_C)
+#define CARD_3d    CARD(NOMINAL_3, SUITE_D)
+#define CARD_3h    CARD(NOMINAL_3, SUITE_H)
+
+#define CARD_2s    CARD(NOMINAL_2, SUITE_S)
+#define CARD_2c    CARD(NOMINAL_2, SUITE_C)
+#define CARD_2d    CARD(NOMINAL_2, SUITE_D)
+#define CARD_2h    CARD(NOMINAL_2, SUITE_H)
+
 #define HAND_TYPE__HIGH_CARD            1
 #define HAND_TYPE__ONE_PAIR             2
 #define HAND_TYPE__TWO_PAIR             3
-#define HAND_TYPE__STRAIGHT             4
-#define HAND_TYPE__THREE_OF_A_KIND      5
-#define HAND_TYPE__FULL_HOUSE           6
-#define HAND_TYPE__FLUSH                7
+#define HAND_TYPE__THREE_OF_A_KIND      4
+#define HAND_TYPE__STRAIGHT             5
+#define HAND_TYPE__FLUSH                6
+#define HAND_TYPE__FULL_HOUSE           7
 #define HAND_TYPE__FOUR_OF_A_KIND       8
 #define HAND_TYPE__STRAIGHT_FLUSH       9
 
@@ -70,8 +94,12 @@
 
 
 
-const char * nominal36_str = "6789TJQKA";
-const char * card36_str[] = {
+const char * nominal52_str = "23456789TJQKA";
+const char * card52_str[] = {
+    "2h", "2d", "2c", "2s",
+    "3h", "3d", "3c", "3s",
+    "4h", "4d", "4c", "4s",
+    "5h", "5d", "5c", "5s",
     "6h", "6d", "6c", "6s",
     "7h", "7d", "7c", "7s",
     "8h", "8d", "8c", "8s",
@@ -85,9 +113,9 @@ const char * card36_str[] = {
 
 
 
-uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
+uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards)
 {
-    int nominal_stat[9] = { 0 };
+    int nominal_stat[13] = { 0 };
     uint64_t suite_mask = 0;
     uint64_t nominal_mask = 0;
 
@@ -109,12 +137,16 @@ uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
         || nominal_mask == NOMINAL_MASK_5(Q,J,T,9,8)
         || nominal_mask == NOMINAL_MASK_5(J,T,9,8,7)
         || nominal_mask == NOMINAL_MASK_5(T,9,8,7,6)
-        || nominal_mask == NOMINAL_MASK_5(9,8,7,6,A)
+        || nominal_mask == NOMINAL_MASK_5(9,8,7,6,5)
+        || nominal_mask == NOMINAL_MASK_5(8,7,6,5,4)
+        || nominal_mask == NOMINAL_MASK_5(7,6,5,4,3)
+        || nominal_mask == NOMINAL_MASK_5(6,5,4,3,2)
+        || nominal_mask == NOMINAL_MASK_5(5,4,3,2,A)
     ;
 
     if (is_straight) {
-        if (nominal_mask == NOMINAL_MASK_5(9,8,7,6,A)) {
-            nominal_mask = NOMINAL_MASK_4(9,8,7,6);
+        if (nominal_mask == NOMINAL_MASK_5(5,4,3,2,A)) {
+            nominal_mask = NOMINAL_MASK_4(5,4,3,2);
         }
 
         uint64_t prefix = is_flush ? PREFIX(STRAIGHT_FLUSH) : PREFIX(STRAIGHT);
@@ -127,7 +159,7 @@ uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
 
     uint64_t rank = 0;
     int stats[5] = { 0 };
-    for (int n=NOMINAL_6; n<=NOMINAL_A; ++n) {
+    for (int n=NOMINAL_2; n<=NOMINAL_A; ++n) {
         if (nominal_stat[n] == 0) continue;
         ++stats[nominal_stat[n]];
         int shift = n + 9*nominal_stat[n] - 9;
@@ -151,9 +183,10 @@ uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
     return rank | prefix;
 }
 
-const card_t quick_ordered_hand5_for_deck36[] = {
-    CARD_6h, CARD_8c, CARD_9c, CARD_Tc, CARD_Qs,
-    CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_As,
+const card_t quick_ordered_hand5_for_deck52[] = {
+    CARD_2h, CARD_3c, CARD_4c, CARD_5c, CARD_7s,
+    CARD_3h, CARD_5d, CARD_7c, CARD_9c, CARD_Js,
+/*
     CARD_6s, CARD_6c, CARD_9c, CARD_Qd, CARD_As,
     CARD_Ts, CARD_Tc, CARD_6c, CARD_7d, CARD_8c,
     CARD_7s, CARD_7d, CARD_6s, CARD_6c, CARD_Ad,
@@ -173,10 +206,11 @@ const card_t quick_ordered_hand5_for_deck36[] = {
     CARD_Tc, CARD_9c, CARD_8c, CARD_7c, CARD_6c,
     CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th, CARD_9h,
     CARD_Ah, CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th,
+*/
     0xFF
 };
 
-const card_t quick_ordered_hand7_for_deck36[] = {
+const card_t quick_ordered_hand7_for_deck52[] = {
     CARD_6h, CARD_7c, CARD_8c, CARD_9c, CARD_Js, CARD_Qs, CARD_Kd,
     CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_Qd, CARD_Kd, CARD_As,
     CARD_6s, CARD_6c, CARD_9c, CARD_Js, CARD_Qd, CARD_Kd, CARD_As,
