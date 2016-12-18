@@ -1,5 +1,5 @@
 noinst_PROGRAMS = yoo-build-poker-ofsm
-noinst_LIBRARIES = libyoodeck.a
+
 
 if ENABLE_DEBUG
 EXTRA_CFLAGS = -g3 -O0 -Wall -Werror
@@ -17,11 +17,6 @@ libyooofsmlib_la_LIBADD = $(YOOSTDLIB_LIBS)
 
 
 
-libyoodeck_a_CFLAGS = $(EXTRA_CFLAGS) -I../include/ $(YOOSTDLIB_CFLAGS) $(YOOCL_CFLAGS)
-libyoodeck_a_SOURCES = utils.c poker.c 
-
-
-
 yoo_build_poker_ofsm_CFLAGS = $(EXTRA_CFLAGS) $(YOOSTDLIB_CFLAGS) $(YOOCL_CFLAGS)
-yoo_build_poker_ofsm_LDADD = libyoodeck.a libyooofsmlib.la $(YOOSTDLIB_LIBS) $(YOOCL_LIBS)
-yoo_build_poker_ofsm_SOURCES = build.c opencl.c
+yoo_build_poker_ofsm_LDADD = libyooofsmlib.la $(YOOSTDLIB_LIBS) $(YOOCL_LIBS)
+yoo_build_poker_ofsm_SOURCES = build.c opencl.c utils.c poker.c deck-36.c

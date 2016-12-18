@@ -1,14 +1,40 @@
 #ifndef YOO__POKER__H__
 #define YOO__POKER__H__
 
+#include <stdint.h>
 #include <stdio.h>
 
+#include <yoo-ofsm.h>
 
+
+
+typedef uint32_t card_t;
 
 #define CARD(nominal, suite)  (nominal*4 + suite)
 #define SUITE(card)           (card & 3)
 #define NOMINAL(card)         (card >> 2)
 
+#define NOMINAL_MASK(n)  (1 << NOMINAL_##n)
+#define NOMINAL_MASK_2(n1, n2)  (NOMINAL_MASK(n1) | NOMINAL_MASK(n2))
+#define NOMINAL_MASK_3(n1, n2, n3)  (NOMINAL_MASK_2(n1, n2) | NOMINAL_MASK(n3))
+#define NOMINAL_MASK_4(n1, n2, n3, n4)  (NOMINAL_MASK_3(n1, n2, n3) | NOMINAL_MASK(n4))
+#define NOMINAL_MASK_5(n1, n2, n3, n4, n5)  (NOMINAL_MASK_4(n1, n2, n3, n4) | NOMINAL_MASK(n5))
+
+#define SUITE_S    3
+#define SUITE_C    2
+#define SUITE_D    1
+#define SUITE_H    0
+
+
+
+extern const char * card36_str[];
+extern const char * nominal36_str;
+extern const char * suite36_str;
+
+extern const card_t quick_ordered_hand5_for_deck36[];
+extern const card_t quick_ordered_hand7_for_deck36[];
+
+uint64_t eval_rank5_via_slow_robust_for_deck36(const card_t * cards);
 
 
 extern int opt_opencl;
