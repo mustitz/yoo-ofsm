@@ -12,6 +12,11 @@ extern int opt_opencl;
 int init_opencl(FILE * err);
 int free_opencl(void);
 
+struct test_desc
+{
+    int is_opencl;
+};
+
 int opencl__test_permutations(
     const int32_t n, const uint32_t start_state, const uint32_t qdata,
     const int8_t * const perm_table, const uint64_t perm_table_sz,
@@ -579,7 +584,7 @@ const card_t quick_ordered_hand5[] = {
     0xFF
 };
 
-static inline int quick_test_for_eval_rank5_via_slow_robust(int * restrict is_opencl)
+static inline int quick_test_for_eval_rank5_via_slow_robust(struct test_desc * restrict me)
 {
     return quick_test_for_eval_rank(5, quick_ordered_hand5, eval_rank5_via_slow_robust);
 }
@@ -589,7 +594,7 @@ static inline uint64_t eval_rank5_via_fsm5_as64(const card_t * cards)
     return eval_rank5_via_fsm5(cards);
 }
 
-static inline int quick_test_for_eval_rank5_via_fsm5(int * restrict is_opencl)
+static inline int quick_test_for_eval_rank5_via_fsm5(struct test_desc * restrict me)
 {
     return quick_test_for_eval_rank(5, quick_ordered_hand5, eval_rank5_via_fsm5_as64);
 }
@@ -624,7 +629,7 @@ static inline uint64_t eval_rank7_via_fsm5_brutte_as64(const card_t * cards)
     return eval_rank7_via_fsm5_brutte(cards);
 }
 
-static inline int quick_test_for_eval_rank7_via_fsm5_brutte(int * restrict is_opencl)
+static inline int quick_test_for_eval_rank7_via_fsm5_brutte(struct test_desc * restrict me)
 {
     return quick_test_for_eval_rank(7, quick_ordered_hand7, eval_rank7_via_fsm5_brutte_as64);
 }
@@ -634,14 +639,14 @@ static inline uint64_t eval_rank7_via_fsm7_as64(const card_t * cards)
     return eval_rank7_via_fsm7(cards);
 }
 
-static inline int quick_test_for_eval_rank7_via_fsm7(int * restrict is_opencl)
+static inline int quick_test_for_eval_rank7_via_fsm7(struct test_desc * restrict me)
 {
     return quick_test_for_eval_rank(7, quick_ordered_hand7, eval_rank7_via_fsm7_as64);
 }
 
 
 
-int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(int * restrict is_opencl)
+int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(struct test_desc * restrict me)
 {
     static uint64_t saved[9999];
 
@@ -698,7 +703,7 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 
 #define QPERMUTATIONS (121*5)
 
-int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
+int test_permutations_for_eval_rank5_via_fsm5(struct test_desc * restrict me)
 {
     static int permutation_table[QPERMUTATIONS];
 
@@ -710,7 +715,7 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
     }
 
     if (opt_opencl) {
-        *is_opencl = 1;
+        me->is_opencl = 1;
 
         static int8_t packed_permutation_table[QPERMUTATIONS];
         static const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
@@ -826,7 +831,7 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 
 #define QPERMUTATIONS (5041*7)
 
-int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
+int test_permutations_for_eval_rank7_via_fsm7(struct test_desc * restrict me)
 {
     static int permutation_table[QPERMUTATIONS];
 
@@ -838,7 +843,7 @@ int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
     }
 
     if (opt_opencl) {
-        *is_opencl = 1;
+        me->is_opencl = 1;
 
         static int8_t packed_permutation_table[QPERMUTATIONS];
         static const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
@@ -951,9 +956,9 @@ int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
 
 #undef QPERMUTATIONS
 
-typedef int test_function(int * restrict);
+typedef int test_function(struct test_desc * restrict);
 
-static inline int run_test(const char * name, test_function test)
+static inline int run_test(struct test_desc * restrict me, const char * name, test_function test)
 {
     const int w = -128;
 
@@ -961,24 +966,26 @@ static inline int run_test(const char * name, test_function test)
     printf("Run %*s ", w, name);
     fflush(stdout);
 
-    int is_opencl = 0;
-    const int err = test(&is_opencl);
+    me->is_opencl = 0;
+    const int err = test(me);
     if (err) {
         return 1;
     }
     const double delta = get_app_age() - start;
-    printf("[ OK ] in %.2f s.%s\n", delta, is_opencl ? " (OpenCL)" : "");
+    printf("[ OK ] in %.2f s.%s\n", delta, me->is_opencl ? " (OpenCL)" : "");
     return 0;
 }
 
-#define RUN_TEST(f)                          \
-    do {                                     \
-        int err = run_test(#f "() ...", f);  \
-        if (err) return 1;                   \
-    } while (0)                              \
+#define RUN_TEST(desc, f)                          \
+    do {                                           \
+        int err = run_test(desc, #f "() ...", f);  \
+        if (err) return 1;                         \
+    } while (0)                                    \
 
 int run_check_six_plus_5(void)
 {
+    struct test_desc desc;
+
     if (opt_opencl) {
         int err = init_opencl(stderr);
         if (err != 0) {
@@ -988,10 +995,10 @@ int run_check_six_plus_5(void)
 
     load_fsm5();
 
-    RUN_TEST(quick_test_for_eval_rank5_via_slow_robust);
-    RUN_TEST(quick_test_for_eval_rank5_via_fsm5);
-    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
-    RUN_TEST(test_permutations_for_eval_rank5_via_fsm5);
+    RUN_TEST(&desc, quick_test_for_eval_rank5_via_slow_robust);
+    RUN_TEST(&desc, quick_test_for_eval_rank5_via_fsm5);
+    RUN_TEST(&desc, test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
+    RUN_TEST(&desc, test_permutations_for_eval_rank5_via_fsm5);
 
     printf("All six plus 5 tests are successfully passed.\n");
     return 0;
@@ -999,6 +1006,8 @@ int run_check_six_plus_5(void)
 
 int run_check_six_plus_7(void)
 {
+    struct test_desc desc;
+
     if (opt_opencl) {
         int err = init_opencl(stderr);
         if (err != 0) {
@@ -1009,10 +1018,10 @@ int run_check_six_plus_7(void)
     load_fsm5();
     load_fsm7();
 
-    RUN_TEST(quick_test_for_eval_rank7_via_fsm5_brutte);
-    RUN_TEST(quick_test_for_eval_rank7_via_fsm7);
+    RUN_TEST(&desc, quick_test_for_eval_rank7_via_fsm5_brutte);
+    RUN_TEST(&desc, quick_test_for_eval_rank7_via_fsm7);
 //    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
-    RUN_TEST(test_permutations_for_eval_rank7_via_fsm7);
+    RUN_TEST(&desc, test_permutations_for_eval_rank7_via_fsm7);
 
     printf("All six plus 7 tests are successfully passed.\n");
     return 0;
@@ -1254,10 +1263,10 @@ void verify_six_plus()
         exit(1);
     }
 
-    int is_opencl = 0;
-    quick_test_for_eval_rank5_via_slow_robust(&is_opencl);
-    quick_test_for_eval_rank5_via_fsm5(&is_opencl);
-    test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(&is_opencl);
+    // int is_opencl = 0;
+    // quick_test_for_eval_rank5_via_slow_robust(&is_opencl);
+    // quick_test_for_eval_rank5_via_fsm5(&is_opencl);
+    // test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(&is_opencl);
 
     verify_permutations_for_eval_rank5_via_fsm5();
     verify_equivalence_for_eval_rank7_via_fsm5_opt_and_eval_rank7_via_fsm7();
