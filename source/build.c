@@ -11,6 +11,27 @@
 const unsigned int * const fsm5 = fsm5_data;
 
 
+#define MAX_PTR_TO_FREE 20
+static void * ptrs_to_free[MAX_PTR_TO_FREE];
+static int qptr_to_free = 0;
+
+void * global_malloc(size_t sz)
+{
+    void * result = malloc(sz);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    if (qptr_to_free < MAX_PTR_TO_FREE) {
+        ptrs_to_free[qptr_to_free++] = result;
+    } else {
+        fprintf(stderr, "Warning: ptrs_to_free overflow, please increase MAX_PTR_TO_FREE define.\n");
+        fprintf(stderr, "Warning: Current value of MAX_PTR_TO_FREE define is %d.\n", MAX_PTR_TO_FREE);
+    }
+
+    return result;
+}
+
 void build_holdem_5(void * script);
 int check_holdem_5(const void * ofsm);
 
@@ -547,6 +568,16 @@ static void print_table_names(void)
         if (opt_opencl < 0) {
             opt_opencl = 1;
         }
+
+        if (opt_opencl) {
+            int err = init_opencl(stderr);
+            if (err != 0) {
+                fprintf(stderr, "OpenCL initialization error.\n");
+                opt_opencl = 0;
+                return 1;
+            }
+        }
+
         return 0;
     }
 #else
@@ -607,14 +638,18 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    int exit_code = 0;
     for (int j=0; j<qcalls; ++j) {
         int err = calls[j]();
         if (err != 0) {
-            free_opencl();
-            return 1;
+            exit_code = 1;
+            break;
         }
     }
 
+    for (int i=0; i<qptr_to_free; ++i) {
+        free(ptrs_to_free[i]);
+    }
     free_opencl();
-    return 0;
+    return exit_code;
 }

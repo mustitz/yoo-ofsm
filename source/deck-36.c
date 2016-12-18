@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "yoo-combinatoric.h"
@@ -9,12 +8,18 @@
 #include "yoo-stdlib.h"
 
 extern int opt_opencl;
-int init_opencl(FILE * err);
-int free_opencl(void);
+
+typedef uint32_t card_t;
+
+typedef uint64_t eval_rank_f(const card_t * cards);
 
 struct test_desc
 {
     int is_opencl;
+    int qcards_in_hand;
+    int qcards_in_deck;
+    eval_rank_f * eval_rank;
+    eval_rank_f * eval_rank_robust;
 };
 
 int opencl__test_permutations(
@@ -24,6 +29,8 @@ int opencl__test_permutations(
     const uint64_t * const data, const uint64_t data_sz,
     uint16_t * restrict const report, const uint64_t report_sz
 );
+
+void * global_malloc(size_t sz);
 
 #define CARD(nominal, suite)  (nominal*4 + suite)
 #define SUITE(card)           (card & 3)
@@ -111,8 +118,6 @@ int opencl__test_permutations(
 
 
 /* Our GOAL */
-
-typedef uint32_t card_t;
 
 const uint32_t * six_plus_fsm5;
 const uint32_t * six_plus_fsm7;
@@ -237,7 +242,7 @@ static void * load_fsm(const char * filename, const char * signature, uint32_t s
     }
 
     sz = header.len * sizeof(uint32_t);
-    void * ptr = malloc(sz);
+    void * ptr = global_malloc(sz);
     if (ptr == NULL) {
         fclose(f);
         fprintf(stderr, "Error: allocation error, malloc(%lu) failed with a NULL as a result.\n", sz);
@@ -530,8 +535,6 @@ int run_create_six_plus_7(struct ofsm_builder * restrict ob)
 
 /* Tests with nice debug output */
 
-typedef uint64_t eval_rank_f(const card_t * cards);
-
 static int quick_test_for_eval_rank(const int qcards, const card_t * hands, eval_rank_f eval_rank)
 {
     uint64_t prev_rank = 0;
@@ -646,28 +649,29 @@ static inline int quick_test_for_eval_rank7_via_fsm7(struct test_desc * restrict
 
 
 
-int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(struct test_desc * restrict me)
+int test_equivalence(struct test_desc * restrict me)
 {
     static uint64_t saved[9999];
+    memset(saved, 0, sizeof(saved));
 
-    uint64_t mask = 0x1F;
-    uint64_t last = 1ull << 36;
+    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    uint64_t last = 1ull << me->qcards_in_deck;
 
     for (; mask < last; mask = next_combination_mask(mask)) {
-        card_t cards[5];
-        mask_to_cards(5, mask, cards);
+        card_t cards[me->qcards_in_hand];
+        mask_to_cards(me->qcards_in_hand, mask, cards);
 
-        uint64_t rank1 = eval_rank5_via_fsm5(cards);
-        uint64_t rank2 = eval_rank5_via_slow_robust(cards);
+        uint64_t rank1 = me->eval_rank(cards);
+        uint64_t rank2 = me->eval_rank_robust(cards);
 
         if (rank1 <= 0 || rank1 > 9999) {
             printf("[FAIL]\n");
             printf("  Wrong rank 1!\n");
             printf("  Hand: ");
-            print_hand(5, cards);
+            print_hand(me->qcards_in_hand, cards);
             printf("\n");
             printf("  Rank 1: %lu\n", rank1);
-            printf("  Rank 2: 0x%lX\n", rank2);
+            printf("  Rank 2: %lu (0x%lX)\n", rank2, rank2);
             return 1;
         }
 
@@ -675,10 +679,10 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
             printf("[FAIL]\n");
             printf("  Wrong rank 2!\n");
             printf("  Hand: ");
-            print_hand(5, cards);
+            print_hand(me->qcards_in_hand, cards);
             printf("\n");
             printf("  Rank 1: %lu\n", rank1);
-            printf("  Rank 2: 0x%lX\n", rank2);
+            printf("  Rank 2: %lu (0x%lX)\n", rank2, rank2);
             return 1;
         }
 
@@ -687,13 +691,14 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
             continue;
         }
 
-        if (saved[rank1] != rank2) {
+        uint64_t saved_rank = saved[rank1];
+        if (saved_rank != rank2) {
             printf("[FAIL]\n");
             printf("  Rank mismatch for hand");
-            print_hand(5, cards);
+            print_hand(me->qcards_in_hand, cards);
             printf("\n");
-            printf("  Saved rank: 0x%lX\n", saved[rank1]);
-            printf("  Caclulated: 0x%lX\n", saved[rank2]);
+            printf("  Saved rank: %lu (0x%lX)\n", saved_rank, saved_rank);
+            printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
             return 1;
         }
     }
@@ -963,7 +968,7 @@ static inline int run_test(struct test_desc * restrict me, const char * name, te
     const int w = -128;
 
     const double start = get_app_age();
-    printf("Run %*s ", w, name);
+    printf("  Run %*s ", w, name);
     fflush(stdout);
 
     me->is_opencl = 0;
@@ -984,20 +989,20 @@ static inline int run_test(struct test_desc * restrict me, const char * name, te
 
 int run_check_six_plus_5(void)
 {
-    struct test_desc desc;
+    printf("Six plus 5 tests:\n");
 
-    if (opt_opencl) {
-        int err = init_opencl(stderr);
-        if (err != 0) {
-            return err;
-        }
-    }
+    struct test_desc desc = {
+        .qcards_in_hand = 5,
+        .qcards_in_deck = 36,
+        .eval_rank = eval_rank5_via_fsm5_as64,
+        .eval_rank_robust = eval_rank5_via_slow_robust
+    };
 
     load_fsm5();
 
     RUN_TEST(&desc, quick_test_for_eval_rank5_via_slow_robust);
     RUN_TEST(&desc, quick_test_for_eval_rank5_via_fsm5);
-    RUN_TEST(&desc, test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
+    RUN_TEST(&desc, test_equivalence);
     RUN_TEST(&desc, test_permutations_for_eval_rank5_via_fsm5);
 
     printf("All six plus 5 tests are successfully passed.\n");
@@ -1006,21 +1011,21 @@ int run_check_six_plus_5(void)
 
 int run_check_six_plus_7(void)
 {
-    struct test_desc desc;
+    printf("Six plus 7 tests:\n");
 
-    if (opt_opencl) {
-        int err = init_opencl(stderr);
-        if (err != 0) {
-            return err;
-        }
-    }
+    struct test_desc desc = {
+        .qcards_in_hand = 7,
+        .qcards_in_deck = 36,
+        .eval_rank = eval_rank7_via_fsm7_as64,
+        .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64
+    };
 
     load_fsm5();
     load_fsm7();
 
     RUN_TEST(&desc, quick_test_for_eval_rank7_via_fsm5_brutte);
     RUN_TEST(&desc, quick_test_for_eval_rank7_via_fsm7);
-//    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
+    RUN_TEST(&desc, test_equivalence);
     RUN_TEST(&desc, test_permutations_for_eval_rank7_via_fsm7);
 
     printf("All six plus 7 tests are successfully passed.\n");
