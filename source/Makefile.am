@@ -18,7 +18,7 @@ libyooofsmlib_la_LIBADD = $(YOOSTDLIB_LIBS)
 
 
 libyoodeck_a_CFLAGS = $(EXTRA_CFLAGS) -I../include/ $(YOOSTDLIB_CFLAGS) $(YOOCL_CFLAGS)
-libyoodeck_a_SOURCES = utils.c deck-36.c deck-52.c
+libyoodeck_a_SOURCES = utils.c poker.c deck-52.c
 
 
 
