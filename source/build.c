@@ -10,27 +10,7 @@
 #include "../arrays/fsm5.c"
 const unsigned int * const fsm5 = fsm5_data;
 
-
-#define MAX_PTR_TO_FREE 20
-static void * ptrs_to_free[MAX_PTR_TO_FREE];
-static int qptr_to_free = 0;
-
-void * global_malloc(size_t sz)
-{
-    void * result = malloc(sz);
-    if (result == NULL) {
-        return NULL;
-    }
-
-    if (qptr_to_free < MAX_PTR_TO_FREE) {
-        ptrs_to_free[qptr_to_free++] = result;
-    } else {
-        fprintf(stderr, "Warning: ptrs_to_free overflow, please increase MAX_PTR_TO_FREE define.\n");
-        fprintf(stderr, "Warning: Current value of MAX_PTR_TO_FREE define is %d.\n", MAX_PTR_TO_FREE);
-    }
-
-    return result;
-}
+void global_free(void);
 
 void build_holdem_5(void * script);
 int check_holdem_5(const void * ofsm);
@@ -647,9 +627,7 @@ int main(int argc, char * argv[])
         }
     }
 
-    for (int i=0; i<qptr_to_free; ++i) {
-        free(ptrs_to_free[i]);
-    }
+    global_free();
     free_opencl();
     return exit_code;
 }
