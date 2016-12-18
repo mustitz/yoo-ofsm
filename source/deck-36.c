@@ -358,7 +358,7 @@ static uint64_t eval_rank5_via_slow_robust(const card_t * cards)
         if (current > result) result = current; \
     }
 
-static inline int eval_rank7_via_fsm5_brutte(const card_t * cards)
+static inline unsigned int eval_rank7_via_fsm5_brutte(const card_t * cards)
 {
 
     uint32_t result = 0;
@@ -525,6 +525,35 @@ int run_create_six_plus_7(struct ofsm_builder * restrict ob)
 
 /* Tests with nice debug output */
 
+typedef uint64_t eval_rank_f(const card_t * cards);
+
+static int quick_test_for_eval_rank(const int qcards, const card_t * hands, eval_rank_f eval_rank)
+{
+    uint64_t prev_rank = 0;
+
+    const card_t * current = hands;
+    for (; *current != 0xFF; current += qcards) {
+        const uint64_t rank = eval_rank(current);
+        if (rank < prev_rank) {
+            printf("[FAIL]\n");
+            printf("  Wrong order!\n");
+
+            printf("  Previous:");
+            print_hand(qcards, current - qcards);
+            printf(" has rank %lu (0x%lX)\n", prev_rank, prev_rank);
+
+            printf("  Current:");
+            print_hand(qcards, current);
+            printf(" has rank %lu (0x%lX)\n", rank, rank);
+
+            return 1;
+        }
+        prev_rank = rank;
+    }
+
+    return 0;
+}
+
 const card_t quick_ordered_hand5[] = {
     CARD_6h, CARD_8c, CARD_9c, CARD_Tc, CARD_Qs,
     CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_As,
@@ -550,59 +579,67 @@ const card_t quick_ordered_hand5[] = {
     0xFF
 };
 
-static int quick_test_for_eval_rank5_via_slow_robust(int * restrict is_opencl)
+static inline int quick_test_for_eval_rank5_via_slow_robust(int * restrict is_opencl)
 {
-    uint64_t prev_rank = 0;
-
-    const card_t * current = quick_ordered_hand5;
-    for (; *current != 0xFF; current += 5) {
-        uint64_t rank = eval_rank5_via_slow_robust(current);
-        if (rank < prev_rank) {
-            printf("[FAIL]\n");
-            printf("  Wrong order!\n");
-
-            printf("  Previous:");
-            print_hand(5, current-5);
-            printf(" has rank 0x%lX\n", prev_rank);
-
-            printf("  Current:");
-            print_hand(5, current);
-            printf(" has rank 0x%lX\n", rank);
-
-            return 1;
-        }
-        prev_rank = rank;
-    }
-
-    return 0;
+    return quick_test_for_eval_rank(5, quick_ordered_hand5, eval_rank5_via_slow_robust);
 }
 
-static int quick_test_for_eval_rank5_via_fsm5(int * restrict is_opencl)
+static inline uint64_t eval_rank5_via_fsm5_as64(const card_t * cards)
 {
-    uint64_t prev_rank = 0;
-
-    const card_t * current = quick_ordered_hand5;
-    for (; *current != 0xFF; current += 5) {
-        uint64_t rank = eval_rank5_via_fsm5(current);
-        if (rank < prev_rank) {
-            printf("[FAIL]\n");
-            printf("  Wrong order!\n");
-
-            printf("  Previous:");
-            print_hand(5, current-5);
-            printf(" has rank %lu\n", prev_rank);
-
-            printf("  Current:");
-            print_hand(5, current);
-            printf(" has rank %lu\n", rank);
-
-            return 1;
-        }
-        prev_rank = rank;
-    }
-
-    return 0;
+    return eval_rank5_via_fsm5(cards);
 }
+
+static inline int quick_test_for_eval_rank5_via_fsm5(int * restrict is_opencl)
+{
+    return quick_test_for_eval_rank(5, quick_ordered_hand5, eval_rank5_via_fsm5_as64);
+}
+
+const card_t quick_ordered_hand7[] = {
+    CARD_6h, CARD_7c, CARD_8c, CARD_9c, CARD_Js, CARD_Qs, CARD_Kd,
+    CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_Qd, CARD_Kd, CARD_As,
+    CARD_6s, CARD_6c, CARD_9c, CARD_Js, CARD_Qd, CARD_Kd, CARD_As,
+    CARD_Ts, CARD_Tc, CARD_6c, CARD_7d, CARD_8c, CARD_Js, CARD_Ks,
+    CARD_7s, CARD_7d, CARD_6s, CARD_6c, CARD_9h, CARD_Th, CARD_Ad,
+    CARD_As, CARD_Ah, CARD_Kh, CARD_Kc, CARD_Tc, CARD_7d, CARD_6h,
+    CARD_As, CARD_9c, CARD_8d, CARD_7h, CARD_6h, CARD_Kd, CARD_Qd,
+    CARD_6c, CARD_7c, CARD_8c, CARD_9s, CARD_Ts, CARD_Kd, CARD_Qd,
+    CARD_Ad, CARD_Kc, CARD_Qs, CARD_Js, CARD_Ts, CARD_7h, CARD_6h,
+    CARD_Jc, CARD_Jd, CARD_Jh, CARD_9c, CARD_8h, CARD_7h, CARD_6d,
+    CARD_Ks, CARD_Kc, CARD_Kd, CARD_Qs, CARD_9d, CARD_8h, CARD_6s,
+    CARD_6s, CARD_6c, CARD_6h, CARD_As, CARD_Ad, CARD_Kh, CARD_Qs,
+    CARD_Js, CARD_Jd, CARD_Jh, CARD_9s, CARD_9d, CARD_6c, CARD_Tc,
+    CARD_As, CARD_Qs, CARD_Ts, CARD_7s, CARD_6s, CARD_8d, CARD_9d,
+    CARD_Ad, CARD_Kd, CARD_Td, CARD_9d, CARD_7d, CARD_7h, CARD_9c,
+    CARD_8c, CARD_8s, CARD_8d, CARD_8h, CARD_6c, CARD_7h, CARD_Js,
+    CARD_8s, CARD_8c, CARD_8d, CARD_8h, CARD_Kc, CARD_6s, CARD_6s,
+    CARD_Ad, CARD_9d, CARD_8d, CARD_7d, CARD_6d, CARD_Jd, CARD_Qd,
+    CARD_Tc, CARD_9c, CARD_8c, CARD_7c, CARD_6c, CARD_6h, CARD_6s,
+    CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th, CARD_9h, CARD_6s, CARD_6h,
+    CARD_Ah, CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th, CARD_9h, CARD_8h,
+    0xFF
+};
+
+static inline uint64_t eval_rank7_via_fsm5_brutte_as64(const card_t * cards)
+{
+    return eval_rank7_via_fsm5_brutte(cards);
+}
+
+static inline int quick_test_for_eval_rank7_via_fsm5_brutte(int * restrict is_opencl)
+{
+    return quick_test_for_eval_rank(7, quick_ordered_hand7, eval_rank7_via_fsm5_brutte_as64);
+}
+
+static inline uint64_t eval_rank7_via_fsm7_as64(const card_t * cards)
+{
+    return eval_rank7_via_fsm7(cards);
+}
+
+static inline int quick_test_for_eval_rank7_via_fsm7(int * restrict is_opencl)
+{
+    return quick_test_for_eval_rank(7, quick_ordered_hand7, eval_rank7_via_fsm7_as64);
+}
+
+
 
 int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
@@ -664,7 +701,6 @@ int test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5(
 int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 {
     static int permutation_table[QPERMUTATIONS];
-    static const size_t permutation_table_sz = sizeof(permutation_table);
 
     const int q = gen_permutation_table(permutation_table, 5, QPERMUTATIONS);
     if (q != 120) {
@@ -676,7 +712,7 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
     if (opt_opencl) {
         *is_opencl = 1;
 
-        static char packed_permutation_table[QPERMUTATIONS];
+        static int8_t packed_permutation_table[QPERMUTATIONS];
         static const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
 
         for (int i=0; i<QPERMUTATIONS; ++i) {
@@ -793,7 +829,6 @@ int test_permutations_for_eval_rank5_via_fsm5(int * restrict is_opencl)
 int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
 {
     static int permutation_table[QPERMUTATIONS];
-    static const size_t permutation_table_sz = sizeof(permutation_table);
 
     const int q = gen_permutation_table(permutation_table, 7, QPERMUTATIONS);
     if (q != 5040) {
@@ -805,7 +840,7 @@ int test_permutations_for_eval_rank7_via_fsm7(int * restrict is_opencl)
     if (opt_opencl) {
         *is_opencl = 1;
 
-        static char packed_permutation_table[QPERMUTATIONS];
+        static int8_t packed_permutation_table[QPERMUTATIONS];
         static const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
 
         for (int i=0; i<QPERMUTATIONS; ++i) {
@@ -971,10 +1006,11 @@ int run_check_six_plus_7(void)
         }
     }
 
+    load_fsm5();
     load_fsm7();
 
-//    RUN_TEST(quick_test_for_eval_rank5_via_slow_robust);
-//    RUN_TEST(quick_test_for_eval_rank5_via_fsm5);
+    RUN_TEST(quick_test_for_eval_rank7_via_fsm5_brutte);
+    RUN_TEST(quick_test_for_eval_rank7_via_fsm7);
 //    RUN_TEST(test_equivalence_between_eval_rank5_via_slow_robust_and_eval_rank5_via_fsm5);
     RUN_TEST(test_permutations_for_eval_rank7_via_fsm7);
 
