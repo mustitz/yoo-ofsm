@@ -1,21 +1,19 @@
-#include "yoo-ofsm.h"
-
-#include <errno.h>
 #include <getopt.h>
-#include <stdlib.h>
 #include <string.h>
 
-void global_free(void);
+#include "yoo-ofsm.h"
+#include "poker.h"
 
-int init_opencl(FILE * err);
-int free_opencl(void);
+
 
 int opt_check = 0;
 int opt_verbose = 0;
 int opt_help = 0;
 int opt_opencl = -1;
 
-struct ofsm_builder * create_ob(void)
+
+
+static struct ofsm_builder * create_ob(void)
 {
     struct ofsm_builder * restrict ob = create_ofsm_builder(NULL, stderr);
     if (ob == NULL) return NULL;
@@ -27,7 +25,8 @@ struct ofsm_builder * create_ob(void)
     return ob;
 }
 
-int run_create_six_plus_5(struct ofsm_builder * restrict ob);
+
+
 static int create_six_plus_5(void)
 {
     struct ofsm_builder * restrict const ob = create_ob();
@@ -51,13 +50,13 @@ static int create_six_plus_5(void)
     return err;
 }
 
-int run_check_six_plus_5(void);
 static int check_six_plus_5(void)
 {
     return run_check_six_plus_5();
 }
 
-int run_create_six_plus_7(struct ofsm_builder * restrict ob);
+
+
 static int create_six_plus_7(void)
 {
     struct ofsm_builder * restrict const ob = create_ob();
@@ -81,7 +80,6 @@ static int create_six_plus_7(void)
     return err;
 }
 
-int run_check_six_plus_7(void);
 static int check_six_plus_7(void)
 {
     return run_check_six_plus_7();
@@ -176,6 +174,8 @@ struct poker_table poker_tables[] = {
     { NULL, NULL, NULL }
 };
 
+
+
 static void print_table_names(void)
 {
     const struct poker_table * entry = poker_tables;
@@ -186,6 +186,8 @@ static void print_table_names(void)
         printf("%s\n", entry->name);
     }
 }
+
+
 
 #ifdef HAS_OPENCL
     static int check_opencl(void)
@@ -219,6 +221,8 @@ static void print_table_names(void)
         return 0;
     }
 #endif
+
+
 
 int main(int argc, char * argv[])
 {

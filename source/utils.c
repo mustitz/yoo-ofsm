@@ -1,7 +1,6 @@
 #include "yoo-ofsm.h"
 
 #include <errno.h>
-#include <stdio.h>
 #include <string.h>
 
 #define MAX_PTR_TO_FREE 20
