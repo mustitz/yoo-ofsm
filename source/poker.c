@@ -548,7 +548,7 @@ int test_equivalence(struct test_suite * restrict const me)
 int test_permutations(struct test_suite * restrict const me)
 {
     const size_t qpermutations = factorial(me->qcards_in_hand);
-    const size_t len = me->qcards_in_hand * (qpermutations + me->qcards_in_hand);
+    const size_t len = me->qcards_in_hand * (qpermutations + 1);
     int permutation_table[len];
 
     const int q = gen_permutation_table(permutation_table, me->qcards_in_hand, len);
@@ -564,10 +564,10 @@ int test_permutations(struct test_suite * restrict const me)
     if (opt_opencl) {
         me->is_opencl = 1;
 
-        int8_t packed_permutation_table[qpermutations];
+        int8_t packed_permutation_table[len];
         const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
 
-        for (int i=0; i<qpermutations; ++i) {
+        for (int i=0; i<len; ++i) {
             packed_permutation_table[i] = permutation_table[i];
         }
 
