@@ -339,6 +339,8 @@ int opencl__test_permutations(
 
 #else
 
+#include <stdint.h>
+
 int init_opencl(FILE * err)
 {
     return -1;
@@ -349,11 +351,12 @@ void free_opencl(void)
 }
 
 int opencl__test_permutations(
-    const cl_uint n, const cl_uint start_state, const cl_uint qdata,
-    const cl_int * const perm_table, const cl_long perm_table_sz,
-    const cl_uint * const fsm, const cl_long fsm_sz,
-    const cl_ulong * const data, const cl_long data_sz,
-    cl_short * restrict const report, const cl_long report_sz)
+    const int32_t n, const uint32_t start_state, const uint32_t qdata,
+    const int8_t * const perm_table, const uint64_t perm_table_sz,
+    const uint32_t * const fsm, const uint64_t fsm_sz,
+    const uint64_t * const data, const uint64_t data_sz,
+    uint16_t * restrict const report, const uint64_t report_sz
+)
 {
     printf("[FAIL]\n");
     printf("  Not implemented.\n");
