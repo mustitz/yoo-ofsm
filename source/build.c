@@ -66,7 +66,7 @@ static int create_six_plus_7(void)
     int err = run_create_six_plus_7(ob);
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, 1, &array);
+    err = ofsm_builder_make_array(ob, 0, &array);
     if (err != 0) {
         fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", err);
         free_ofsm_builder(ob);

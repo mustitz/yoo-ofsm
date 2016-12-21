@@ -16,6 +16,7 @@ struct test_suite
     int is_opencl;
     int qcards_in_hand;
     int qcards_in_deck;
+    int strict_equivalence;
     eval_rank_f * eval_rank;
     eval_rank_f * eval_rank_robust;
     const uint32_t * fsm;
@@ -540,6 +541,18 @@ int test_equivalence(struct test_suite * restrict const me)
             printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
             return 1;
         }
+
+        if (me->strict_equivalence) {
+            if (rank1 != rank2) {
+                printf("[FAIL]\n");
+                printf("  Strict equivalence rank mismatch for hand");
+                print_hand(me, cards);
+                printf("\n");
+                printf("  Actual rank: %lu (0x%lX)\n", rank1, rank1);
+                printf("  Robust rank: %lu (0x%lX)\n", rank2, rank2);
+                return 1;
+            }
+        }
     }
 
     return 0;
@@ -722,6 +735,7 @@ int run_check_six_plus_5(void)
     struct test_suite suite = {
         .qcards_in_hand = 5,
         .qcards_in_deck = 36,
+        .strict_equivalence = 0,
         .eval_rank = eval_six_plus_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck36,
         .fsm = six_plus_fsm5,
@@ -769,6 +783,7 @@ int run_check_six_plus_7(void)
     struct test_suite suite = {
         .qcards_in_hand = 7,
         .qcards_in_deck = 36,
+        .strict_equivalence = 1,
         .eval_rank = eval_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
         .fsm = six_plus_fsm7,
@@ -810,6 +825,7 @@ int run_check_texas_5(void)
     struct test_suite suite = {
         .qcards_in_hand = 5,
         .qcards_in_deck = 52,
+        .strict_equivalence = 0,
         .eval_rank = eval_texas_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck52,
         .fsm = texas_fsm5,
