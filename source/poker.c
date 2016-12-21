@@ -298,73 +298,73 @@ static inline unsigned int eval_rank7_via_fsm5_brutte(const card_t * cards)
 
 /* Optimization packing */
 
-#define QNOMINALS 9
-pack_value_t pack_six_plus_5(unsigned int n, const input_t * path)
+pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qmin)
 {
-    uint64_t flash_masks[4] = { 0, 0, 0, 0};
+    pack_value_t result = 0;
+
+    unsigned int flash_mask[4] = { 0 };
+    unsigned int flash_stat[4] = { 0 };
+
     for (int i=0; i<n; ++i) {
-        input_t card = path[i];
-        flash_masks[SUITE(card)] = 1ull << NOMINAL(card);
+        const input_t card = path[i];
+        const int suite = SUITE(card);
+        const int nominal = NOMINAL(card);
+        flash_mask[suite] = 1 << nominal;
+        ++flash_stat[suite];
     }
 
-    uint64_t flash_suite = 4;
-    unsigned int qflash_cards = 0;
-    uint64_t flash_mask = 0;
-    for (unsigned int s=0; s<4; ++s) {
-        const uint64_t mask = flash_masks[s];
-        const int bit_count = pop_count64(mask);
-        if (bit_count >= 3) {
-            qflash_cards = bit_count;
-            flash_suite = s;
-            flash_mask = mask;
-            break;
+    int suite_index = -1;
+    unsigned int suite_mask = 0;
+    for (int i=0; i<4; ++i) {
+        if (flash_stat[i] < qmin) {
+            continue;
+        }
+
+        if (suite_index != -1) {
+            fprintf(stderr, "Assertion failed: we might remember more that one suite: %d and %d.\n", suite_index, i);
+            abort();
+        }
+
+        suite_index = i;
+        suite_index = flash_mask[i];
+    }
+
+    if (suite_index >= 0) {
+        result |= suite_index << 13;
+        result |= suite_mask;
+    }
+
+    unsigned int nominal_stat[13] = { 0 };
+    for (int i=0; i<n; ++i) {
+        const input_t card = path[i];
+        const int suite = SUITE(card);
+        if (suite == suite_index) {
+            continue;
+        }
+
+        const int nominal = NOMINAL(card);
+        if (nominal >= 13) {
+            fprintf(stderr, "Assertion failed: nominal overflow, value is %d, maximum is 12.\n", nominal);
+            abort();
+        }
+
+        ++nominal_stat[nominal];
+    }
+
+    int shift = 16;
+    for (int n=0; n<13; ++n) {
+        for (unsigned int i=0; i<nominal_stat[n]; ++i) {
+            if (shift > 60) {
+                fprintf(stderr, "Assertion failed: shift overflow, value is %d, maximum is 60.\n", shift);
+                abort();
+            }
+            result |= n << shift;
+            shift += 4;
         }
     }
 
-    unsigned int qfolded_cards1 = 0;
-    int qnominals[QNOMINALS] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    for (unsigned int s=0; s<4; ++s) {
-        uint64_t mask = flash_masks[s];
-        while (mask != 0) {
-            const int n = extract_rbit64(&mask);
-            ++qnominals[n];
-            ++qfolded_cards1;
-        }
-    }
-
-    if (qflash_cards + qfolded_cards1 != n) {
-        fprintf(stderr, "Assertion failed: sum of folder and flash cards is not equal to total cards!\n");
-        fprintf(stderr, "  n = %u, qflash_cards = %u, qfolded_cards = %u\n", n, qflash_cards, qfolded_cards1);
-        exit(1);
-    }
-
-    int qfolded_cards2 = 0;
-    uint64_t folded_mask = 0;
-    for (int n=0; n<QNOMINALS; ++n)
-    for (int i=0; i<qnominals[n]; ++i) {
-        folded_mask <<= 4;
-        folded_mask |= n;
-        ++qfolded_cards2;
-    }
-
-    if (qfolded_cards1 != qfolded_cards2) {
-        fprintf(stderr, "Assertion failed: folded card mismatch! %d != %d\n", qfolded_cards1, qfolded_cards2);
-        exit(1);
-    }
-
-    int qfolded_avail = n - qfolded_cards1;
-    for (int i=0; i<qfolded_avail; ++i) {
-        folded_mask <<= 4;
-        folded_mask |= 0xF;
-    }
-
-    return 0
-        | (folded_mask << 0)
-        | (flash_suite << 60)
-        | (flash_mask << 45)
-    ;
+    return result;
 }
-#undef QNOMINALS
 
 
 
@@ -540,7 +540,7 @@ int test_equivalence(struct test_suite * restrict const me)
             printf("  Saved rank: %lu (0x%lX)\n", saved_rank, saved_rank);
             printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
             return 1;
-        }
+      }
 
         if (me->strict_equivalence) {
             if (rank1 != rank2) {
