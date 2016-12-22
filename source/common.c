@@ -780,7 +780,7 @@ int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
     return 1;
 }
 
-static uint64_t get_first_jump(unsigned int n, const state_t * jumps)
+static uint64_t get_first_jump(const unsigned int qjumps, const state_t * jumps, const unsigned int qinputs, const input_t * path)
 {
     return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
 }
@@ -844,7 +844,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         state_t state = 0;
         for (; ptr != end; ++ptr) {
             ptr->old = state++;
-            ptr->hash = f(qinputs, jumps);
+            ptr->hash = f(qinputs, jumps, 0, NULL);
             jumps += qinputs;
 
             if ((++counter & 0xFF) == 0) {
@@ -1771,9 +1771,8 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 
     int skip_renumering = (flags & PACK_FLAG__SKIP_RENUMERING) != 0;
     unsigned int nflake = ofsm->qflakes - 1;
-    const struct flake oldman =  ofsm->flakes[nflake];
+    const struct flake oldman = ofsm->flakes[nflake];
     uint64_t old_qoutputs = oldman.qoutputs;
-
 
     size_t sizes[3];
     sizes[0] = 0;
@@ -1988,7 +1987,7 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, struct flake 
         state_t state = 0;
         for (; ptr != end; ++ptr) {
             ptr->old = state++;
-            ptr->hash = hash(qinputs, jumps);
+            ptr->hash = hash(qinputs, jumps, 0, NULL);
             jumps += qinputs;
 
             if ((++counter & 0xFF) == 0) {
