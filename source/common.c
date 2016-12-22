@@ -1813,7 +1813,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
         curr->output = INVALID_STATE;
         curr->value = INVALID_PACK_VALUE;
 
-    } verbose(me->logstream, "  <<< calculate pack values, max value is %lu.", max_value);
+    } verbose(me->logstream, "  <<< calculate pack values, max value is %lu (0x%lx).", max_value, max_value);
 
 
 
@@ -1974,6 +1974,13 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, struct flake 
 
         uint64_t counter = 0;
         double start = get_app_age();
+
+        const struct flake * const prev_flake = flake - 1;
+        if (prev_flake->qoutputs != old_qstates) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "Previous flack outputs %u is not match to current flake states %u.", prev_flake->qoutputs, old_qstates);
+            return 1;
+        }
 
         const state_t * jumps = flake->jumps[1];
         struct state_info * restrict ptr = state_infos;

@@ -48,7 +48,6 @@ typedef uint64_t hash_func(unsigned int n, const state_t * jumps);
 
 
 
-
 int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check);
 
 void script_step_pow(void * restrict script, input_t qinputs, unsigned int m);
