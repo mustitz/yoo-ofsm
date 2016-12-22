@@ -44,7 +44,7 @@ struct array_header
 typedef void build_script_func(void * script);
 typedef int check_ofsm_func(const void * ofsm);
 typedef pack_value_t pack_func(unsigned int n, const input_t * path);
-typedef uint64_t hash_func(const unsigned int qjumps, const state_t * jumps, const unsigned int qinputs, const input_t * path);
+typedef uint64_t hash_func(const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path);
 
 
 

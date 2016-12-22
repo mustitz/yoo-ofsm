@@ -780,7 +780,7 @@ int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
     return 1;
 }
 
-static uint64_t get_first_jump(const unsigned int qjumps, const state_t * jumps, const unsigned int qinputs, const input_t * path)
+static uint64_t get_first_jump(const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
 {
     return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
 }
@@ -1944,7 +1944,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 
 
 
-int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, struct flake * restrict flake, hash_func * f)
+int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int nflake, struct flake * restrict flake, hash_func * f)
 {
     hash_func * hash = f != NULL ? f : get_first_jump;
     state_t old_qstates = flake->qstates;
@@ -1984,11 +1984,14 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, struct flake 
         const state_t * jumps = flake->jumps[1];
         struct state_info * restrict ptr = state_infos;
         const struct state_info * end = state_infos + old_qstates;
+        const input_t * path = prev_flake->paths[1];
+        const unsigned int path_len = nflake - 1;
         state_t state = 0;
         for (; ptr != end; ++ptr) {
             ptr->old = state++;
-            ptr->hash = hash(qinputs, jumps, 0, NULL);
+            ptr->hash = hash(qinputs, jumps, path_len, path);
             jumps += qinputs;
+            path += path_len;
 
             if ((++counter & 0xFF) == 0) {
                 double now = get_app_age();
@@ -2169,7 +2172,7 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
         struct flake * restrict flake = ofsm->flakes + current_nflake;
         verbose(me->logstream, "START optimize flake %u.", current_nflake);
 
-        int errcode = ofsm_builder_optimize_flake(me, flake, f);
+        int errcode = ofsm_builder_optimize_flake(me, current_nflake, flake, f);
         if (errcode == 0) {
             verbose(me->logstream, "DONE optimize flake %u.", current_nflake);
         } else {

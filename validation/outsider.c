@@ -767,7 +767,7 @@ void build_optimize(void * script)
     script_step_optimize(script, 3, NULL);
 }
 
-static uint64_t rnd_hash(unsigned int qjumps, const state_t * jumps, unsigned int qinputs, const input_t * path)
+static uint64_t rnd_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     uint64_t result = 0;
     for (unsigned int i = 0; i < 1; ++i) {
@@ -784,7 +784,7 @@ void build_optimize_with_rnd_hash(void * script)
     script_step_optimize(script, 3, rnd_hash);
 }
 
-static uint64_t zero_hash(unsigned int qjumps, const state_t * jumps, unsigned int qinputs, const input_t * path)
+static uint64_t zero_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     return 0;
 }
@@ -797,7 +797,7 @@ void build_optimize_with_zero_hash(void * script)
     script_step_optimize(script, 3, zero_hash);
 }
 
-static uint64_t invalid_hash(unsigned int qjumps, const state_t * jumps, unsigned int qinputs, const input_t * path)
+static uint64_t invalid_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     return INVALID_HASH;
 }
