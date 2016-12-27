@@ -5,6 +5,7 @@
 
 
 
+int new_optimize_with_hash_path_test(void);
 int new_optimize_with_invalid_hash_test(void);
 int new_optimize_with_zero_hash_test(void);
 int new_optimize_with_rnd_hash_test(void);
@@ -48,6 +49,7 @@ struct test_item
 struct test_item tests[] = {
     TEST_ITEM(empty),
 
+    TEST_ITEM(new_optimize_with_hash_path),
     TEST_ITEM(new_optimize_with_invalid_hash),
     TEST_ITEM(new_optimize_with_zero_hash),
     TEST_ITEM(new_optimize_with_rnd_hash),
@@ -1826,4 +1828,68 @@ int new_optimize_with_zero_hash_test(void)
 int new_optimize_with_invalid_hash_test(void)
 {
     return new_optimize_test_with_hash(invalid_hash);
+}
+
+pack_value_t sum_with_bonus(unsigned int n, const input_t * path)
+{
+    unsigned int sum = 0;
+    unsigned int mask = 0;
+    for (int i=0; i<n; ++i) {
+        unsigned int value = path[i] / 2;
+        unsigned int type = path[i] % 2;
+        mask |= 1 << type;
+        sum += value;
+    }
+
+    if (mask == 1 || mask == 2) {
+        sum *= 3;
+    }
+
+    return sum;
+}
+
+static uint64_t forget_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+{
+    unsigned int sum = 0;
+    unsigned int mask = 0;
+    for (int i=0; i<path_len; ++i) {
+        unsigned int value = path[i] / 2;
+        unsigned int type = path[i] % 2;
+        mask |= 1 << type;
+        sum += value;
+    }
+
+    return sum | (mask << 24);
+}
+
+int new_optimize_with_hash_path_test(void)
+{
+    int errcode;
+
+    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    errcode = ofsm_builder_push_comb(me, 10, 5);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    errcode = ofsm_builder_pack(me, sum_with_bonus, PACK_FLAG__SKIP_RENUMERING);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    errcode = ofsm_builder_optimize(me, 5, 1, forget_hash);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_optimize(me, 5, 1, invalid_hash) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    free_ofsm_builder(me);
+    return 0;
 }
