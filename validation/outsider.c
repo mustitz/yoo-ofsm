@@ -1884,12 +1884,42 @@ int new_optimize_with_hash_path_test(void)
         return 1;
     }
 
+    struct ofsm_array array1;
+    errcode = ofsm_builder_make_array(me, 0, &array1);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
     errcode = ofsm_builder_optimize(me, 5, 1, forget_hash);
     if (errcode != 0) {
         fprintf(stderr, "ofsm_builder_optimize(me, 5, 1, invalid_hash) failed with %d as error code.", errcode);
         return 1;
     }
 
+    struct ofsm_array array2;
+    errcode = ofsm_builder_make_array(me, 0, &array2);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    errcode = ofsm_builder_optimize(me, 5, 0, NULL);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_optimize(me, 5, 0, NULL) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    struct ofsm_array array3;
+    errcode = ofsm_builder_make_array(me, 0, &array3);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", errcode);
+        return 1;
+    }
+
+    free(array1.array);
+    free(array2.array);
+    free(array3.array);
     free_ofsm_builder(me);
     return 0;
 }
