@@ -2138,6 +2138,8 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int 
             }
         }
 
+        flake[-1].qoutputs = flake->qstates;
+
     } verbose(me->logstream, "  <<< decode output states in the previous flake.");
 
 
