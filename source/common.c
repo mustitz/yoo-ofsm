@@ -1424,7 +1424,10 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     }
 
     result->mempool = actual_mempool;
-    result->own_mempool = actual_mempool != mempool;
+    result->flags = 0;
+    if (actual_mempool != mempool) {
+        result->flags |= OBF__OWN_MEMPOOL;
+    }
     result->logstream = NULL;
     result->errstream = errstream;
     result->ofsm_stack_first = 0;
@@ -1441,7 +1444,7 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
         free_ofsm(me->ofsm_stack[i]);
     }
 
-    if (me->own_mempool) {
+    if (me->flags & OBF__OWN_MEMPOOL) {
         free_mempool(me->mempool);
     }
 }

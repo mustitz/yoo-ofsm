@@ -65,10 +65,13 @@ void save_binary(const char * file_name, const char * name, const struct ofsm_ar
 
 
 
+#define OBF__OWN_MEMPOOL    1
+#define OBF__AUTO_VERIFY    2
+
 struct ofsm_builder
 {
     struct mempool * restrict mempool;
-    int own_mempool;
+    int flags;
     FILE * logstream;
     FILE * errstream;
     void * ofsm_stack[OFSM_STACK_SZ];
