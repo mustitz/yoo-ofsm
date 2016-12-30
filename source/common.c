@@ -1403,6 +1403,11 @@ const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t ou
 
 
 
+static int autoverify(const struct ofsm_builder * const me)
+{
+    return (me->flags & OBF__AUTO_VERIFY) ? ofsm_builder_verify(me) : 0;
+}
+
 struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream)
 {
     struct mempool * restrict actual_mempool = mempool;
@@ -1555,7 +1560,7 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
     me->ofsm_stack[last] = ofsm;
     me->ofsm_stack_last = next;
     verbose(me->logstream, "DONE push power.");
-    return 0;
+    return autoverify(me);
 }
 
 
@@ -1662,7 +1667,7 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     me->ofsm_stack[last] = ofsm;
     me->ofsm_stack_last = next;
     verbose(me->logstream, "DONE push combinatoric.");
-    return 0;
+    return autoverify(me);
 }
 
 
@@ -1748,7 +1753,7 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
 
 
     verbose(me->logstream, "DONE product.");
-    return 0;
+    return autoverify(me);
 }
 
 
@@ -1942,7 +1947,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
     free(ptr);
     verbose(me->logstream, "DONE pack step, new qoutputs = %u.", new_qoutputs);
 
-    return 0;
+    return autoverify(me);
 }
 
 
@@ -2188,7 +2193,7 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
         }
     }
 
-    return 0;
+    return autoverify(me);
 }
 
 static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
