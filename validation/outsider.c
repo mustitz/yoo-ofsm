@@ -922,6 +922,12 @@ int new_pow_41_test(void)
     memset(stat, 0, sizeof(stat));
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 1);
     if (errcode != 0) {
@@ -1004,6 +1010,12 @@ int new_pow_42_test(void)
     memset(stat, 0, sizeof(stat));
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 2);
     if (errcode != 0) {
@@ -1087,6 +1099,12 @@ int new_comb_42_test(void)
     memset(stat, 0, sizeof(stat));
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_comb(me, 4, 2);
     if (errcode != 0) {
@@ -1186,6 +1204,12 @@ int new_comb_55_test(void)
     memset(stat, 0, sizeof(stat));
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_comb(me, 5, 5);
     if (errcode != 0) {
@@ -1296,6 +1320,12 @@ int new_pow_41_pow_51_test(void)
     memset(stat, 0, sizeof(stat));
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 1);
     if (errcode != 0) {
@@ -1391,6 +1421,12 @@ int new_pow_41_comb_52_test(void)
     memset(stat, 0, sizeof(stat));
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 1);
     if (errcode != 0) {
@@ -1500,6 +1536,12 @@ int new_pack_test(void)
     int errcode;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 1);
     if (errcode != 0) {
@@ -1612,6 +1654,12 @@ int new_pack_without_renum_test(void)
     int errcode;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 1);
     if (errcode != 0) {
@@ -1713,6 +1761,12 @@ int new_optimize_test_with_hash(hash_func hash)
     int errcode;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    if (me == NULL) {
+        fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
+        return 1;
+    }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_pow(me, 4, 1);
     if (errcode != 0) {
@@ -1871,6 +1925,8 @@ int new_optimize_with_hash_path_test(void)
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
     }
+
+    me->flags |= OBF__AUTO_VERIFY;
 
     errcode = ofsm_builder_push_comb(me, 10, 5);
     if (errcode != 0) {
