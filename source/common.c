@@ -2217,7 +2217,6 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
         }
 
         const state_t qoutputs = flake->qoutputs;
-        const state_t qstates = flake->qstates;
 
         const state_t * jump = flake->jumps[1];
         const state_t * const jump_last = jump + flake->qinputs * flake->qstates;
@@ -2232,7 +2231,7 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
 
         const input_t * input = flake->paths[1];
 
-        for (state_t state=0; state<qstates; ++state) {
+        for (state_t output=0; output<qoutputs; ++output) {
 
             int is_invalid = 1;
             for (unsigned int i=0; i<nflake; ++i) {
@@ -2250,7 +2249,7 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
                 const struct flake * const current_flake = me->flakes + i;
                 if (input[i-1] >= current_flake->qinputs) {
                     ERRLOCATION(errstream);
-                    msg(errstream, "Verification failed: invalid state input[%u] = %u, qinputs = %u.", i-1, input[i-1], current_flake->qinputs);
+                    msg(errstream, "Verification failed: in nflake %u invalid state input[%u] = %u, qinputs = %u.", nflake, i-1, input[i-1], current_flake->qinputs);
                     fprintf(errstream, "Input:");
                     for (unsigned int j=0; j<nflake; ++j) {
                         fprintf(errstream, " %u", input[j]);
