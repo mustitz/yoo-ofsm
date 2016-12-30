@@ -2259,6 +2259,20 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
                 }
             }
 
+            state_t state = ofsm_execute(me, nflake, input);
+            if (state != output) {
+                ERRLOCATION(errstream);
+                msg(errstream, "Verification failed: execution from path does not lead to output state.");
+                msg(errstream, "Output = %u, state = %u.", output, state);
+                fprintf(errstream, "Input:");
+                for (unsigned int j=0; j<nflake; ++j) {
+                    fprintf(errstream, " %u", input[j]);
+                }
+                fprintf(errstream, "\n");
+
+                return 1;
+            }
+
             input += nflake;
         }
 
