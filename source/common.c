@@ -132,7 +132,9 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
     ofsm->qflakes = 1;
     ofsm->max_flakes = max_flakes;
     ofsm->flakes = flakes;
-    ofsm->flakes[0] = zero_flake;
+
+    const size_t flake_sz = sizeof(struct flake);
+    memcpy(ofsm->flakes, &zero_flake, flake_sz);
     return ofsm;
 }
 
