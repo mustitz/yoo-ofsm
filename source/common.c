@@ -2207,6 +2207,16 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
         return 1;
     }
 
+    for (unsigned int nflake = 1; nflake < me->qflakes; ++nflake) {
+        const struct flake * const flake = me->flakes + nflake;
+        const struct flake * const prev = flake -1;
+        if (prev->qoutputs != flake->qstates) {
+            ERRLOCATION(errstream);
+            msg(errstream, "Verification failed: Mismatch flake->qstates = %u and prev->qoutputs = %u.\n", flake->qstates, prev->qoutputs);
+            return 1;
+        }
+    }
+
     return 0;
 }
 
@@ -2219,5 +2229,6 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
             return status;
         }
     }
+
     return 0;
 }
