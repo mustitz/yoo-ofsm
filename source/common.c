@@ -2184,8 +2184,33 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
             ERRLOCATION(me->errstream);
             msg(me->errstream, "ofsm_builder_optimize_flake(me, flake, f) failed with %d as error code.", errcode);
             verbose(me->logstream, "FAILED optimize flake %u.", current_nflake);
+            return 1;
         }
     }
 
+    return 0;
+}
+
+static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
+{
+    const size_t flake_sz = sizeof(struct flake);
+    if (memcmp(me->flakes, &zero_flake, flake_sz) != 0) {
+        ERRLOCATION(errstream);
+        msg(errstream, "Verification failed: invalid zero flake.\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+int ofsm_builder_verify(const struct ofsm_builder * const me)
+{
+    for (size_t i=me->ofsm_stack_first; i != me->ofsm_stack_last; i = (i+1) % OFSM_STACK_SZ) {
+        const struct ofsm * const ofsm= me->ofsm_stack[i];
+        int status = ofsm_verify(ofsm, me->errstream);
+        if (status != 0) {
+            return status;
+        }
+    }
     return 0;
 }
