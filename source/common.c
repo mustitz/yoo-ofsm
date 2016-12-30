@@ -2215,6 +2215,18 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
             msg(errstream, "Verification failed: Mismatch flake->qstates = %u and prev->qoutputs = %u.\n", flake->qstates, prev->qoutputs);
             return 1;
         }
+
+        const state_t * jump_ptr = flake->jumps[1];
+        const state_t * const jump_last = jump_ptr + flake->qinputs * flake->qstates;
+        const state_t qoutputs = flake->qoutputs;
+        for (; jump_ptr != jump_last; ++jump_ptr) {
+            const state_t state = *jump_ptr;
+            if (state > qoutputs && state != INVALID_STATE) {
+                ERRLOCATION(errstream);
+                msg(errstream, "Verification failed: invalid state %u\n", state);
+                return 1;
+            }
+        }
     }
 
     return 0;
