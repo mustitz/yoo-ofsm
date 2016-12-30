@@ -16,9 +16,9 @@
 
 #define PACK_FLAG__SKIP_RENUMERING     1
 
-#define INVALID_INPUT (~(input_t)0)
-#define INVALID_STATE (~(state_t)0)
-#define INVALID_PACK_VALUE (~(pack_value_t)0)
+#define INVALID_INPUT ((input_t)(~0))
+#define INVALID_STATE ((state_t)(~0))
+#define INVALID_PACK_VALUE ((pack_value_t)(~0))
 #define INVALID_HASH (~0ull)
 
 #define OFSM_STACK_SZ   16
