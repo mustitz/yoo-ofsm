@@ -2189,7 +2189,7 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
             verbose(me->logstream, "DONE optimize flake %u.", current_nflake);
         } else {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "ofsm_builder_optimize_flake(me, flake, f) failed with %d as error code.", errcode);
+            msg(me->errstream, "ofsm_builder_optimize_flake(me, flake, f) failed with %d as error code.\n", errcode);
             verbose(me->logstream, "FAILED optimize flake %u.", current_nflake);
             return 1;
         }
@@ -2216,17 +2216,53 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
             return 1;
         }
 
-        const state_t * jump_ptr = flake->jumps[1];
-        const state_t * const jump_last = jump_ptr + flake->qinputs * flake->qstates;
         const state_t qoutputs = flake->qoutputs;
-        for (; jump_ptr != jump_last; ++jump_ptr) {
-            const state_t state = *jump_ptr;
+        const state_t qstates = flake->qstates;
+
+        const state_t * jump = flake->jumps[1];
+        const state_t * const jump_last = jump + flake->qinputs * flake->qstates;
+        for (; jump != jump_last; ++jump) {
+            const state_t state = *jump;
             if (state > qoutputs && state != INVALID_STATE) {
                 ERRLOCATION(errstream);
                 msg(errstream, "Verification failed: invalid state %u\n", state);
                 return 1;
             }
         }
+
+        const input_t * input = flake->paths[1];
+
+        for (state_t state=0; state<qstates; ++state) {
+
+            int is_invalid = 1;
+            for (unsigned int i=0; i<nflake; ++i) {
+                if (input[i] != INVALID_INPUT) {
+                    is_invalid = 0;
+                    break;
+                }
+            }
+
+            if (is_invalid) {
+                continue;
+            }
+
+            for (unsigned int i=1; i<=nflake; ++i) {
+                const struct flake * const current_flake = me->flakes + i;
+                if (input[i-1] >= current_flake->qinputs) {
+                    ERRLOCATION(errstream);
+                    msg(errstream, "Verification failed: invalid state input[%u] = %u, qinputs = %u.", i-1, input[i-1], current_flake->qinputs);
+                    fprintf(errstream, "Input:");
+                    for (unsigned int j=0; j<nflake; ++j) {
+                        fprintf(errstream, " %u", input[j]);
+                    }
+                    fprintf(errstream, "\n");
+                    return 1;
+                }
+            }
+
+            input += nflake;
+        }
+
     }
 
     return 0;
