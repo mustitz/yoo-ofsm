@@ -2152,7 +2152,47 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int 
 
     } verbose(me->logstream, "  <<< decode output states in the previous flake.");
 
+    if (nflake > 1) {
 
+        verbose(me->logstream, "  --> update path from previous flake.");
+
+        const struct flake * const prev = flake - 1;
+        const size_t path_len = nflake - 1;
+        const size_t new_path_len = prev->qoutputs * path_len;
+        const size_t new_path_sizes[2] = { 0, new_path_len * sizeof(input_t) };
+        void * new_path_ptrs[2];
+        multialloc(2, new_path_sizes, new_path_ptrs, 32);
+
+        if (new_path_ptrs[0] == NULL) {
+            ERRLOCATION(me->errstream);
+            msg(me->errstream, "multialloc(2, { %lu, %lu }, ptrs, 32) failed with NULL value during reallocating new jump table.", new_path_sizes[0], new_path_sizes[1]);
+            free(ptr);
+            return 1;
+        }
+
+        input_t * restrict new_path = new_path_ptrs[1];
+        for (size_t i=0; i<new_path_len; ++i) {
+            new_path[i] = INVALID_INPUT;
+        }
+
+        const size_t path_sz = path_len * sizeof(input_t);
+        for (size_t old_state = 0; old_state < old_qstates; ++old_state) {
+            const state_t index = state_infos[old_state].index;
+            const size_t new_path_index = index * path_len;
+            const size_t old_path_index = old_state * path_len;
+            if (new_path[new_path_index] != INVALID_INPUT) {
+                void * new_input = new_path + new_path_index;
+                const void * old_input = prev->paths[1] + old_path_index;
+                memcpy(new_input, old_input, path_sz);
+            }
+        }
+
+        free(flake[-1].paths[0]);
+        flake[-1].paths[0] = new_path_ptrs[0];
+        flake[-1].paths[1] = new_path_ptrs[1];
+
+        verbose(me->logstream, "  <<< update path from previous flake.");
+    }
 
     free(ptr);
     return 0;
