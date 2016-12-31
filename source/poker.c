@@ -838,17 +838,17 @@ int run_check_six_plus_5(void)
 
     if (total > 0) {
         printf("  Stats:\n");
-        printf("    Straight-flush   %8d\n", hand_type_stats[0]);
-        printf("    Four of a kind   %8d\n", hand_type_stats[1]);
-        printf("    Flush            %8d\n", hand_type_stats[2]);
-        printf("    Full house       %8d\n", hand_type_stats[3]);
-        printf("    Three of a kind  %8d\n", hand_type_stats[4]);
-        printf("    Straight         %8d\n", hand_type_stats[5]);
-        printf("    Two pair         %8d\n", hand_type_stats[6]);
-        printf("    One pair         %8d\n", hand_type_stats[7]);
-        printf("    High card        %8d\n", hand_type_stats[8]);
-        printf("   --------------------------\n");
-        printf("    Total            %8lu\n", total);
+        printf("    Straight-flush   %8d  %4.1f%%\n", hand_type_stats[0], 100.0 * hand_type_stats[0] / total);
+        printf("    Four of a kind   %8d  %4.1f%%\n", hand_type_stats[1], 100.0 * hand_type_stats[1] / total);
+        printf("    Flush            %8d  %4.1f%%\n", hand_type_stats[2], 100.0 * hand_type_stats[2] / total);
+        printf("    Full house       %8d  %4.1f%%\n", hand_type_stats[3], 100.0 * hand_type_stats[3] / total);
+        printf("    Three of a kind  %8d  %4.1f%%\n", hand_type_stats[4], 100.0 * hand_type_stats[4] / total);
+        printf("    Straight         %8d  %4.1f%%\n", hand_type_stats[5], 100.0 * hand_type_stats[5] / total);
+        printf("    Two pair         %8d  %4.1f%%\n", hand_type_stats[6], 100.0 * hand_type_stats[6] / total);
+        printf("    One pair         %8d  %4.1f%%\n", hand_type_stats[7], 100.0 * hand_type_stats[7] / total);
+        printf("    High card        %8d  %4.1f%%\n", hand_type_stats[8], 100.0 * hand_type_stats[8] / total);
+        printf("   ----------------------------------\n");
+        printf("    Total            %8lu 100.0%%\n", total);
     }
 
     printf("  All six plus 5 tests are successfully passed.\n");
