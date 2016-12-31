@@ -21,6 +21,7 @@ struct test_suite
     eval_rank_f * eval_rank_robust;
     const uint32_t * fsm;
     uint64_t fsm_sz;
+    int * hand_type_stats;
 };
 
 
@@ -726,11 +727,92 @@ static int quick_test_six_plus_eval_rank5(struct test_suite * const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand5_for_deck36);
 }
 
+static int test_six_plus_stat(struct test_suite * const me)
+{
+    static const int qrank = 1404;
+
+    int stats[qrank+1];
+    memset(stats, 0, sizeof(stats));
+
+    static const int hand_qtypes[9] = { 6, 72, 120, 72, 252, 6, 252, 504, 120 };
+    int hand_limits[9];
+    hand_limits[8] = 1;
+    for (int i=7; i>=0; --i) {
+        hand_limits[i] = hand_limits[i+1] + hand_qtypes[i+1];
+    }
+
+    if (hand_qtypes[0] + hand_limits[0] != qrank + 1) {
+        printf("[FAIL]\n");
+        printf("Error during hand_limit calculation: hand_qtypes[0] + hand_limits[0] != qrank + 1, %d + %d != %d + 1\n", hand_qtypes[0], hand_limits[0], qrank);
+        return 1;
+    }
+
+    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    const uint64_t last = 1ull << me->qcards_in_deck;
+    while (mask < last) {
+        card_t cards[me->qcards_in_hand];
+        mask_to_cards(me->qcards_in_hand, mask, cards);
+        uint32_t rank = test_eval_rank_via_fms(me, cards);
+        if (rank < 0 || rank > qrank) {
+            printf("[FAIL]\n");
+            printf("Invalid rank = %u for hand:", rank);
+            print_hand(me, cards);
+            printf("\n");
+            return 1;
+        }
+
+        ++stats[rank];
+        mask = next_combination_mask(mask);
+    }
+
+    for (int i=1; i<=qrank; ++i) {
+        if (stats[i] == 0) {
+            printf("[FAIL]\n");
+            printf("Unexpected stats[%d] = 0.\n", i);
+            return 1;
+        }
+    }
+
+    int * restrict hand_type_stats = me->hand_type_stats;
+
+    for (int i=0; i<9; ++i) {
+        hand_type_stats[i] = 0;
+        for (int j=hand_limits[i]; j<hand_limits[i] + hand_qtypes[i]; ++j) {
+            hand_type_stats[i] += stats[j];
+        }
+    }
+
+    static const int expected_hand_type_stats[9] = {
+            24,
+           288,
+           480,
+          1728,
+         16128,
+          6120,
+         36288,
+        193536,
+        122400
+    };
+
+    for (int i=0; i<9; ++i) {
+        if (hand_type_stats[i] != expected_hand_type_stats[i]) {
+            printf("[FAIL]\n");
+            printf("Invalid hand type stat: caclulated %d, expected %d for hand type %d.\n", hand_type_stats[i], expected_hand_type_stats[i], i);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int run_check_six_plus_5(void)
 {
     printf("Six plus 5 tests:\n");
 
     load_six_plus_fsm5();
+
+    int hand_type_stats[9];
+    memset(hand_type_stats, 0, sizeof(hand_type_stats));
 
     struct test_suite suite = {
         .qcards_in_hand = 5,
@@ -739,15 +821,37 @@ int run_check_six_plus_5(void)
         .eval_rank = eval_six_plus_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck36,
         .fsm = six_plus_fsm5,
-        .fsm_sz = six_plus_fsm5_sz
+        .fsm_sz = six_plus_fsm5_sz,
+        .hand_type_stats = hand_type_stats
     };
 
     RUN_TEST(&suite, quick_test_six_plus_eval_rank5_robust);
     RUN_TEST(&suite, quick_test_six_plus_eval_rank5);
     RUN_TEST(&suite, test_equivalence);
     RUN_TEST(&suite, test_permutations);
+    RUN_TEST(&suite, test_six_plus_stat);
 
-    printf("All six plus 5 tests are successfully passed.\n");
+    size_t total = 0;
+    for (int i=0; i<9; ++i) {
+        total += hand_type_stats[i];
+    }
+
+    if (total > 0) {
+        printf("  Stats:\n");
+        printf("    Straight-flush   %8d\n", hand_type_stats[0]);
+        printf("    Four of a kind   %8d\n", hand_type_stats[1]);
+        printf("    Flush            %8d\n", hand_type_stats[2]);
+        printf("    Full house       %8d\n", hand_type_stats[3]);
+        printf("    Three of a kind  %8d\n", hand_type_stats[4]);
+        printf("    Straight         %8d\n", hand_type_stats[5]);
+        printf("    Two pair         %8d\n", hand_type_stats[6]);
+        printf("    One pair         %8d\n", hand_type_stats[7]);
+        printf("    High card        %8d\n", hand_type_stats[8]);
+        printf("   --------------------------\n");
+        printf("    Total            %8lu\n", total);
+    }
+
+    printf("  All six plus 5 tests are successfully passed.\n");
     return 0;
 }
 
