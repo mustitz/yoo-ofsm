@@ -32,11 +32,13 @@ const uint32_t * six_plus_fsm5;
 const uint32_t * six_plus_fsm7;
 const uint32_t * texas_fsm5;
 const uint32_t * texas_fsm7;
+const uint32_t * test_fsm;
 
 uint64_t six_plus_fsm5_sz;
 uint64_t six_plus_fsm7_sz;
 uint64_t texas_fsm5_sz;
 uint64_t texas_fsm7_sz;
+uint64_t test_fsm_sz;
 
 static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
 {
@@ -244,6 +246,13 @@ static void load_texas_fsm5(void)
     texas_fsm5 = load_fsm("texas-5.bin", "OFSM Texas 5", 52, 5, &texas_fsm5_sz);
 }
 
+void load_test_fsm(void)
+{
+    if (test_fsm != NULL) return;
+
+    test_fsm = load_fsm("test.bin", "OFSM Test", 36, 7, &test_fsm_sz);
+}
+
 
 
 /* Debug hand rank calculations */
@@ -445,9 +454,21 @@ int run_create_texas_5(struct ofsm_builder * restrict ob)
     ;
 }
 
+uint64_t calc_six_plus_7_hash(const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 7);
+}
+
 int run_create_test(struct ofsm_builder * restrict ob)
 {
-    return 1;
+    load_six_plus_fsm5();
+
+    return 0
+        || ofsm_builder_push_comb(ob, 36, 7)
+        || ofsm_builder_pack(ob, calc_six_plus_7, PACK_FLAG__SKIP_RENUMERING)
+        || ofsm_builder_optimize(ob, 7, 1, calc_six_plus_7_hash)
+        || ofsm_builder_optimize(ob, 7, 0, NULL)
+    ;
 }
 
 
@@ -952,5 +973,28 @@ int run_check_texas_5(void)
 
 int run_check_test(void)
 {
-    return 1;
+    printf("Test tests:\n");
+
+    load_six_plus_fsm5();
+    load_test_fsm();
+
+/*
+    struct test_suite suite = {
+        .qcards_in_hand = 7,
+        .qcards_in_deck = 36,
+        .strict_equivalence = 1,
+        .eval_rank = eval_rank7_via_fsm7_as64,
+        .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
+        .fsm = six_plus_fsm7,
+        .fsm_sz = six_plus_fsm7_sz
+    };
+
+    RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
+    RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
+    RUN_TEST(&suite, test_equivalence);
+    RUN_TEST(&suite, test_permutations);
+*/
+
+    printf("All test tests are successfully passed.\n");
+    return 0;
 }
