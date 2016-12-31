@@ -71,4 +71,7 @@ int run_check_six_plus_7(void);
 int run_create_texas_5(struct ofsm_builder * restrict ob);
 int run_check_texas_5(void);
 
+int run_create_test(struct ofsm_builder * restrict ob);
+int run_check_test(void);
+
 #endif

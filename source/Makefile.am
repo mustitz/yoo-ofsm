@@ -2,7 +2,7 @@ noinst_PROGRAMS = yoo-build-poker-ofsm
 
 
 if ENABLE_DEBUG
-EXTRA_CFLAGS = -g3 -O0 -Wall -Werror
+EXTRA_CFLAGS = -g3 -O0 -Wall -Werror -DDEBUG_MODE
 else
 EXTRA_CFLAGS = -Ofast
 endif

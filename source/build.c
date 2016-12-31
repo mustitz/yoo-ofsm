@@ -34,11 +34,16 @@ static int create_six_plus_5(void)
 
     printf("%s", "Creating six-plus-5...\n");
     int err = run_create_six_plus_5(ob);
+    if (err != 0) {
+        fprintf(stderr, "run_create_test(me) failed with %d as error code.\n", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
 
     struct ofsm_array array;
     err = ofsm_builder_make_array(ob, 1, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", err);
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -64,11 +69,16 @@ static int create_six_plus_7(void)
 
     printf("%s", "Creating six-plus-7...\n");
     int err = run_create_six_plus_7(ob);
+    if (err != 0) {
+        fprintf(stderr, "run_create_test(me) failed with %d as error code.\n", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
 
     struct ofsm_array array;
     err = ofsm_builder_make_array(ob, 0, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", err);
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -94,11 +104,16 @@ static int create_texas_5(void)
 
     printf("%s", "Creating texas-5...\n");
     int err = run_create_texas_5(ob);
+    if (err != 0) {
+        fprintf(stderr, "run_create_test(me) failed with %d as error code.\n", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
 
     struct ofsm_array array;
     err = ofsm_builder_make_array(ob, 1, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.", err);
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -115,6 +130,40 @@ static int check_texas_5(void)
     return run_check_texas_5();
 }
 
+
+
+static int create_test(void)
+{
+    struct ofsm_builder * restrict const ob = create_ob();
+    if (ob == NULL) return 1;
+
+    printf("%s", "Creating test...\n");
+    int err = run_create_test(ob);
+    if (err != 0) {
+        fprintf(stderr, "run_create_test(me) failed with %d as error code.\n", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
+
+    struct ofsm_array array;
+    err = ofsm_builder_make_array(ob, 1, &array);
+    if (err != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
+
+    save_binary("test.bin", "OFSM Test", &array);
+
+    free(array.array);
+    free_ofsm_builder(ob);
+    return err;
+}
+
+static int check_test(void)
+{
+    return run_check_test();
+}
 
 
 static void usage(void)
@@ -195,6 +244,9 @@ struct poker_table poker_tables[] = {
     { "six-plus-7", create_six_plus_7, check_six_plus_7 },
     { "texas-5", create_texas_5, check_texas_5 },
     { "omaha-7", create_omaha_7, stub },
+    #ifdef DEBUG_MODE
+        { "test", create_test, check_test },
+    #endif
     { NULL, NULL, NULL }
 };
 

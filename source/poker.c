@@ -445,6 +445,10 @@ int run_create_texas_5(struct ofsm_builder * restrict ob)
     ;
 }
 
+int run_create_test(struct ofsm_builder * restrict ob)
+{
+    return 1;
+}
 
 
 /* Tests with nice debug output */
@@ -943,4 +947,10 @@ int run_check_texas_5(void)
 
     printf("All six plus 5 tests are successfully passed.\n");
     return 0;
+}
+
+
+int run_check_test(void)
+{
+    return 1;
 }
