@@ -1439,6 +1439,7 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     result->errstream = errstream;
     result->ofsm_stack_first = 0;
     result->ofsm_stack_last = 0;
+    result->user_data = NULL;
     init_choose_table(&result->choose, 0, 0, errstream);
     return result;
 }
