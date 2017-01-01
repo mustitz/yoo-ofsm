@@ -608,7 +608,7 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
         const input_t * path = oldman.paths[1];
         for (size_t output = 0; output < old_qoutputs; ++output) {
             curr->output = output;
-            curr->value = args->f(nflake, path);
+            curr->value = args->f(NULL, nflake, path);
             if (curr->value > max_value) max_value = curr->value;
             path += nflake;
             ++curr;
@@ -782,7 +782,7 @@ int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
     return 1;
 }
 
-static uint64_t get_first_jump(const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+static uint64_t get_first_jump(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
 {
     return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
 }
@@ -846,7 +846,7 @@ static void do_optimize(struct script * restrict me, const struct step_data_opti
         state_t state = 0;
         for (; ptr != end; ++ptr) {
             ptr->old = state++;
-            ptr->hash = f(qinputs, jumps, 0, NULL);
+            ptr->hash = f(NULL, qinputs, jumps, 0, NULL);
             jumps += qinputs;
 
             if ((++counter & 0xFF) == 0) {
@@ -1813,7 +1813,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
         const input_t * path = oldman.paths[1];
         for (size_t output = 0; output < old_qoutputs; ++output) {
             curr->output = output;
-            curr->value = f(nflake, path);
+            curr->value = f(me->user_data, nflake, path);
             if (curr->value > max_value) max_value = curr->value;
             path += nflake;
             ++curr;
@@ -1999,7 +1999,7 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int 
         state_t state = 0;
         for (; ptr != end; ++ptr) {
             ptr->old = state++;
-            ptr->hash = hash(qinputs, jumps, path_len, path);
+            ptr->hash = hash(me->user_data, qinputs, jumps, path_len, path);
             jumps += qinputs;
             path += path_len;
 

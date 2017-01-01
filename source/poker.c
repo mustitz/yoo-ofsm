@@ -380,7 +380,7 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
 
 /* Build OFSMs */
 
-pack_value_t calc_six_plus_5(unsigned int n, const input_t * path)
+pack_value_t calc_six_plus_5(void * user_data, unsigned int n, const input_t * path)
 {
     if (n != 5) {
         fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
@@ -404,7 +404,7 @@ int run_create_six_plus_5(struct ofsm_builder * restrict ob)
     ;
 }
 
-pack_value_t calc_six_plus_7(unsigned int n, const input_t * path)
+pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * path)
 {
     if (n != 7) {
         fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
@@ -430,7 +430,7 @@ int run_create_six_plus_7(struct ofsm_builder * restrict ob)
     ;
 }
 
-pack_value_t calc_texas_5(unsigned int n, const input_t * path)
+pack_value_t calc_texas_5(void * user_data, unsigned int n, const input_t * path)
 {
     if (n != 5) {
         fprintf(stderr, "Assertion failed: %s requires n = 5, but %u as passed.\n", __FUNCTION__, n);
@@ -454,7 +454,7 @@ int run_create_texas_5(struct ofsm_builder * restrict ob)
     ;
 }
 
-uint64_t calc_six_plus_7_hash(const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+uint64_t calc_six_plus_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
 {
     return forget_suites(path_len, path, 7);
 }

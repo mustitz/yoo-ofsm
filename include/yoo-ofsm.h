@@ -43,8 +43,8 @@ struct array_header
 
 typedef void build_script_func(void * script);
 typedef int check_ofsm_func(const void * ofsm);
-typedef pack_value_t pack_func(unsigned int n, const input_t * path);
-typedef uint64_t hash_func(const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path);
+typedef pack_value_t pack_func(void * user_data, unsigned int n, const input_t * path);
+typedef uint64_t hash_func(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path);
 
 
 
@@ -77,6 +77,7 @@ struct ofsm_builder
     void * ofsm_stack[OFSM_STACK_SZ];
     size_t ofsm_stack_first;
     size_t ofsm_stack_last;
+    void * user_data;
     struct choose_table choose;
 };
 

@@ -600,7 +600,7 @@ int pow_41_comb_52_test(void)
 
 
 
-pack_value_t mod7(unsigned int n, const input_t * path)
+pack_value_t mod7(void * user_data, unsigned int n, const input_t * path)
 {
     return ((3*path[0] + path[1] + path[2]) % 7) + 11;
 }
@@ -721,7 +721,7 @@ int check_pack_without_renum(const void * ofsm)
             return 1;
         }
 
-        pack_value_t expected = mod7(NFLAKE, c);
+        pack_value_t expected = mod7(NULL, NFLAKE, c);
         if (expected != state) {
             fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
@@ -769,7 +769,7 @@ void build_optimize(void * script)
     script_step_optimize(script, 3, NULL);
 }
 
-static uint64_t rnd_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t rnd_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     uint64_t result = 0;
     for (unsigned int i = 0; i < 1; ++i) {
@@ -786,7 +786,7 @@ void build_optimize_with_rnd_hash(void * script)
     script_step_optimize(script, 3, rnd_hash);
 }
 
-static uint64_t zero_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t zero_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     return 0;
 }
@@ -799,7 +799,7 @@ void build_optimize_with_zero_hash(void * script)
     script_step_optimize(script, 3, zero_hash);
 }
 
-static uint64_t invalid_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t invalid_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     return INVALID_HASH;
 }
@@ -1737,7 +1737,7 @@ int new_pack_without_renum_test(void)
             return 1;
         }
 
-        pack_value_t expected = mod7(NFLAKE, c);
+        pack_value_t expected = mod7(NULL, NFLAKE, c);
         if (expected != state) {
             fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
@@ -1884,7 +1884,7 @@ int new_optimize_with_invalid_hash_test(void)
     return new_optimize_test_with_hash(invalid_hash);
 }
 
-pack_value_t sum_with_bonus(unsigned int n, const input_t * path)
+pack_value_t sum_with_bonus(void * user_data, unsigned int n, const input_t * path)
 {
     unsigned int sum = 0;
     unsigned int mask = 0;
@@ -1902,7 +1902,7 @@ pack_value_t sum_with_bonus(unsigned int n, const input_t * path)
     return sum;
 }
 
-static uint64_t forget_hash(unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t forget_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
 {
     unsigned int sum = 0;
     unsigned int mask = 0;
