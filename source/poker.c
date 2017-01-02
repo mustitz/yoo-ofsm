@@ -1322,15 +1322,15 @@ int run_check_texas_7(void)
         .strict_equivalence = 1,
         .eval_rank = eval_texas_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_texas_rank7_via_fsm5_brutte_as64,
-        .fsm = six_plus_fsm7,
-        .fsm_sz = six_plus_fsm7_sz,
+        .fsm = texas_fsm7,
+        .fsm_sz = texas_fsm7_sz,
         .hand_type_stats = hand_type_stats
     };
 
     RUN_TEST(&suite, quick_test_texas_eval_rank7_robust);
     RUN_TEST(&suite, quick_test_texas_eval_rank7);
-    // RUN_TEST(&suite, test_equivalence);
-    // RUN_TEST(&suite, test_permutations);
+    RUN_TEST(&suite, test_equivalence);
+    RUN_TEST(&suite, test_permutations);
     // RUN_TEST(&suite, test_fsm7_six_plus_stat);
 
 /*
