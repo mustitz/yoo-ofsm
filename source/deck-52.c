@@ -162,7 +162,7 @@ uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards)
     for (int n=NOMINAL_2; n<=NOMINAL_A; ++n) {
         if (nominal_stat[n] == 0) continue;
         ++stats[nominal_stat[n]];
-        int shift = n + 9*nominal_stat[n] - 9;
+        int shift = n + 13*nominal_stat[n] - 13;
         rank |= 1ull << shift;
     }
 
