@@ -212,6 +212,7 @@ const card_t quick_ordered_hand5_for_deck52[] = {
 
 const card_t quick_ordered_hand7_for_deck52[] = {
     CARD_6h, CARD_7c, CARD_8c, CARD_9c, CARD_Js, CARD_Qs, CARD_Kd,
+/*
     CARD_6h, CARD_7d, CARD_8c, CARD_Tc, CARD_Qd, CARD_Kd, CARD_As,
     CARD_6s, CARD_6c, CARD_9c, CARD_Js, CARD_Qd, CARD_Kd, CARD_As,
     CARD_Ts, CARD_Tc, CARD_6c, CARD_7d, CARD_8c, CARD_Js, CARD_Ks,
@@ -231,6 +232,7 @@ const card_t quick_ordered_hand7_for_deck52[] = {
     CARD_Ad, CARD_9d, CARD_8d, CARD_7d, CARD_6d, CARD_Jd, CARD_Qd,
     CARD_Tc, CARD_9c, CARD_8c, CARD_7c, CARD_6c, CARD_6h, CARD_6s,
     CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th, CARD_9h, CARD_6s, CARD_6h,
+*/
     CARD_Ah, CARD_Kh, CARD_Qh, CARD_Jh, CARD_Th, CARD_9h, CARD_8h,
     0xFF
 };

@@ -249,6 +249,13 @@ static void load_texas_fsm5(void)
     texas_fsm5 = load_fsm("texas-5.bin", "OFSM Texas 5", 52, 5, &texas_fsm5_sz);
 }
 
+static void load_texas_fsm7(void)
+{
+    if (texas_fsm7 != NULL) return;
+
+    texas_fsm7 = load_fsm("texas-7.bin", "OFSM Texas 7", 52, 7, &texas_fsm7_sz);
+}
+
 void load_test_fsm(void)
 {
     if (test_fsm != NULL) return;
@@ -261,6 +268,28 @@ void load_test_fsm(void)
 /* Debug hand rank calculations */
 
 static inline unsigned int eval_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
+{
+    uint32_t result = 0;
+
+    card_t variant[5];
+
+    for (;; perm += 5) {
+        if (perm[0] == -1) {
+            return result;
+        }
+
+        for (int i=0; i<5; ++i) {
+            variant[i] = cards[perm[i]];
+        }
+
+        const uint32_t estimation = eval_six_plus_rank5_via_fsm5(variant);
+        if (estimation > result) {
+            result = estimation;
+        }
+    }
+}
+
+static inline unsigned int eval_texas_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
 {
     uint32_t result = 0;
 
@@ -888,7 +917,7 @@ int run_check_six_plus_5(void)
         .eval_rank_robust = eval_rank5_via_robust_for_deck36_as64,
         .fsm = six_plus_fsm5,
         .fsm_sz = six_plus_fsm5_sz,
-        .hand_type_stats = hand_type_stats
+        .hand_type_stats = hand_type_stats,
     };
 
     RUN_TEST(&suite, quick_test_six_plus_eval_rank5_robust);
@@ -1246,6 +1275,89 @@ int run_create_texas_7(struct ofsm_builder * restrict ob)
     ;
 }
 
+static int quick_test_texas_eval_rank7_robust(struct test_data * restrict const me)
+{
+    return quick_test_for_eval_rank(me, 1, quick_ordered_hand7_for_deck52);
+}
+
+static int quick_test_texas_eval_rank7(struct test_data * restrict const me)
+{
+    return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_deck52);
+}
+
+static uint64_t eval_texas_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
+{
+    return eval_texas_rank7_via_fsm7(cards);
+}
+
+static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
+{
+    const struct permunation_7_from_5 * const arg = user_data;
+    return eval_texas_rank7_via_fsm5_brutte(cards, arg->perm);
+}
+
+int run_check_texas_7(void)
+{
+    printf("Six plus 7 tests:\n");
+
+    int perm[5*22];
+    int qpermutations = init_perm_7_from_5(perm);
+    if (qpermutations != 21) {
+        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
+        return 1;
+    }
+
+    struct permunation_7_from_5 arg = { .perm = perm };
+
+    load_texas_fsm5();
+    load_texas_fsm7();
+
+    int hand_type_stats[9];
+    memset(hand_type_stats, 0, sizeof(hand_type_stats));
+
+    struct test_data suite = {
+        .qcards_in_hand = 7,
+        .qcards_in_deck = 52,
+        .user_data = &arg,
+        .strict_equivalence = 1,
+        .eval_rank = eval_texas_rank7_via_fsm7_as64,
+        .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
+        .fsm = six_plus_fsm7,
+        .fsm_sz = six_plus_fsm7_sz,
+        .hand_type_stats = hand_type_stats
+    };
+
+    RUN_TEST(&suite, quick_test_texas_eval_rank7_robust);
+    RUN_TEST(&suite, quick_test_texas_eval_rank7);
+    // RUN_TEST(&suite, test_equivalence);
+    // RUN_TEST(&suite, test_permutations);
+    // RUN_TEST(&suite, test_fsm7_six_plus_stat);
+
+/*
+    size_t total = 0;
+    for (int i=0; i<9; ++i) {
+        total += hand_type_stats[i];
+    }
+
+    if (total > 0) {
+        printf("  Stats:\n");
+        printf("    Straight-flush   %8d  %4.1f%%\n", hand_type_stats[0], 100.0 * hand_type_stats[0] / total);
+        printf("    Four of a kind   %8d  %4.1f%%\n", hand_type_stats[1], 100.0 * hand_type_stats[1] / total);
+        printf("    Flush            %8d  %4.1f%%\n", hand_type_stats[2], 100.0 * hand_type_stats[2] / total);
+        printf("    Full house       %8d  %4.1f%%\n", hand_type_stats[3], 100.0 * hand_type_stats[3] / total);
+        printf("    Three of a kind  %8d  %4.1f%%\n", hand_type_stats[4], 100.0 * hand_type_stats[4] / total);
+        printf("    Straight         %8d  %4.1f%%\n", hand_type_stats[5], 100.0 * hand_type_stats[5] / total);
+        printf("    Two pair         %8d  %4.1f%%\n", hand_type_stats[6], 100.0 * hand_type_stats[6] / total);
+        printf("    One pair         %8d  %4.1f%%\n", hand_type_stats[7], 100.0 * hand_type_stats[7] / total);
+        printf("    High card        %8d  %4.1f%%\n", hand_type_stats[8], 100.0 * hand_type_stats[8] / total);
+        printf("   ----------------------------------\n");
+        printf("    Total            %8lu 100.0%%\n", total);
+    }
+
+    printf("All six plus 7 tests are successfully passed.\n");
+*/
+    return 0;
+}
 
 
 static inline uint32_t eval_rank7_via_test_fsm(const card_t * cards)

@@ -176,6 +176,10 @@ static int create_texas_7(const struct poker_table * const poker_table)
     return err;
 }
 
+static int check_texas_7(void)
+{
+    return run_check_texas_7();
+}
 
 
 static int create_test(const struct poker_table * const poker_table)
@@ -280,7 +284,7 @@ struct poker_table poker_tables[] = {
     { "six-plus-5", create_six_plus_5, check_six_plus_5, 1 },
     { "six-plus-7", create_six_plus_7, check_six_plus_7, 0 },
     { "texas-5", create_texas_5, check_texas_5, 1 },
-    { "texas-7", create_texas_7, stub, 0 },
+    { "texas-7", create_texas_7, check_texas_7, 0 },
     { "omaha-7", create_omaha_7, stub, 0 },
     #ifdef DEBUG_MODE
         { "test", create_test, check_test, 0 },
