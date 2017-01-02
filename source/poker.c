@@ -465,11 +465,17 @@ pack_value_t calc_texas_5(void * user_data, unsigned int n, const input_t * path
     return eval_rank5_via_robust_for_deck52(cards);
 }
 
+uint64_t calc_texas_5_flake_5_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 4);
+}
+
 int create_texas_5(struct ofsm_builder * restrict ob)
 {
     return 0
         || ofsm_builder_push_comb(ob, 52, 5)
         || ofsm_builder_pack(ob, calc_texas_5, 0)
+        || ofsm_builder_optimize(ob, 5, 1, calc_texas_5_flake_5_hash)
         || ofsm_builder_optimize(ob, 5, 0, NULL)
     ;
 }
@@ -513,9 +519,14 @@ pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * path
     return eval_texas_rank7_via_fsm5_brutte(cards, arg->perm);
 }
 
-uint64_t calc_texas_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+uint64_t calc_texas_7_flake_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
 {
-    return forget_suites(path_len, path, 7);
+    return forget_suites(path_len, path, 4);
+}
+
+uint64_t calc_texas_7_flake_6_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 3);
 }
 
 int create_texas_7(struct ofsm_builder * restrict ob)
@@ -535,7 +546,8 @@ int create_texas_7(struct ofsm_builder * restrict ob)
     return 0
         || ofsm_builder_push_comb(ob, 52, 7)
         || ofsm_builder_pack(ob, calc_texas_7, PACK_FLAG__SKIP_RENUMERING)
-        || ofsm_builder_optimize(ob, 7, 1, calc_texas_7_hash)
+        || ofsm_builder_optimize(ob, 7, 1, calc_texas_7_flake_7_hash)
+        // || ofsm_builder_optimize(ob, 6, 1, calc_texas_7_flake_6_hash)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
 }
