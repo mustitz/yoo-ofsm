@@ -67,12 +67,14 @@ struct poker_table;
 typedef int (*create_func)(const struct poker_table * const);
 typedef int (*check_func)(void);
 
-struct poker_table
+struct poker_ofsm
 {
     const char * name;
+    const char * filename;
+    const char * signature;
+    int delta;
     create_func create;
     check_func check;
-    int delta;
 };
 
 

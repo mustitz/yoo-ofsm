@@ -28,12 +28,12 @@ static struct ofsm_builder * create_ob(void)
 
 
 
-static int create_six_plus_5(const struct poker_table * const poker_table)
+static int create_six_plus_5(const struct poker_ofsm * const poker_ofsm)
 {
     struct ofsm_builder * restrict const ob = create_ob();
     if (ob == NULL) return 1;
 
-    printf("Creating %s...\n", poker_table->name);
+    printf("Creating %s...\n", poker_ofsm->name);
     int err = run_create_six_plus_5(ob);
     if (err != 0) {
         fprintf(stderr, "run_create_six_plus_5(ob) failed with %d as error code.\n", err);
@@ -42,9 +42,9 @@ static int create_six_plus_5(const struct poker_table * const poker_table)
     }
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_table->delta, &array);
+    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_table->delta, err);
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -63,12 +63,12 @@ static int check_six_plus_5(void)
 
 
 
-static int create_six_plus_7(const struct poker_table * const poker_table)
+static int create_six_plus_7(const struct poker_ofsm * const poker_ofsm)
 {
     struct ofsm_builder * restrict const ob = create_ob();
     if (ob == NULL) return 1;
 
-    printf("Creating %s...\n", poker_table->name);
+    printf("Creating %s...\n", poker_ofsm->name);
     int err = run_create_six_plus_7(ob);
     if (err != 0) {
         fprintf(stderr, "run_create_six_plus_7(ob) failed with %d as error code.\n", err);
@@ -77,9 +77,9 @@ static int create_six_plus_7(const struct poker_table * const poker_table)
     }
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_table->delta, &array);
+    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_table->delta, err);
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -98,12 +98,12 @@ static int check_six_plus_7(void)
 
 
 
-static int create_texas_5(const struct poker_table * const poker_table)
+static int create_texas_5(const struct poker_ofsm * const poker_ofsm)
 {
     struct ofsm_builder * restrict const ob = create_ob();
     if (ob == NULL) return 1;
 
-    printf("Creating %s...\n", poker_table->name);
+    printf("Creating %s...\n", poker_ofsm->name);
     int err = run_create_texas_5(ob);
     if (err != 0) {
         fprintf(stderr, "run_create_test(ob) failed with %d as error code.\n", err);
@@ -112,9 +112,9 @@ static int create_texas_5(const struct poker_table * const poker_table)
     }
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_table->delta, &array);
+    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_table->delta, err);
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -133,12 +133,12 @@ static int check_texas_5(void)
 
 
 
-static int create_texas_7(const struct poker_table * const poker_table)
+static int create_texas_7(const struct poker_ofsm * const poker_ofsm)
 {
     struct ofsm_builder * restrict const ob = create_ob();
     if (ob == NULL) return 1;
 
-    printf("Creating %s...\n", poker_table->name);
+    printf("Creating %s...\n", poker_ofsm->name);
     int err = run_create_texas_7(ob);
     if (err != 0) {
         fprintf(stderr, "run_create_texas_7(ob) failed with %d as error code.\n", err);
@@ -147,9 +147,9 @@ static int create_texas_7(const struct poker_table * const poker_table)
     }
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_table->delta, &array);
+    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_table->delta, err);
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -167,12 +167,12 @@ static int check_texas_7(void)
 }
 
 
-static int create_test(const struct poker_table * const poker_table)
+static int create_test(const struct poker_ofsm * const poker_ofsm)
 {
     struct ofsm_builder * restrict const ob = create_ob();
     if (ob == NULL) return 1;
 
-    printf("Creating %s...\n", poker_table->name);
+    printf("Creating %s...\n", poker_ofsm->name);
     int err = run_create_test(ob);
     if (err != 0) {
         fprintf(stderr, "run_create_test(ob) failed with %d as error code.\n", err);
@@ -181,9 +181,9 @@ static int create_test(const struct poker_table * const poker_table)
     }
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_table->delta, &array);
+    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
     if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_table->delta, err);
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
         free_ofsm_builder(ob);
         return 1;
     }
@@ -252,7 +252,7 @@ static int parse_command_line(int argc, char * argv[])
 
 
 
-static int create_omaha_7(const struct poker_table * const poker_table)
+static int create_omaha_7(const struct poker_ofsm * const poker_ofsm)
 {
     fprintf(stderr, "Not implemented create_omaha_7();\n");
     return 1;
@@ -265,20 +265,28 @@ static int stub(void)
     return 0;
 }
 
-struct poker_table poker_tables[] = {
-    { "six-plus-5", create_six_plus_5, check_six_plus_5, 1 },
-    { "six-plus-7", create_six_plus_7, check_six_plus_7, 0 },
-    { "texas-5", create_texas_5, check_texas_5, 1 },
-    { "texas-7", create_texas_7, check_texas_7, 0 },
-    { "omaha-7", create_omaha_7, stub, 0 },
-    { NULL, NULL, NULL, 0 }
+#define POKER_OFSM(arg_name, arg_signature, arg_delta, arg_create, arg_check) { \
+    .name = arg_name, \
+    .filename = arg_name ".bin", \
+    .signature =arg_signature, \
+    .delta = arg_delta, \
+    .create = arg_create, \
+    .check = arg_check }
+
+struct poker_ofsm poker_ofsms[] = {
+    POKER_OFSM("six-plus-5", "OFSM Six Plus 5", 1, create_six_plus_5, check_six_plus_5),
+    POKER_OFSM("six-plus-7", "OFSM Six Plus 7", 0, create_six_plus_7, check_six_plus_7),
+    POKER_OFSM("texas-5", "OFSM Texas 5", 1, create_texas_5, check_texas_5),
+    POKER_OFSM("texas-7", "OFSM Texas 7", 0, create_texas_7, check_texas_7),
+    // POKER_OFSM("omaha-7", "OFSM Omaha 7", 0, create_omaha_7,check_omaha_7),
+    { NULL, NULL, NULL, 0, NULL, NULL }
 };
 
 
 
 static void print_table_names(void)
 {
-    const struct poker_table * entry = poker_tables;
+    const struct poker_ofsm * entry = poker_ofsms;
     for (;; ++entry) {
         if (entry->name == NULL) {
             break;
@@ -346,10 +354,10 @@ int main(int argc, char * argv[])
     int qerrors = opt_check ? check_opencl() : 0;
 
     const int qcalls = argc - first_arg;
-    const struct poker_table * call_list[qcalls];
+    const struct poker_ofsm * call_list[qcalls];
     for (int i=0; i<qcalls; ++i) {
         const char * const table_name = argv[first_arg + i];
-        const struct poker_table * entry = poker_tables;
+        const struct poker_ofsm * entry = poker_ofsms;
         for (;; ++entry) {
             if (entry->name == NULL) {
                 ++qerrors;
