@@ -148,6 +148,36 @@ static int check_texas_5(void)
 
 
 
+static int create_texas_7(const struct poker_table * const poker_table)
+{
+    struct ofsm_builder * restrict const ob = create_ob();
+    if (ob == NULL) return 1;
+
+    printf("Creating %s...\n", poker_table->name);
+    int err = run_create_texas_7(ob);
+    if (err != 0) {
+        fprintf(stderr, "run_create_texas_7(ob) failed with %d as error code.\n", err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
+
+    struct ofsm_array array;
+    err = ofsm_builder_make_array(ob, poker_table->delta, &array);
+    if (err != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_table->delta, err);
+        free_ofsm_builder(ob);
+        return 1;
+    }
+
+    save_binary("texas-7.bin", "OFSM Texas 7", &array);
+
+    free(array.array);
+    free_ofsm_builder(ob);
+    return err;
+}
+
+
+
 static int create_test(const struct poker_table * const poker_table)
 {
     struct ofsm_builder * restrict const ob = create_ob();
@@ -250,6 +280,7 @@ struct poker_table poker_tables[] = {
     { "six-plus-5", create_six_plus_5, check_six_plus_5, 1 },
     { "six-plus-7", create_six_plus_7, check_six_plus_7, 0 },
     { "texas-5", create_texas_5, check_texas_5, 1 },
+    { "texas-7", create_texas_7, stub, 0 },
     { "omaha-7", create_omaha_7, stub, 0 },
     #ifdef DEBUG_MODE
         { "test", create_test, check_test, 0 },
