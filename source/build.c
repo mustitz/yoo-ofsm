@@ -13,21 +13,6 @@ int opt_opencl = -1;
 
 
 
-struct poker_table;
-
-typedef int (*create_func)(const struct poker_table * const);
-typedef int (*check_func)(void);
-
-struct poker_table
-{
-    const char * name;
-    create_func create;
-    check_func check;
-    int delta;
-};
-
-
-
 static struct ofsm_builder * create_ob(void)
 {
     struct ofsm_builder * restrict ob = create_ofsm_builder(NULL, stderr);

@@ -62,6 +62,21 @@ void global_free(void);
 
 
 
+struct poker_table;
+
+typedef int (*create_func)(const struct poker_table * const);
+typedef int (*check_func)(void);
+
+struct poker_table
+{
+    const char * name;
+    create_func create;
+    check_func check;
+    int delta;
+};
+
+
+
 int run_create_six_plus_5(struct ofsm_builder * restrict ob);
 int run_check_six_plus_5(void);
 
