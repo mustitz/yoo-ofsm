@@ -286,9 +286,6 @@ struct poker_table poker_tables[] = {
     { "texas-5", create_texas_5, check_texas_5, 1 },
     { "texas-7", create_texas_7, check_texas_7, 0 },
     { "omaha-7", create_omaha_7, stub, 0 },
-    #ifdef DEBUG_MODE
-        { "test", create_test, check_test, 0 },
-    #endif
     { NULL, NULL, NULL, 0 }
 };
 

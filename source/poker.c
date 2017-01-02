@@ -33,13 +33,11 @@ const uint32_t * six_plus_fsm5;
 const uint32_t * six_plus_fsm7;
 const uint32_t * texas_fsm5;
 const uint32_t * texas_fsm7;
-const uint32_t * test_fsm;
 
 uint64_t six_plus_fsm5_sz;
 uint64_t six_plus_fsm7_sz;
 uint64_t texas_fsm5_sz;
 uint64_t texas_fsm7_sz;
-uint64_t test_fsm_sz;
 
 static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
 {
@@ -254,13 +252,6 @@ static void load_texas_fsm7(void)
     if (texas_fsm7 != NULL) return;
 
     texas_fsm7 = load_fsm("texas-7.bin", "OFSM Texas 7", 52, 7, &texas_fsm7_sz);
-}
-
-void load_test_fsm(void)
-{
-    if (test_fsm != NULL) return;
-
-    test_fsm = load_fsm("test.bin", "OFSM Test", 36, 7, &test_fsm_sz);
 }
 
 
@@ -1405,60 +1396,5 @@ int run_check_texas_7(void)
 
     printf("All texas 7 tests are successfully passed.\n");
 
-    return 0;
-}
-
-
-static inline uint32_t eval_test_rank7_via_test_fsm(const card_t * cards)
-{
-    uint32_t current = 36;
-    current = test_fsm[current + cards[0]];
-    current = test_fsm[current + cards[1]];
-    current = test_fsm[current + cards[2]];
-    current = test_fsm[current + cards[3]];
-    current = test_fsm[current + cards[4]];
-    current = test_fsm[current + cards[5]];
-    current = test_fsm[current + cards[6]];
-    return current;
-}
-
-static pack_value_t eval_test_rank7_via_test_fsm_as64(void * data, const card_t * cards)
-{
-    return eval_test_rank7_via_test_fsm(cards);
-}
-
-int run_check_test(void)
-{
-    printf("Test tests:\n");
-
-    int perm[5*22];
-    int qpermutations = init_perm_7_from_5(perm);
-    if (qpermutations != 21) {
-        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
-        return 1;
-    }
-
-    struct permunation_7_from_5 arg = { .perm = perm };
-
-    load_six_plus_fsm5();
-    load_test_fsm();
-
-    struct test_data suite = {
-        .qcards_in_hand = 7,
-        .qcards_in_deck = 36,
-        .user_data = &arg,
-        .strict_equivalence = 1,
-        .eval_rank = eval_test_rank7_via_test_fsm_as64,
-        .eval_rank_robust = eval_six_plus_rank7_via_fsm5_brutte_as64,
-        .fsm = test_fsm,
-        .fsm_sz = test_fsm_sz
-    };
-
-    RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
-    RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
-    RUN_TEST(&suite, test_equivalence);
-    RUN_TEST(&suite, test_permutations);
-
-    printf("All test tests are successfully passed.\n");
     return 0;
 }
