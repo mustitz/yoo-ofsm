@@ -7,24 +7,6 @@
 
 #include "poker.h"
 
-const char * suite_str = "hdcs";
-
-typedef uint64_t eval_rank_f(void * user_data, const card_t * cards);
-
-struct test_data
-{
-    int is_opencl;
-    int qcards_in_hand;
-    int qcards_in_deck;
-    void * user_data;
-    int strict_equivalence;
-    eval_rank_f * eval_rank;
-    eval_rank_f * eval_rank_robust;
-    const uint32_t * fsm;
-    uint64_t fsm_sz;
-    int * hand_type_stats;
-};
-
 
 
 /* Our GOAL */
@@ -38,20 +20,6 @@ uint64_t six_plus_fsm5_sz;
 uint64_t six_plus_fsm7_sz;
 uint64_t texas_fsm5_sz;
 uint64_t texas_fsm7_sz;
-
-static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
-{
-    uint32_t current = qcards_in_deck;
-    for (int i=0; i<qcards_in_hand; ++i) {
-        current = fsm[current + cards[i]];
-    }
-    return current;
-}
-
-static inline uint32_t test_eval_rank_via_fms(const struct test_data * const me, const card_t * cards)
-{
-    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->qcards_in_deck);
-}
 
 static inline uint32_t eval_six_plus_rank5_via_fsm5(const card_t * cards)
 {
@@ -103,7 +71,73 @@ static inline uint32_t eval_texas_rank7_via_fsm7(const card_t * cards)
 
 
 
+/* Game data */
+
+const int * perm_5_7;
+
+typedef uint64_t user_eval_rank_f(void * user_data, const card_t * cards);
+typedef uint64_t eval_rank_robust_f(const card_t * cards);
+typedef uint32_t eval_rank_f(const card_t * cards);
+
+struct game_data
+{
+    int qcards_in_deck;
+    eval_rank_robust_f * eval_robust5;
+    eval_rank_f * eval_fsm5;
+    eval_rank_f * eval_fsm7;
+    const int * const *perm;
+    const uint32_t * const * fsm5_ptr;
+    const uint32_t * const * fsm7_ptr;
+    const uint64_t * fsm5_sz_ptr;
+    const uint64_t * fsm7_sz_ptr;
+    const char * name;
+};
+
+struct game_data six_plus_holdem = {
+    .qcards_in_deck = 36,
+    .eval_robust5 = eval_rank5_via_robust_for_deck36,
+    .eval_fsm5 = eval_six_plus_rank5_via_fsm5,
+    .eval_fsm5 = eval_six_plus_rank7_via_fsm7,
+    .perm = &perm_5_7,
+    .fsm5_ptr = &six_plus_fsm5,
+    .fsm7_ptr = &six_plus_fsm7,
+    .fsm5_sz_ptr = &six_plus_fsm5_sz,
+    .fsm7_sz_ptr = &six_plus_fsm7_sz,
+    .name = "Six Plus Hold`em"
+};
+
+struct game_data texas_holdem = {
+    .qcards_in_deck = 52,
+    .eval_robust5 = eval_rank5_via_robust_for_deck52,
+    .eval_fsm5 = eval_texas_rank5_via_fsm5,
+    .eval_fsm7 = eval_texas_rank7_via_fsm7,
+    .perm = &perm_5_7,
+    .fsm5_ptr = &texas_fsm5,
+    .fsm7_ptr = &texas_fsm7,
+    .fsm5_sz_ptr = &texas_fsm5_sz,
+    .fsm7_sz_ptr = &texas_fsm7_sz,
+    .name = "Texas Hold`em"
+};
+
+struct test_data
+{
+    int is_opencl;
+    int qcards_in_hand;
+    int qcards_in_deck;
+    void * user_data;
+    int strict_equivalence;
+    user_eval_rank_f * eval_rank;
+    user_eval_rank_f * eval_rank_robust;
+    const uint32_t * fsm;
+    uint64_t fsm_sz;
+    int * hand_type_stats;
+};
+
+
+
 /* Library */
+
+const char * suite_str = "hdcs";
 
 static inline void mask_to_cards(const int n, uint64_t mask, card_t * restrict cards)
 {
@@ -257,6 +291,20 @@ static void load_texas_fsm7(void)
 
 
 /* Debug hand rank calculations */
+
+static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
+{
+    uint32_t current = qcards_in_deck;
+    for (int i=0; i<qcards_in_hand; ++i) {
+        current = fsm[current + cards[i]];
+    }
+    return current;
+}
+
+static inline uint32_t test_eval_rank_via_fms(const struct test_data * const me, const card_t * cards)
+{
+    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->qcards_in_deck);
+}
 
 static inline unsigned int eval_six_plus_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
 {
@@ -537,7 +585,7 @@ int run_create_test(struct ofsm_builder * restrict ob)
 
 static int quick_test_for_eval_rank(const struct test_data * const me, const int is_robust, const card_t * const hands)
 {
-    eval_rank_f * eval = is_robust ? me->eval_rank_robust : me->eval_rank;
+    user_eval_rank_f * eval = is_robust ? me->eval_rank_robust : me->eval_rank;
 
     uint64_t prev_rank = 0;
 
