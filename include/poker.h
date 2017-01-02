@@ -62,15 +62,13 @@ void global_free(void);
 
 
 
-struct poker_table;
-
-typedef int (*create_func)(const struct poker_table * const);
-typedef int (*check_func)(void);
+typedef int (*create_func)(struct ofsm_builder * restrict const);
+typedef int (*check_func)();
 
 struct poker_ofsm
 {
     const char * name;
-    const char * filename;
+    const char * file_name;
     const char * signature;
     int delta;
     create_func create;
@@ -79,16 +77,16 @@ struct poker_ofsm
 
 
 
-int run_create_six_plus_5(struct ofsm_builder * restrict ob);
+int create_six_plus_5(struct ofsm_builder * restrict ob);
 int run_check_six_plus_5(void);
 
-int run_create_six_plus_7(struct ofsm_builder * restrict ob);
+int create_six_plus_7(struct ofsm_builder * restrict ob);
 int run_check_six_plus_7(void);
 
-int run_create_texas_5(struct ofsm_builder * restrict ob);
+int create_texas_5(struct ofsm_builder * restrict ob);
 int run_check_texas_5(void);
 
-int run_create_texas_7(struct ofsm_builder * restrict ob);
+int create_texas_7(struct ofsm_builder * restrict ob);
 int run_check_texas_7(void);
 
 int run_create_test(struct ofsm_builder * restrict ob);

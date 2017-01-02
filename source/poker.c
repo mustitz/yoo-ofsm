@@ -135,46 +135,6 @@ struct test_data
 
 
 
-/* Library */
-
-const char * suite_str = "hdcs";
-
-static inline void mask_to_cards(const int n, uint64_t mask, card_t * restrict cards)
-{
-    for (int i=0; i<n; ++i) {
-        cards[i] = extract_rbit64(&mask);
-    }
-}
-
-static inline void print_hand(const struct test_data * const me, const card_t * const cards)
-{
-    const char * const * card_str = NULL;
-    switch (me->qcards_in_deck) {
-        case 36:
-            card_str = card36_str;
-            break;
-        case 52:
-            card_str = card52_str;
-            break;
-        default:
-            printf(" ??? unsupported qcards_in_deck = %d ???", me->qcards_in_deck);
-            return;
-    }
-
-    for (int i=0; i<me->qcards_in_hand; ++i) {
-        printf(" %s", card_str[cards[i]]);
-    }
-}
-
-static inline void gen_perm(const int n, card_t * restrict const dest, const card_t * const src, const int * perm)
-{
-    for (int i=0; i<n; ++i) {
-        dest[i] = src[perm[i]];
-    }
-}
-
-
-
 /* Load OFSMs */
 
 static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes, uint64_t * fsm_sz)
@@ -290,78 +250,6 @@ static void load_texas_fsm7(void)
 
 
 
-/* Debug hand rank calculations */
-
-static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
-{
-    uint32_t current = qcards_in_deck;
-    for (int i=0; i<qcards_in_hand; ++i) {
-        current = fsm[current + cards[i]];
-    }
-    return current;
-}
-
-static inline uint32_t test_eval_rank_via_fms(const struct test_data * const me, const card_t * cards)
-{
-    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->qcards_in_deck);
-}
-
-static inline unsigned int eval_six_plus_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
-{
-    uint32_t result = 0;
-
-    card_t variant[5];
-
-    for (;; perm += 5) {
-        if (perm[0] == -1) {
-            return result;
-        }
-
-        for (int i=0; i<5; ++i) {
-            variant[i] = cards[perm[i]];
-        }
-
-        const uint32_t estimation = eval_six_plus_rank5_via_fsm5(variant);
-        if (estimation > result) {
-            result = estimation;
-        }
-    }
-}
-
-static inline unsigned int eval_texas_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
-{
-    uint32_t result = 0;
-
-    card_t variant[5];
-
-    for (;; perm += 5) {
-        if (perm[0] == -1) {
-            return result;
-        }
-
-        for (int i=0; i<5; ++i) {
-            variant[i] = cards[perm[i]];
-        }
-
-        const uint32_t estimation = eval_texas_rank5_via_fsm5(variant);
-        if (estimation > result) {
-            result = estimation;
-        }
-    }
-}
-
-pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * cards)
-{
-    return eval_rank5_via_robust_for_deck36(cards);
-}
-
-pack_value_t eval_rank5_via_robust_for_deck52_as64(void * user_data, const card_t * cards)
-{
-    return eval_rank5_via_robust_for_deck52(cards);
-}
-
-
-
 /* Optimization packing */
 
 pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qmin)
@@ -434,7 +322,7 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
 
 
 
-/* Build OFSMs */
+/* Creating OFSMs */
 
 pack_value_t calc_six_plus_5(void * user_data, unsigned int n, const input_t * path)
 {
@@ -451,7 +339,7 @@ pack_value_t calc_six_plus_5(void * user_data, unsigned int n, const input_t * p
     return eval_rank5_via_robust_for_deck36(cards);
 }
 
-int run_create_six_plus_5(struct ofsm_builder * restrict ob)
+int create_six_plus_5(struct ofsm_builder * restrict ob)
 {
     return 0
         || ofsm_builder_push_comb(ob, 36, 5)
@@ -464,6 +352,28 @@ struct permunation_7_from_5
 {
     const int * perm;
 };
+
+static inline unsigned int eval_six_plus_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
+{
+    uint32_t result = 0;
+
+    card_t variant[5];
+
+    for (;; perm += 5) {
+        if (perm[0] == -1) {
+            return result;
+        }
+
+        for (int i=0; i<5; ++i) {
+            variant[i] = cards[perm[i]];
+        }
+
+        const uint32_t estimation = eval_six_plus_rank5_via_fsm5(variant);
+        if (estimation > result) {
+            result = estimation;
+        }
+    }
+}
 
 pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * path)
 {
@@ -507,12 +417,17 @@ static int init_perm_7_from_5(int * restrict ptr)
     return result;
 }
 
-uint64_t calc_six_plus_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+uint64_t calc_six_plus_7_flake_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
 {
-    return forget_suites(path_len, path, 7);
+    return forget_suites(path_len, path, 4);
 }
 
-int run_create_six_plus_7(struct ofsm_builder * restrict ob)
+uint64_t calc_six_plus_7_flake_6_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 3);
+}
+
+int create_six_plus_7(struct ofsm_builder * restrict ob)
 {
     int perm[5*22];
     int qpermutations = init_perm_7_from_5(perm);
@@ -529,7 +444,8 @@ int run_create_six_plus_7(struct ofsm_builder * restrict ob)
     return 0
         || ofsm_builder_push_comb(ob, 36, 7)
         || ofsm_builder_pack(ob, calc_six_plus_7, PACK_FLAG__SKIP_RENUMERING)
-        || ofsm_builder_optimize(ob, 7, 1, calc_six_plus_7_hash)
+        || ofsm_builder_optimize(ob, 7, 1, calc_six_plus_7_flake_7_hash)
+        || ofsm_builder_optimize(ob, 6, 1, calc_six_plus_7_flake_6_hash)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
 }
@@ -549,7 +465,7 @@ pack_value_t calc_texas_5(void * user_data, unsigned int n, const input_t * path
     return eval_rank5_via_robust_for_deck52(cards);
 }
 
-int run_create_texas_5(struct ofsm_builder * restrict ob)
+int create_texas_5(struct ofsm_builder * restrict ob)
 {
     return 0
         || ofsm_builder_push_comb(ob, 52, 5)
@@ -558,27 +474,140 @@ int run_create_texas_5(struct ofsm_builder * restrict ob)
     ;
 }
 
-int run_create_test(struct ofsm_builder * restrict ob)
+static inline unsigned int eval_texas_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
+{
+    uint32_t result = 0;
+
+    card_t variant[5];
+
+    for (;; perm += 5) {
+        if (perm[0] == -1) {
+            return result;
+        }
+
+        for (int i=0; i<5; ++i) {
+            variant[i] = cards[perm[i]];
+        }
+
+        const uint32_t estimation = eval_texas_rank5_via_fsm5(variant);
+        if (estimation > result) {
+            result = estimation;
+        }
+    }
+}
+
+pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * path)
+{
+    const struct permunation_7_from_5 * const arg = user_data;
+
+    if (n != 7) {
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        exit(1);
+    }
+
+    card_t cards[n];
+    for (size_t i=0; i<n; ++i) {
+        cards[i] = path[i];
+    }
+
+    return eval_texas_rank7_via_fsm5_brutte(cards, arg->perm);
+}
+
+uint64_t calc_texas_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 7);
+}
+
+int create_texas_7(struct ofsm_builder * restrict ob)
 {
     int perm[5*22];
     int qpermutations = init_perm_7_from_5(perm);
     if (qpermutations != 21) {
         fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
-        return 1;
+        exit(1);
     }
 
     struct permunation_7_from_5 arg = { .perm = perm };
     ob->user_data = &arg;
 
-    load_six_plus_fsm5();
+    load_texas_fsm5();
 
     return 0
-        || ofsm_builder_push_comb(ob, 36, 7)
-        || ofsm_builder_pack(ob, calc_six_plus_7, PACK_FLAG__SKIP_RENUMERING)
-        || ofsm_builder_optimize(ob, 7, 1, calc_six_plus_7_hash)
+        || ofsm_builder_push_comb(ob, 52, 7)
+        || ofsm_builder_pack(ob, calc_texas_7, PACK_FLAG__SKIP_RENUMERING)
+        || ofsm_builder_optimize(ob, 7, 1, calc_texas_7_hash)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
 }
+
+
+
+/* Library */
+
+const char * suite_str = "hdcs";
+
+static inline void mask_to_cards(const int n, uint64_t mask, card_t * restrict cards)
+{
+    for (int i=0; i<n; ++i) {
+        cards[i] = extract_rbit64(&mask);
+    }
+}
+
+static inline void print_hand(const struct test_data * const me, const card_t * const cards)
+{
+    const char * const * card_str = NULL;
+    switch (me->qcards_in_deck) {
+        case 36:
+            card_str = card36_str;
+            break;
+        case 52:
+            card_str = card52_str;
+            break;
+        default:
+            printf(" ??? unsupported qcards_in_deck = %d ???", me->qcards_in_deck);
+            return;
+    }
+
+    for (int i=0; i<me->qcards_in_hand; ++i) {
+        printf(" %s", card_str[cards[i]]);
+    }
+}
+
+static inline void gen_perm(const int n, card_t * restrict const dest, const card_t * const src, const int * perm)
+{
+    for (int i=0; i<n; ++i) {
+        dest[i] = src[perm[i]];
+    }
+}
+
+
+
+/* Debug hand rank calculations */
+
+static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
+{
+    uint32_t current = qcards_in_deck;
+    for (int i=0; i<qcards_in_hand; ++i) {
+        current = fsm[current + cards[i]];
+    }
+    return current;
+}
+
+static inline uint32_t test_eval_rank_via_fms(const struct test_data * const me, const card_t * cards)
+{
+    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->qcards_in_deck);
+}
+
+pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * cards)
+{
+    return eval_rank5_via_robust_for_deck36(cards);
+}
+
+pack_value_t eval_rank5_via_robust_for_deck52_as64(void * user_data, const card_t * cards)
+{
+    return eval_rank5_via_robust_for_deck52(cards);
+}
+
 
 
 /* Tests with nice debug output */
@@ -1270,49 +1299,6 @@ int run_check_texas_5(void)
 
 
 
-pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * path)
-{
-    const struct permunation_7_from_5 * const arg = user_data;
-
-    if (n != 7) {
-        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
-        exit(1);
-    }
-
-    card_t cards[n];
-    for (size_t i=0; i<n; ++i) {
-        cards[i] = path[i];
-    }
-
-    return eval_texas_rank7_via_fsm5_brutte(cards, arg->perm);
-}
-
-uint64_t calc_texas_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
-{
-    return forget_suites(path_len, path, 7);
-}
-
-int run_create_texas_7(struct ofsm_builder * restrict ob)
-{
-    int perm[5*22];
-    int qpermutations = init_perm_7_from_5(perm);
-    if (qpermutations != 21) {
-        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
-        exit(1);
-    }
-
-    struct permunation_7_from_5 arg = { .perm = perm };
-    ob->user_data = &arg;
-
-    load_texas_fsm5();
-
-    return 0
-        || ofsm_builder_push_comb(ob, 52, 7)
-        || ofsm_builder_pack(ob, calc_texas_7, PACK_FLAG__SKIP_RENUMERING)
-        || ofsm_builder_optimize(ob, 7, 1, calc_texas_7_hash)
-        || ofsm_builder_optimize(ob, 7, 0, NULL)
-    ;
-}
 
 static int quick_test_texas_eval_rank7_robust(struct test_data * restrict const me)
 {

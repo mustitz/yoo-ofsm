@@ -13,82 +13,50 @@ int opt_opencl = -1;
 
 
 
-static struct ofsm_builder * create_ob(void)
+static int create_ofsm(const struct poker_ofsm * const poker_ofsm)
 {
+    int status;
+
     struct ofsm_builder * restrict ob = create_ofsm_builder(NULL, stderr);
-    if (ob == NULL) return NULL;
+    if (ob == NULL) {
+        fprintf(stderr, "create_ofsm_builder(NULL, stderr) failed with NULL as result value.\n");
+        return 1;
+    }
 
     if (opt_verbose) {
         ob->logstream = stdout;
     }
 
     ob->flags |= OBF__AUTO_VERIFY;
-    return ob;
-}
-
-
-
-static int create_six_plus_5(const struct poker_ofsm * const poker_ofsm)
-{
-    struct ofsm_builder * restrict const ob = create_ob();
-    if (ob == NULL) return 1;
 
     printf("Creating %s...\n", poker_ofsm->name);
-    int err = run_create_six_plus_5(ob);
-    if (err != 0) {
-        fprintf(stderr, "run_create_six_plus_5(ob) failed with %d as error code.\n", err);
+    status = poker_ofsm->create(ob);
+    if (status != 0) {
+        fprintf(stderr, "poker_ofsm->create(ob) failed with %d as error code for %s.\n", status, poker_ofsm->signature);
         free_ofsm_builder(ob);
         return 1;
     }
 
     struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
-    if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
+    status = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code for %s.\n", poker_ofsm->delta, status, poker_ofsm->signature);
         free_ofsm_builder(ob);
         return 1;
     }
 
-    save_binary("six-plus-5.bin", "OFSM Six Plus 5", &array);
+    save_binary(poker_ofsm->file_name, poker_ofsm->signature, &array);
 
     free(array.array);
     free_ofsm_builder(ob);
-    return err;
+    return status;
 }
+
+
 
 static int check_six_plus_5(void)
 {
     return run_check_six_plus_5();
-}
-
-
-
-static int create_six_plus_7(const struct poker_ofsm * const poker_ofsm)
-{
-    struct ofsm_builder * restrict const ob = create_ob();
-    if (ob == NULL) return 1;
-
-    printf("Creating %s...\n", poker_ofsm->name);
-    int err = run_create_six_plus_7(ob);
-    if (err != 0) {
-        fprintf(stderr, "run_create_six_plus_7(ob) failed with %d as error code.\n", err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
-    if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    save_binary("six-plus-7.bin", "OFSM Six Plus 7", &array);
-
-    free(array.array);
-    free_ofsm_builder(ob);
-    return err;
 }
 
 static int check_six_plus_7(void)
@@ -96,69 +64,9 @@ static int check_six_plus_7(void)
     return run_check_six_plus_7();
 }
 
-
-
-static int create_texas_5(const struct poker_ofsm * const poker_ofsm)
-{
-    struct ofsm_builder * restrict const ob = create_ob();
-    if (ob == NULL) return 1;
-
-    printf("Creating %s...\n", poker_ofsm->name);
-    int err = run_create_texas_5(ob);
-    if (err != 0) {
-        fprintf(stderr, "run_create_test(ob) failed with %d as error code.\n", err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
-    if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    save_binary("texas-5.bin", "OFSM Texas 5", &array);
-
-    free(array.array);
-    free_ofsm_builder(ob);
-    return err;
-}
-
 static int check_texas_5(void)
 {
     return run_check_texas_5();
-}
-
-
-
-static int create_texas_7(const struct poker_ofsm * const poker_ofsm)
-{
-    struct ofsm_builder * restrict const ob = create_ob();
-    if (ob == NULL) return 1;
-
-    printf("Creating %s...\n", poker_ofsm->name);
-    int err = run_create_texas_7(ob);
-    if (err != 0) {
-        fprintf(stderr, "run_create_texas_7(ob) failed with %d as error code.\n", err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
-    if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    save_binary("texas-7.bin", "OFSM Texas 7", &array);
-
-    free(array.array);
-    free_ofsm_builder(ob);
-    return err;
 }
 
 static int check_texas_7(void)
@@ -166,39 +74,6 @@ static int check_texas_7(void)
     return run_check_texas_7();
 }
 
-
-static int create_test(const struct poker_ofsm * const poker_ofsm)
-{
-    struct ofsm_builder * restrict const ob = create_ob();
-    if (ob == NULL) return 1;
-
-    printf("Creating %s...\n", poker_ofsm->name);
-    int err = run_create_test(ob);
-    if (err != 0) {
-        fprintf(stderr, "run_create_test(ob) failed with %d as error code.\n", err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    struct ofsm_array array;
-    err = ofsm_builder_make_array(ob, poker_ofsm->delta, &array);
-    if (err != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(ob, %d, &array) failed with %d as error code.\n", poker_ofsm->delta, err);
-        free_ofsm_builder(ob);
-        return 1;
-    }
-
-    save_binary("test.bin", "OFSM Test", &array);
-
-    free(array.array);
-    free_ofsm_builder(ob);
-    return err;
-}
-
-static int check_test(void)
-{
-    return run_check_test();
-}
 
 
 static void usage(void)
@@ -252,22 +127,9 @@ static int parse_command_line(int argc, char * argv[])
 
 
 
-static int create_omaha_7(const struct poker_ofsm * const poker_ofsm)
-{
-    fprintf(stderr, "Not implemented create_omaha_7();\n");
-    return 1;
-}
-
-
-
-static int stub(void)
-{
-    return 0;
-}
-
 #define POKER_OFSM(arg_name, arg_signature, arg_delta, arg_create, arg_check) { \
     .name = arg_name, \
-    .filename = arg_name ".bin", \
+    .file_name = arg_name ".bin", \
     .signature =arg_signature, \
     .delta = arg_delta, \
     .create = arg_create, \
@@ -379,17 +241,16 @@ int main(int argc, char * argv[])
     if (opt_check) {
         for (int j=0; j<qcalls; ++j) {
             check_func call = call_list[j]->check;
-            int err = call();
-            if (err != 0) {
+            int status = call();
+            if (status != 0) {
                 exit_code = 1;
                 break;
             }
         }
     } else {
         for (int j=0; j<qcalls; ++j) {
-            create_func call = call_list[j]->create;
-            int err = call(call_list[j]);
-            if (err != 0) {
+            int status = create_ofsm(call_list[j]);
+            if (status != 0) {
                 exit_code = 1;
                 break;
             }
