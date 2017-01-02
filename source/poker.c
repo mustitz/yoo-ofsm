@@ -9,13 +9,14 @@
 
 const char * suite_str = "hdcs";
 
-typedef uint64_t eval_rank_f(const card_t * cards);
+typedef uint64_t eval_rank_f(void * user_data, const card_t * cards);
 
 struct test_suite
 {
     int is_opencl;
     int qcards_in_hand;
     int qcards_in_deck;
+    void * user_data;
     int strict_equivalence;
     eval_rank_f * eval_rank;
     eval_rank_f * eval_rank_robust;
@@ -257,52 +258,37 @@ void load_test_fsm(void)
 
 /* Debug hand rank calculations */
 
-#define NEW_WAY(p, n1, n2, n3, n4) \
-    { \
-        uint32_t current = p; \
-        current = six_plus_fsm5[current + cards[n1]]; \
-        current = six_plus_fsm5[current + cards[n2]]; \
-        current = six_plus_fsm5[current + cards[n3]]; \
-        current = six_plus_fsm5[current + cards[n4]]; \
-        if (current > result) result = current; \
-    }
-
-static inline unsigned int eval_rank7_via_fsm5_brutte(const card_t * cards)
+static inline unsigned int eval_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
 {
-
     uint32_t result = 0;
-    uint32_t start = 36;
 
-    uint32_t s0 = six_plus_fsm5[start + cards[0]];
-    uint32_t s1 = six_plus_fsm5[start + cards[1]];
-    uint32_t s2 = six_plus_fsm5[start + cards[2]];
+    card_t variant[5];
 
-    NEW_WAY(s0, 1, 2, 3, 4);
-    NEW_WAY(s0, 1, 2, 3, 5);
-    NEW_WAY(s0, 1, 2, 3, 6);
-    NEW_WAY(s0, 1, 2, 4, 5);
-    NEW_WAY(s0, 1, 2, 4, 6);
-    NEW_WAY(s0, 1, 2, 5, 6);
-    NEW_WAY(s0, 1, 3, 4, 5);
-    NEW_WAY(s0, 1, 3, 4, 6);
-    NEW_WAY(s0, 1, 3, 5, 6);
-    NEW_WAY(s0, 1, 4, 5, 6);
-    NEW_WAY(s0, 2, 3, 4, 5);
-    NEW_WAY(s0, 2, 3, 4, 6);
-    NEW_WAY(s0, 2, 3, 5, 6);
-    NEW_WAY(s0, 2, 4, 5, 6);
-    NEW_WAY(s0, 3, 4, 5, 6);
-    NEW_WAY(s1, 2, 3, 4, 5);
-    NEW_WAY(s1, 2, 3, 4, 6);
-    NEW_WAY(s1, 2, 3, 5, 6);
-    NEW_WAY(s1, 2, 4, 5, 6);
-    NEW_WAY(s1, 3, 4, 5, 6);
-    NEW_WAY(s2, 3, 4, 5, 6);
+    for (;; perm += 5) {
+        if (perm[0] == -1) {
+            return result;
+        }
 
-    return result;
+        for (int i=0; i<5; ++i) {
+            variant[i] = cards[perm[i]];
+        }
+
+        const uint32_t estimation = eval_six_plus_rank5_via_fsm5(variant);
+        if (estimation > result) {
+            result = estimation;
+        }
+    }
 }
 
-#undef NEW_WAY
+pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * cards)
+{
+    return eval_rank5_via_robust_for_deck36(cards);
+}
+
+pack_value_t eval_rank5_via_robust_for_deck52_as64(void * user_data, const card_t * cards)
+{
+    return eval_rank5_via_robust_for_deck52(cards);
+}
 
 
 
@@ -404,8 +390,15 @@ int run_create_six_plus_5(struct ofsm_builder * restrict ob)
     ;
 }
 
+struct permunation_7_from_5
+{
+    const int * perm;
+};
+
 pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * path)
 {
+    const struct permunation_7_from_5 * const arg = user_data;
+
     if (n != 7) {
         fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
         exit(1);
@@ -416,11 +409,46 @@ pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * p
         cards[i] = path[i];
     }
 
-    return eval_rank7_via_fsm5_brutte(cards);
+    return eval_rank7_via_fsm5_brutte(cards, arg->perm);
+}
+
+static int init_perm_7_from_5(int * restrict ptr)
+{
+    int result = 0;
+    unsigned int mask = 0x1F;
+    const unsigned int last = 1u << 7;
+    while (mask < last) {
+        unsigned int tmp = mask;
+        ptr[0] = extract_rbit32(&tmp);
+        ptr[1] = extract_rbit32(&tmp);
+        ptr[2] = extract_rbit32(&tmp);
+        ptr[3] = extract_rbit32(&tmp);
+        ptr[4] = extract_rbit32(&tmp);
+        ptr += 5;
+        mask = next_combination_mask(mask);
+        ++result;
+    }
+
+    ptr[0] = -1;
+    ptr[1] = -1;
+    ptr[2] = -1;
+    ptr[3] = -1;
+    ptr[4] = -1;
+    return result;
 }
 
 int run_create_six_plus_7(struct ofsm_builder * restrict ob)
 {
+    int perm[5*22];
+    int qpermutations = init_perm_7_from_5(perm);
+    if (qpermutations != 21) {
+        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
+        exit(1);
+    }
+
+    struct permunation_7_from_5 arg = { .perm = perm };
+    ob->user_data = &arg;
+
     load_six_plus_fsm5();
 
     return 0
@@ -461,6 +489,16 @@ uint64_t calc_six_plus_7_hash(void * user_data, const unsigned int qjumps, const
 
 int run_create_test(struct ofsm_builder * restrict ob)
 {
+    int perm[5*22];
+    int qpermutations = init_perm_7_from_5(perm);
+    if (qpermutations != 21) {
+        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
+        return 1;
+    }
+
+    struct permunation_7_from_5 arg = { .perm = perm };
+    ob->user_data = &arg;
+
     load_six_plus_fsm5();
 
     return 0
@@ -482,7 +520,7 @@ static int quick_test_for_eval_rank(const struct test_suite * const me, const in
 
     const card_t * current = hands;
     for (; *current != 0xFF; current += me->qcards_in_hand) {
-        const uint64_t rank = eval(current);
+        const uint64_t rank = eval(me->user_data, current);
         if (rank < prev_rank) {
             printf("[FAIL]\n");
             printf("  Wrong order!\n");
@@ -527,8 +565,8 @@ int test_equivalence(struct test_suite * restrict const me)
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
 
-        uint64_t rank1 = me->eval_rank(cards);
-        uint64_t rank2 = me->eval_rank_robust(cards);
+        uint64_t rank1 = me->eval_rank(me->user_data, cards);
+        uint64_t rank2 = me->eval_rank_robust(me->user_data, cards);
 
         if (rank1 <= 0 || rank1 > 9999) {
             printf("[FAIL]\n");
@@ -737,7 +775,7 @@ static inline int run_test(struct test_suite * restrict const me, const char * n
 
 
 
-static uint64_t eval_six_plus_rank5_via_fsm5_as64(const card_t * cards)
+static uint64_t eval_six_plus_rank5_via_fsm5_as64(void * user_data, const card_t * cards)
 {
     return eval_six_plus_rank5_via_fsm5(cards);
 }
@@ -844,7 +882,7 @@ int run_check_six_plus_5(void)
         .qcards_in_deck = 36,
         .strict_equivalence = 0,
         .eval_rank = eval_six_plus_rank5_via_fsm5_as64,
-        .eval_rank_robust = eval_rank5_via_robust_for_deck36,
+        .eval_rank_robust = eval_rank5_via_robust_for_deck36_as64,
         .fsm = six_plus_fsm5,
         .fsm_sz = six_plus_fsm5_sz,
         .hand_type_stats = hand_type_stats
@@ -882,14 +920,15 @@ int run_check_six_plus_5(void)
 
 
 
-static uint64_t eval_rank7_via_fsm7_as64(const card_t * cards)
+static uint64_t eval_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
 {
     return eval_six_plus_rank7_via_fsm7(cards);
 }
 
-static uint64_t eval_rank7_via_fsm5_brutte_as64(const card_t * cards)
+static uint64_t eval_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
 {
-    return eval_rank7_via_fsm5_brutte(cards);
+    const struct permunation_7_from_5 * const arg = user_data;
+    return eval_rank7_via_fsm5_brutte(cards, arg->perm);
 }
 
 static int quick_test_six_plus_eval_rank7_robust(struct test_suite * const me)
@@ -906,12 +945,22 @@ int run_check_six_plus_7(void)
 {
     printf("Six plus 7 tests:\n");
 
+    int perm[5*22];
+    int qpermutations = init_perm_7_from_5(perm);
+    if (qpermutations != 21) {
+        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
+        return 1;
+    }
+
+    struct permunation_7_from_5 arg = { .perm = perm };
+
     load_six_plus_fsm5();
     load_six_plus_fsm7();
 
     struct test_suite suite = {
         .qcards_in_hand = 7,
         .qcards_in_deck = 36,
+        .user_data = &arg,
         .strict_equivalence = 1,
         .eval_rank = eval_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
@@ -930,7 +979,7 @@ int run_check_six_plus_7(void)
 
 
 
-static uint64_t eval_texas_rank5_via_fsm5_as64(const card_t * cards)
+static uint64_t eval_texas_rank5_via_fsm5_as64(void * user_data, const card_t * cards)
 {
     return eval_texas_rank5_via_fsm5(cards);
 }
@@ -956,7 +1005,7 @@ int run_check_texas_5(void)
         .qcards_in_deck = 52,
         .strict_equivalence = 0,
         .eval_rank = eval_texas_rank5_via_fsm5_as64,
-        .eval_rank_robust = eval_rank5_via_robust_for_deck52,
+        .eval_rank_robust = eval_rank5_via_robust_for_deck52_as64,
         .fsm = texas_fsm5,
         .fsm_sz = texas_fsm5_sz
     };
@@ -971,29 +1020,59 @@ int run_check_texas_5(void)
 }
 
 
+
+
+
+
+static inline uint32_t eval_rank7_via_test_fsm(const card_t * cards)
+{
+    uint32_t current = 36;
+    current = test_fsm[current + cards[0]];
+    current = test_fsm[current + cards[1]];
+    current = test_fsm[current + cards[2]];
+    current = test_fsm[current + cards[3]];
+    current = test_fsm[current + cards[4]];
+    current = test_fsm[current + cards[5]];
+    current = test_fsm[current + cards[6]];
+    return current;
+}
+
+static pack_value_t eval_rank7_via_test_fsm_as64(void * data, const card_t * cards)
+{
+    return eval_rank7_via_test_fsm(cards);
+}
+
 int run_check_test(void)
 {
     printf("Test tests:\n");
 
+    int perm[5*22];
+    int qpermutations = init_perm_7_from_5(perm);
+    if (qpermutations != 21) {
+        fprintf(stderr, "Assertion failed: qpermutations = C(7,5) == %d != 21.\n", qpermutations);
+        return 1;
+    }
+
+    struct permunation_7_from_5 arg = { .perm = perm };
+
     load_six_plus_fsm5();
     load_test_fsm();
 
-/*
     struct test_suite suite = {
         .qcards_in_hand = 7,
         .qcards_in_deck = 36,
+        .user_data = &arg,
         .strict_equivalence = 1,
-        .eval_rank = eval_rank7_via_fsm7_as64,
+        .eval_rank = eval_rank7_via_test_fsm_as64,
         .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
         .fsm = six_plus_fsm7,
         .fsm_sz = six_plus_fsm7_sz
     };
 
-    RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
-    RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
+    // RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
+    // RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
     RUN_TEST(&suite, test_equivalence);
-    RUN_TEST(&suite, test_permutations);
-*/
+    // RUN_TEST(&suite, test_permutations);
 
     printf("All test tests are successfully passed.\n");
     return 0;

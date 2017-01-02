@@ -2324,6 +2324,8 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
 
 int ofsm_builder_verify(const struct ofsm_builder * const me)
 {
+    verbose(me->logstream, "START verification.");
+
     for (size_t i=me->ofsm_stack_first; i != me->ofsm_stack_last; i = (i+1) % OFSM_STACK_SZ) {
         const struct ofsm * const ofsm= me->ofsm_stack[i];
         int status = ofsm_verify(ofsm, me->errstream);
@@ -2332,5 +2334,6 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
         }
     }
 
+    verbose(me->logstream, "DONE verification.");
     return 0;
 }
