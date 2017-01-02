@@ -267,7 +267,7 @@ void load_test_fsm(void)
 
 /* Debug hand rank calculations */
 
-static inline unsigned int eval_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
+static inline unsigned int eval_six_plus_rank7_via_fsm5_brutte(const card_t * cards, const int * perm)
 {
     uint32_t result = 0;
 
@@ -440,7 +440,7 @@ pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * p
         cards[i] = path[i];
     }
 
-    return eval_rank7_via_fsm5_brutte(cards, arg->perm);
+    return eval_six_plus_rank7_via_fsm5_brutte(cards, arg->perm);
 }
 
 static int init_perm_7_from_5(int * restrict ptr)
@@ -952,15 +952,15 @@ int run_check_six_plus_5(void)
 
 
 
-static uint64_t eval_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
+static uint64_t eval_six_plus_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
 {
     return eval_six_plus_rank7_via_fsm7(cards);
 }
 
-static uint64_t eval_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
+static uint64_t eval_six_plus_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
 {
     const struct permunation_7_from_5 * const arg = user_data;
-    return eval_rank7_via_fsm5_brutte(cards, arg->perm);
+    return eval_six_plus_rank7_via_fsm5_brutte(cards, arg->perm);
 }
 
 static int quick_test_six_plus_eval_rank7_robust(struct test_data * const me)
@@ -1047,8 +1047,8 @@ int run_check_six_plus_7(void)
         .qcards_in_deck = 36,
         .user_data = &arg,
         .strict_equivalence = 1,
-        .eval_rank = eval_rank7_via_fsm7_as64,
-        .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
+        .eval_rank = eval_six_plus_rank7_via_fsm7_as64,
+        .eval_rank_robust = eval_six_plus_rank7_via_fsm5_brutte_as64,
         .fsm = six_plus_fsm7,
         .fsm_sz = six_plus_fsm7_sz,
         .hand_type_stats = hand_type_stats
@@ -1245,7 +1245,7 @@ pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * path
         cards[i] = path[i];
     }
 
-    return eval_rank7_via_fsm5_brutte(cards, arg->perm);
+    return eval_texas_rank7_via_fsm5_brutte(cards, arg->perm);
 }
 
 uint64_t calc_texas_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
@@ -1321,7 +1321,7 @@ int run_check_texas_7(void)
         .user_data = &arg,
         .strict_equivalence = 1,
         .eval_rank = eval_texas_rank7_via_fsm7_as64,
-        .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
+        .eval_rank_robust = eval_texas_rank7_via_fsm5_brutte_as64,
         .fsm = six_plus_fsm7,
         .fsm_sz = six_plus_fsm7_sz,
         .hand_type_stats = hand_type_stats
@@ -1360,7 +1360,7 @@ int run_check_texas_7(void)
 }
 
 
-static inline uint32_t eval_rank7_via_test_fsm(const card_t * cards)
+static inline uint32_t eval_test_rank7_via_test_fsm(const card_t * cards)
 {
     uint32_t current = 36;
     current = test_fsm[current + cards[0]];
@@ -1373,9 +1373,9 @@ static inline uint32_t eval_rank7_via_test_fsm(const card_t * cards)
     return current;
 }
 
-static pack_value_t eval_rank7_via_test_fsm_as64(void * data, const card_t * cards)
+static pack_value_t eval_test_rank7_via_test_fsm_as64(void * data, const card_t * cards)
 {
-    return eval_rank7_via_test_fsm(cards);
+    return eval_test_rank7_via_test_fsm(cards);
 }
 
 int run_check_test(void)
@@ -1399,8 +1399,8 @@ int run_check_test(void)
         .qcards_in_deck = 36,
         .user_data = &arg,
         .strict_equivalence = 1,
-        .eval_rank = eval_rank7_via_test_fsm_as64,
-        .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
+        .eval_rank = eval_test_rank7_via_test_fsm_as64,
+        .eval_rank_robust = eval_six_plus_rank7_via_fsm5_brutte_as64,
         .fsm = test_fsm,
         .fsm_sz = test_fsm_sz
     };
