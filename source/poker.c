@@ -141,6 +141,8 @@ static inline void gen_perm(const int n, card_t * restrict const dest, const car
     }
 }
 
+
+
 /* Load OFSMs */
 
 static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes, uint64_t * fsm_sz)
@@ -437,6 +439,11 @@ static int init_perm_7_from_5(int * restrict ptr)
     return result;
 }
 
+uint64_t calc_six_plus_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 7);
+}
+
 int run_create_six_plus_7(struct ofsm_builder * restrict ob)
 {
     int perm[5*22];
@@ -454,6 +461,7 @@ int run_create_six_plus_7(struct ofsm_builder * restrict ob)
     return 0
         || ofsm_builder_push_comb(ob, 36, 7)
         || ofsm_builder_pack(ob, calc_six_plus_7, PACK_FLAG__SKIP_RENUMERING)
+        || ofsm_builder_optimize(ob, 7, 1, calc_six_plus_7_hash)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
 }
@@ -480,11 +488,6 @@ int run_create_texas_5(struct ofsm_builder * restrict ob)
         || ofsm_builder_pack(ob, calc_texas_5, 0)
         || ofsm_builder_optimize(ob, 5, 0, NULL)
     ;
-}
-
-uint64_t calc_six_plus_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
-{
-    return forget_suites(path_len, path, 7);
 }
 
 int run_create_test(struct ofsm_builder * restrict ob)
@@ -941,6 +944,56 @@ static int quick_test_six_plus_eval_rank7(struct test_suite * const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_deck36);
 }
 
+static int test_fsm7_six_plus_stat(struct test_suite * const me)
+{
+    static const int qrank = 1404;
+
+    int stats[qrank+1];
+    memset(stats, 0, sizeof(stats));
+
+    static const int hand_qtypes[9] = { 6, 72, 120, 72, 252, 6, 252, 504, 120 };
+    int hand_limits[9];
+    hand_limits[8] = 1;
+    for (int i=7; i>=0; --i) {
+        hand_limits[i] = hand_limits[i+1] + hand_qtypes[i+1];
+    }
+
+    if (hand_qtypes[0] + hand_limits[0] != qrank + 1) {
+        printf("[FAIL]\n");
+        printf("Error during hand_limit calculation: hand_qtypes[0] + hand_limits[0] != qrank + 1, %d + %d != %d + 1\n", hand_qtypes[0], hand_limits[0], qrank);
+        return 1;
+    }
+
+    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    const uint64_t last = 1ull << me->qcards_in_deck;
+    while (mask < last) {
+        card_t cards[me->qcards_in_hand];
+        mask_to_cards(me->qcards_in_hand, mask, cards);
+        uint32_t rank = me->eval_rank(NULL, cards);
+        if (rank < 0 || rank > qrank) {
+            printf("[FAIL]\n");
+            printf("Invalid rank = %u for hand:", rank);
+            print_hand(me, cards);
+            printf("\n");
+            return 1;
+        }
+
+        ++stats[rank];
+        mask = next_combination_mask(mask);
+    }
+
+    int * restrict hand_type_stats = me->hand_type_stats;
+
+    for (int i=0; i<9; ++i) {
+        hand_type_stats[i] = 0;
+        for (int j=hand_limits[i]; j<hand_limits[i] + hand_qtypes[i]; ++j) {
+            hand_type_stats[i] += stats[j];
+        }
+    }
+
+    return 0;
+}
+
 int run_check_six_plus_7(void)
 {
     printf("Six plus 7 tests:\n");
@@ -957,6 +1010,9 @@ int run_check_six_plus_7(void)
     load_six_plus_fsm5();
     load_six_plus_fsm7();
 
+    int hand_type_stats[9];
+    memset(hand_type_stats, 0, sizeof(hand_type_stats));
+
     struct test_suite suite = {
         .qcards_in_hand = 7,
         .qcards_in_deck = 36,
@@ -965,13 +1021,35 @@ int run_check_six_plus_7(void)
         .eval_rank = eval_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
         .fsm = six_plus_fsm7,
-        .fsm_sz = six_plus_fsm7_sz
+        .fsm_sz = six_plus_fsm7_sz,
+        .hand_type_stats = hand_type_stats
     };
 
     RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
     RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
     RUN_TEST(&suite, test_equivalence);
     RUN_TEST(&suite, test_permutations);
+    RUN_TEST(&suite, test_fsm7_six_plus_stat);
+
+    size_t total = 0;
+    for (int i=0; i<9; ++i) {
+        total += hand_type_stats[i];
+    }
+
+    if (total > 0) {
+        printf("  Stats:\n");
+        printf("    Straight-flush   %8d  %4.1f%%\n", hand_type_stats[0], 100.0 * hand_type_stats[0] / total);
+        printf("    Four of a kind   %8d  %4.1f%%\n", hand_type_stats[1], 100.0 * hand_type_stats[1] / total);
+        printf("    Flush            %8d  %4.1f%%\n", hand_type_stats[2], 100.0 * hand_type_stats[2] / total);
+        printf("    Full house       %8d  %4.1f%%\n", hand_type_stats[3], 100.0 * hand_type_stats[3] / total);
+        printf("    Three of a kind  %8d  %4.1f%%\n", hand_type_stats[4], 100.0 * hand_type_stats[4] / total);
+        printf("    Straight         %8d  %4.1f%%\n", hand_type_stats[5], 100.0 * hand_type_stats[5] / total);
+        printf("    Two pair         %8d  %4.1f%%\n", hand_type_stats[6], 100.0 * hand_type_stats[6] / total);
+        printf("    One pair         %8d  %4.1f%%\n", hand_type_stats[7], 100.0 * hand_type_stats[7] / total);
+        printf("    High card        %8d  %4.1f%%\n", hand_type_stats[8], 100.0 * hand_type_stats[8] / total);
+        printf("   ----------------------------------\n");
+        printf("    Total            %8lu 100.0%%\n", total);
+    }
 
     printf("All six plus 7 tests are successfully passed.\n");
     return 0;
