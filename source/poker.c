@@ -1176,7 +1176,27 @@ int run_check_texas_5(void)
     RUN_TEST(&suite, test_permutations);
     RUN_TEST(&suite, test_fsm5_texas_stat);
 
-    printf("All six plus 5 tests are successfully passed.\n");
+    size_t total = 0;
+    for (int i=0; i<9; ++i) {
+        total += hand_type_stats[i];
+    }
+
+    if (total > 0) {
+        printf("  Stats:\n");
+        printf("    Straight-flush   %8d  %4.1f%%\n", hand_type_stats[0], 100.0 * hand_type_stats[0] / total);
+        printf("    Four of a kind   %8d  %4.1f%%\n", hand_type_stats[1], 100.0 * hand_type_stats[1] / total);
+        printf("    Full house       %8d  %4.1f%%\n", hand_type_stats[2], 100.0 * hand_type_stats[3] / total);
+        printf("    Flush            %8d  %4.1f%%\n", hand_type_stats[3], 100.0 * hand_type_stats[2] / total);
+        printf("    Straight         %8d  %4.1f%%\n", hand_type_stats[4], 100.0 * hand_type_stats[5] / total);
+        printf("    Three of a kind  %8d  %4.1f%%\n", hand_type_stats[5], 100.0 * hand_type_stats[4] / total);
+        printf("    Two pair         %8d  %4.1f%%\n", hand_type_stats[6], 100.0 * hand_type_stats[6] / total);
+        printf("    One pair         %8d  %4.1f%%\n", hand_type_stats[7], 100.0 * hand_type_stats[7] / total);
+        printf("    High card        %8d  %4.1f%%\n", hand_type_stats[8], 100.0 * hand_type_stats[8] / total);
+        printf("   ----------------------------------\n");
+        printf("    Total            %8lu 100.0%%\n", total);
+    }
+
+    printf("All texas 5 tests are successfully passed.\n");
     return 0;
 }
 
