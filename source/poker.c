@@ -1296,6 +1296,56 @@ static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(void * user_data, const ca
     return eval_texas_rank7_via_fsm5_brutte(cards, arg->perm);
 }
 
+static int test_fsm7_texas_stat(struct test_data * const me)
+{
+    static const int qrank = 7462;
+
+    int stats[qrank+1];
+    memset(stats, 0, sizeof(stats));
+
+    static const int hand_qtypes[9] = { 10, 156, 156, 1277, 10, 858, 858, 2860, 1277 };
+    int hand_limits[9];
+    hand_limits[8] = 1;
+    for (int i=7; i>=0; --i) {
+        hand_limits[i] = hand_limits[i+1] + hand_qtypes[i+1];
+    }
+
+    if (hand_qtypes[0] + hand_limits[0] != qrank + 1) {
+        printf("[FAIL]\n");
+        printf("Error during hand_limit calculation: hand_qtypes[0] + hand_limits[0] != qrank + 1, %d + %d != %d + 1\n", hand_qtypes[0], hand_limits[0], qrank);
+        return 1;
+    }
+
+    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    const uint64_t last = 1ull << me->qcards_in_deck;
+    while (mask < last) {
+        card_t cards[me->qcards_in_hand];
+        mask_to_cards(me->qcards_in_hand, mask, cards);
+        uint32_t rank = me->eval_rank(NULL, cards);
+        if (rank < 0 || rank > qrank) {
+            printf("[FAIL]\n");
+            printf("Invalid rank = %u for hand:", rank);
+            print_hand(me, cards);
+            printf("\n");
+            return 1;
+        }
+
+        ++stats[rank];
+        mask = next_combination_mask(mask);
+    }
+
+    int * restrict hand_type_stats = me->hand_type_stats;
+
+    for (int i=0; i<9; ++i) {
+        hand_type_stats[i] = 0;
+        for (int j=hand_limits[i]; j<hand_limits[i] + hand_qtypes[i]; ++j) {
+            hand_type_stats[i] += stats[j];
+        }
+    }
+
+    return 0;
+}
+
 int run_check_texas_7(void)
 {
     printf("Six plus 7 tests:\n");
@@ -1331,9 +1381,8 @@ int run_check_texas_7(void)
     RUN_TEST(&suite, quick_test_texas_eval_rank7);
     RUN_TEST(&suite, test_equivalence);
     RUN_TEST(&suite, test_permutations);
-    // RUN_TEST(&suite, test_fsm7_six_plus_stat);
+    RUN_TEST(&suite, test_fsm7_texas_stat);
 
-/*
     size_t total = 0;
     for (int i=0; i<9; ++i) {
         total += hand_type_stats[i];
@@ -1343,10 +1392,10 @@ int run_check_texas_7(void)
         printf("  Stats:\n");
         printf("    Straight-flush   %8d  %4.1f%%\n", hand_type_stats[0], 100.0 * hand_type_stats[0] / total);
         printf("    Four of a kind   %8d  %4.1f%%\n", hand_type_stats[1], 100.0 * hand_type_stats[1] / total);
-        printf("    Flush            %8d  %4.1f%%\n", hand_type_stats[2], 100.0 * hand_type_stats[2] / total);
-        printf("    Full house       %8d  %4.1f%%\n", hand_type_stats[3], 100.0 * hand_type_stats[3] / total);
-        printf("    Three of a kind  %8d  %4.1f%%\n", hand_type_stats[4], 100.0 * hand_type_stats[4] / total);
-        printf("    Straight         %8d  %4.1f%%\n", hand_type_stats[5], 100.0 * hand_type_stats[5] / total);
+        printf("    Full house       %8d  %4.1f%%\n", hand_type_stats[2], 100.0 * hand_type_stats[3] / total);
+        printf("    Flush            %8d  %4.1f%%\n", hand_type_stats[3], 100.0 * hand_type_stats[2] / total);
+        printf("    Straight         %8d  %4.1f%%\n", hand_type_stats[4], 100.0 * hand_type_stats[5] / total);
+        printf("    Three of a kind  %8d  %4.1f%%\n", hand_type_stats[5], 100.0 * hand_type_stats[4] / total);
         printf("    Two pair         %8d  %4.1f%%\n", hand_type_stats[6], 100.0 * hand_type_stats[6] / total);
         printf("    One pair         %8d  %4.1f%%\n", hand_type_stats[7], 100.0 * hand_type_stats[7] / total);
         printf("    High card        %8d  %4.1f%%\n", hand_type_stats[8], 100.0 * hand_type_stats[8] / total);
@@ -1354,8 +1403,8 @@ int run_check_texas_7(void)
         printf("    Total            %8lu 100.0%%\n", total);
     }
 
-    printf("All six plus 7 tests are successfully passed.\n");
-*/
+    printf("All texas 7 tests are successfully passed.\n");
+
     return 0;
 }
 
