@@ -1065,14 +1065,14 @@ int run_check_test(void)
         .strict_equivalence = 1,
         .eval_rank = eval_rank7_via_test_fsm_as64,
         .eval_rank_robust = eval_rank7_via_fsm5_brutte_as64,
-        .fsm = six_plus_fsm7,
-        .fsm_sz = six_plus_fsm7_sz
+        .fsm = test_fsm,
+        .fsm_sz = test_fsm_sz
     };
 
-    // RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
-    // RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
+    RUN_TEST(&suite, quick_test_six_plus_eval_rank7_robust);
+    RUN_TEST(&suite, quick_test_six_plus_eval_rank7);
     RUN_TEST(&suite, test_equivalence);
-    // RUN_TEST(&suite, test_permutations);
+    RUN_TEST(&suite, test_permutations);
 
     printf("All test tests are successfully passed.\n");
     return 0;
