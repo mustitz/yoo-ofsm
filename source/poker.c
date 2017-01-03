@@ -121,7 +121,6 @@ struct test_data
     const struct game_data * game;
     int is_opencl;
     int qcards_in_hand;
-    int qcards_in_deck;
     void * user_data;
     int strict_equivalence;
     user_eval_rank_f * eval_rank;
@@ -528,7 +527,7 @@ static inline void mask_to_cards(const int n, uint64_t mask, card_t * restrict c
 static inline void print_hand(const struct test_data * const me, const card_t * const cards)
 {
     const char * const * card_str = NULL;
-    switch (me->qcards_in_deck) {
+    switch (me->game->qcards_in_deck) {
         case 36:
             card_str = card36_str;
             break;
@@ -536,7 +535,7 @@ static inline void print_hand(const struct test_data * const me, const card_t * 
             card_str = card52_str;
             break;
         default:
-            printf(" ??? unsupported qcards_in_deck = %d ???", me->qcards_in_deck);
+            printf(" ??? unsupported qcards_in_deck = %d ???", me->game->qcards_in_deck);
             return;
     }
 
@@ -567,7 +566,7 @@ static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t 
 
 static inline uint32_t test_eval_rank_via_fms(const struct test_data * const me, const card_t * cards)
 {
-    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->qcards_in_deck);
+    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->game->qcards_in_deck);
 }
 
 pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * cards)
@@ -631,7 +630,7 @@ int test_equivalence(struct test_data * restrict const me)
     memset(saved, 0, sizeof(saved));
 
     uint64_t mask = (1ull << me->qcards_in_hand) - 1;
-    uint64_t last = 1ull << me->qcards_in_deck;
+    uint64_t last = 1ull << me->game->qcards_in_deck;
 
     for (; mask < last; mask = next_combination_mask(mask)) {
         card_t cards[me->qcards_in_hand];
@@ -708,7 +707,7 @@ int test_permutations(struct test_data * restrict const me)
     }
 
     uint64_t mask = (1ull << me->qcards_in_hand) - 1;
-    const uint64_t last = 1ull << me->qcards_in_deck;
+    const uint64_t last = 1ull << me->game->qcards_in_deck;
 
     if (opt_opencl) {
         me->is_opencl = 1;
@@ -720,7 +719,7 @@ int test_permutations(struct test_data * restrict const me)
             packed_permutation_table[i] = permutation_table[i];
         }
 
-        const size_t qdata = calc_choose(me->qcards_in_deck, me->qcards_in_hand);
+        const size_t qdata = calc_choose(me->game->qcards_in_deck, me->qcards_in_hand);
         const size_t data_sz = qdata * sizeof(uint64_t);
         uint64_t * data = malloc(data_sz);
         if (data == NULL) {
@@ -752,7 +751,7 @@ int test_permutations(struct test_data * restrict const me)
         }
 
         int result = opencl__test_permutations(
-            me->qcards_in_hand, me->qcards_in_deck, qdata,
+            me->qcards_in_hand, me->game->qcards_in_deck, qdata,
             packed_permutation_table, packed_permutation_table_sz,
             me->fsm, me->fsm_sz,
             data, data_sz,
@@ -883,7 +882,7 @@ static int test_six_plus_stat(struct test_data * const me)
     }
 
     uint64_t mask = (1ull << me->qcards_in_hand) - 1;
-    const uint64_t last = 1ull << me->qcards_in_deck;
+    const uint64_t last = 1ull << me->game->qcards_in_deck;
     while (mask < last) {
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
@@ -952,7 +951,6 @@ int run_check_six_plus_5(void)
     struct test_data suite = {
         .game = &six_plus_holdem,
         .qcards_in_hand = 5,
-        .qcards_in_deck = 36,
         .strict_equivalence = 0,
         .eval_rank = eval_six_plus_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck36_as64,
@@ -1034,7 +1032,7 @@ static int test_fsm7_six_plus_stat(struct test_data * const me)
     }
 
     uint64_t mask = (1ull << me->qcards_in_hand) - 1;
-    const uint64_t last = 1ull << me->qcards_in_deck;
+    const uint64_t last = 1ull << me->game->qcards_in_deck;
     while (mask < last) {
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
@@ -1077,7 +1075,6 @@ int run_check_six_plus_7(void)
     struct test_data suite = {
         .game = &six_plus_holdem,
         .qcards_in_hand = 7,
-        .qcards_in_deck = 36,
         .user_data = NULL,
         .strict_equivalence = 1,
         .eval_rank = eval_six_plus_rank7_via_fsm7_as64,
@@ -1155,7 +1152,7 @@ static int test_fsm5_texas_stat(struct test_data * const me)
     }
 
     uint64_t mask = (1ull << me->qcards_in_hand) - 1;
-    const uint64_t last = 1ull << me->qcards_in_deck;
+    const uint64_t last = 1ull << me->game->qcards_in_deck;
     while (mask < last) {
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
@@ -1224,7 +1221,6 @@ int run_check_texas_5(void)
     struct test_data suite = {
         .game = &texas_holdem,
         .qcards_in_hand = 5,
-        .qcards_in_deck = 52,
         .strict_equivalence = 0,
         .eval_rank = eval_texas_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck52_as64,
@@ -1307,7 +1303,7 @@ static int test_fsm7_texas_stat(struct test_data * const me)
     }
 
     uint64_t mask = (1ull << me->qcards_in_hand) - 1;
-    const uint64_t last = 1ull << me->qcards_in_deck;
+    const uint64_t last = 1ull << me->game->qcards_in_deck;
     while (mask < last) {
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
@@ -1350,7 +1346,6 @@ int run_check_texas_7(void)
     struct test_data suite = {
         .game = &texas_holdem,
         .qcards_in_hand = 7,
-        .qcards_in_deck = 52,
         .user_data = NULL,
         .strict_equivalence = 1,
         .eval_rank = eval_texas_rank7_via_fsm7_as64,
