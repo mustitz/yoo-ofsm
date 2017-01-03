@@ -118,6 +118,7 @@ struct game_data texas_holdem = {
 
 struct test_data
 {
+    const struct game_data * game;
     int is_opencl;
     int qcards_in_hand;
     int qcards_in_deck;
@@ -949,6 +950,7 @@ int run_check_six_plus_5(void)
     memset(hand_type_stats, 0, sizeof(hand_type_stats));
 
     struct test_data suite = {
+        .game = &six_plus_holdem,
         .qcards_in_hand = 5,
         .qcards_in_deck = 36,
         .strict_equivalence = 0,
@@ -1073,6 +1075,7 @@ int run_check_six_plus_7(void)
     memset(hand_type_stats, 0, sizeof(hand_type_stats));
 
     struct test_data suite = {
+        .game = &six_plus_holdem,
         .qcards_in_hand = 7,
         .qcards_in_deck = 36,
         .user_data = NULL,
@@ -1219,6 +1222,7 @@ int run_check_texas_5(void)
     memset(hand_type_stats, 0, sizeof(hand_type_stats));
 
     struct test_data suite = {
+        .game = &texas_holdem,
         .qcards_in_hand = 5,
         .qcards_in_deck = 52,
         .strict_equivalence = 0,
@@ -1344,6 +1348,7 @@ int run_check_texas_7(void)
     memset(hand_type_stats, 0, sizeof(hand_type_stats));
 
     struct test_data suite = {
+        .game = &texas_holdem,
         .qcards_in_hand = 7,
         .qcards_in_deck = 52,
         .user_data = NULL,
