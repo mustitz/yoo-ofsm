@@ -87,13 +87,6 @@ struct game_data
     int qhand_categories[9];
     int expected_stat5[9];
     const char * hand_category_names[9];
-    eval_rank_robust_f * eval_robust5;
-    eval_rank_f * eval_fsm5;
-    eval_rank_f * eval_fsm7;
-    const uint32_t * const * fsm5_ptr;
-    const uint32_t * const * fsm7_ptr;
-    const uint64_t * fsm5_sz_ptr;
-    const uint64_t * fsm7_sz_ptr;
 };
 
 struct game_data six_plus_holdem = {
@@ -103,13 +96,6 @@ struct game_data six_plus_holdem = {
     .qhand_categories = { 6, 72, 120, 72, 252, 6, 252, 504, 120 },
     .expected_stat5 = { 24, 288, 480, 1728, 16128, 6120, 36288, 193536, 122400 },
     .hand_category_names = { "Straight-flush", "Four of a kind", "Flush", "Full house", "Three of a kind", "Straight", "Two pair", "One pair", "High card" },
-    .eval_robust5 = eval_rank5_via_robust_for_deck36,
-    .eval_fsm5 = eval_six_plus_rank5_via_fsm5,
-    .eval_fsm5 = eval_six_plus_rank7_via_fsm7,
-    .fsm5_ptr = &six_plus_fsm5,
-    .fsm7_ptr = &six_plus_fsm7,
-    .fsm5_sz_ptr = &six_plus_fsm5_sz,
-    .fsm7_sz_ptr = &six_plus_fsm7_sz,
 };
 
 struct game_data texas_holdem = {
@@ -119,13 +105,6 @@ struct game_data texas_holdem = {
     .qhand_categories = { 10, 156, 156, 1277, 10, 858, 858, 2860, 1277 },
     .expected_stat5 = { 40, 624, 3744, 5108, 10200, 54912, 123552, 1098240, 1302540 },
     .hand_category_names = { "Straight-flush", "Four of a kind", "Full house", "Flush", "Straight", "Three of a kind", "Two pair", "One pair", "High card" },
-    .eval_robust5 = eval_rank5_via_robust_for_deck52,
-    .eval_fsm5 = eval_texas_rank5_via_fsm5,
-    .eval_fsm7 = eval_texas_rank7_via_fsm7,
-    .fsm5_ptr = &texas_fsm5,
-    .fsm7_ptr = &texas_fsm7,
-    .fsm5_sz_ptr = &texas_fsm5_sz,
-    .fsm7_sz_ptr = &texas_fsm7_sz,
 };
 
 struct test_data
@@ -1018,6 +997,8 @@ int run_check_six_plus_5(void)
 
 
 
+/* Six Plus fsm7 tests */
+
 static uint64_t eval_six_plus_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
 {
     return eval_six_plus_rank7_via_fsm7(cards);
@@ -1074,6 +1055,8 @@ int run_check_six_plus_7(void)
 
 
 
+/* Texas fsm5 tests */
+
 static uint64_t eval_texas_rank5_via_fsm5_as64(void * user_data, const card_t * cards)
 {
     return eval_texas_rank5_via_fsm5(cards);
@@ -1121,6 +1104,8 @@ int run_check_texas_5(void)
 }
 
 
+
+/* Texas fsm7 tests */
 
 static int quick_test_texas_eval_rank7_robust(struct test_data * restrict const me)
 {
