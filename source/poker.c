@@ -555,7 +555,7 @@ static inline void gen_perm(const int n, card_t * restrict const dest, const car
 
 /* Debug hand rank calculations */
 
-static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
+static inline uint32_t eval_rank_via_fsm(const int qcards_in_hand, const card_t * cards, const uint32_t * const fsm, const uint32_t qcards_in_deck)
 {
     uint32_t current = qcards_in_deck;
     for (int i=0; i<qcards_in_hand; ++i) {
@@ -564,9 +564,9 @@ static inline uint32_t eval_rank_via_fms(const int qcards_in_hand, const card_t 
     return current;
 }
 
-static inline uint32_t test_eval_rank_via_fms(const struct test_data * const me, const card_t * cards)
+static inline uint32_t test_data_eval_rank_via_fsm(const struct test_data * const me, const card_t * cards)
 {
-    return eval_rank_via_fms(me->qcards_in_hand, cards, me->fsm, me->game->qcards_in_deck);
+    return eval_rank_via_fsm(me->qcards_in_hand, cards, me->fsm, me->game->qcards_in_deck);
 }
 
 pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * cards)
@@ -768,7 +768,7 @@ int test_permutations(struct test_data * restrict const me)
 
                     card_t cards[me->qcards_in_hand];
                     mask_to_cards(me->qcards_in_hand, data[i], cards);
-                    uint32_t r = test_eval_rank_via_fms(me, cards);
+                    uint32_t r = test_data_eval_rank_via_fsm(me, cards);
                     printf("  Base Hand:");
                     print_hand(me, cards);
                     printf(" has rank %u\n", r);
@@ -788,13 +788,13 @@ int test_permutations(struct test_data * restrict const me)
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
 
-        uint32_t rank = test_eval_rank_via_fms(me, cards);
+        uint32_t rank = test_data_eval_rank_via_fsm(me, cards);
 
         for (int i=0; i<qpermutations; ++i) {
             const int * perm = permutation_table + me->qcards_in_hand * i;
             card_t c[me->qcards_in_hand];
             gen_perm(me->qcards_in_hand, c, cards, perm);
-            uint32_t r = test_eval_rank_via_fms(me, cards);
+            uint32_t r = test_data_eval_rank_via_fsm(me, cards);
 
             if (r != rank) {
                 printf("[FAIL]\n");
