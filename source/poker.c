@@ -336,6 +336,48 @@ static void gen_perm_5_from_7(void)
     }
 }
 
+static void gen_omaha_perm_5_from_7(void)
+{
+    if (omaha_perm_5_from_7 != NULL) {
+        return;
+    }
+
+    size_t sz = 5 * 11 * sizeof(int);
+    int * restrict ptr = global_malloc(sz);
+    if (ptr == NULL) {
+        fprintf(stderr, "Error: allocation error, malloc(%lu) failed with a NULL as a result.\n", sz);
+        abort();
+    }
+
+    omaha_perm_5_from_7 = ptr;
+
+    int qpermutations = 0;
+    unsigned int mask = 0x07;
+    const unsigned int last = 1u << 5;
+    while (mask < last) {
+        unsigned int tmp = mask;
+        ptr[0] = extract_rbit32(&tmp);
+        ptr[1] = extract_rbit32(&tmp);
+        ptr[2] = extract_rbit32(&tmp);
+        ptr[4] = 5;
+        ptr[5] = 6;
+        ptr += 5;
+        mask = next_combination_mask(mask);
+        ++qpermutations;
+    }
+
+    ptr[0] = -1;
+    ptr[1] = -1;
+    ptr[2] = -1;
+    ptr[3] = -1;
+    ptr[4] = -1;
+
+    if (qpermutations != 10) {
+        fprintf(stderr, "Assertion failed, qpermutations = C(5,3) == %d != 10.\n", qpermutations);
+        abort();
+    }
+}
+
 static inline void input_to_cards(unsigned int n, const input_t * const input, card_t * restrict const cards)
 {
     for (size_t i=0; i<n; ++i) {
@@ -530,6 +572,9 @@ pack_value_t calc_omaha_7(void * user_data, unsigned int n, const input_t * inpu
 
 int create_omaha_7(struct ofsm_builder * restrict ob)
 {
+    gen_omaha_perm_5_from_7();
+    load_texas_fsm5();
+
     return 0
         || ofsm_builder_push_comb(ob, 52, 5)
         || ofsm_builder_pack(ob, calc_omaha_7_flake_5_pack, 0)
