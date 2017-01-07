@@ -1437,8 +1437,7 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     }
     result->logstream = NULL;
     result->errstream = errstream;
-    result->ofsm_stack_first = 0;
-    result->ofsm_stack_last = 0;
+    result->stack_len = 0;
     result->user_data = NULL;
     init_choose_table(&result->choose, 0, 0, errstream);
     return result;
@@ -1448,8 +1447,8 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
 {
     clear_choose_table(&me->choose);
 
-    for (size_t i=me->ofsm_stack_first; i != me->ofsm_stack_last; i = (i+1) % OFSM_STACK_SZ) {
-        free_ofsm(me->ofsm_stack[i]);
+    for (unsigned int i = 0; i < me->stack_len; ++i) {
+        free_ofsm(me->stack[i]);
     }
 
     if (me->flags & OBF__OWN_MEMPOOL) {
@@ -1459,13 +1458,13 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
 
 struct ofsm * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 {
-    if (me->ofsm_stack_first == me->ofsm_stack_last) {
+    if (me->stack_len == 0) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_get_ofsm is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        msg(me->errstream, "ofsm_builder_get_ofsm is called for empty OFSM stack.");
         return NULL;
     }
 
-    return me->ofsm_stack[me->ofsm_stack_first];
+    return me->stack[me->stack_len - 1];
 }
 
 const void * ofsm_builder_get_ofsm_as_void(const struct ofsm_builder * me)
@@ -1492,11 +1491,9 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
     int errcode;
     verbose(me->logstream, "START push power OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
 
-    const size_t last = me->ofsm_stack_last;
-    const size_t next = (last + 1) % OFSM_STACK_SZ;
-    if (next == me->ofsm_stack_first) {
+    if (me->stack_len == OFSM_STACK_SZ) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_push_pow failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
+        msg(me->errstream, "ofsm_builder_push_pow failed, stack overflow, stack_len = %u, size_sz = %u.", me->stack_len, OFSM_STACK_SZ);
         verbose(me->logstream, "FAILED push power.");
         return 1;
     }
@@ -1554,8 +1551,7 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
         prev = flake;
     }
 
-    me->ofsm_stack[last] = ofsm;
-    me->ofsm_stack_last = next;
+    me->stack[me->stack_len++] = ofsm;
     verbose(me->logstream, "DONE push power.");
     return autoverify(me);
 }
@@ -1567,11 +1563,9 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
     int errcode;
     verbose(me->logstream, "START push compinatoric OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
 
-    const size_t last = me->ofsm_stack_last;
-    const size_t next = (last + 1) % OFSM_STACK_SZ;
-    if (next == me->ofsm_stack_first) {
+    if (me->stack_len == OFSM_STACK_SZ) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_push_comb failed, stack overflow, stack_first = %lu, stack_last = %lu, size_sz = %lu.", me->ofsm_stack_first, me->ofsm_stack_last, (size_t)OFSM_STACK_SZ);
+        msg(me->errstream, "ofsm_builder_push_comb failed, stack overflow, stack_len = %u, size_sz = %u.", me->stack_len, OFSM_STACK_SZ);
         verbose(me->logstream, "FAILED push combinatoric.");
         return 1;
     }
@@ -1661,8 +1655,7 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
         ++dd;
     }
 
-    me->ofsm_stack[last] = ofsm;
-    me->ofsm_stack_last = next;
+    me->stack[me->stack_len++] = ofsm;
     verbose(me->logstream, "DONE push combinatoric.");
     return autoverify(me);
 }
@@ -1673,27 +1666,15 @@ int ofsm_builder_product(struct ofsm_builder * restrict me)
 {
     verbose(me->logstream, "START product.");
 
-    size_t idx = me->ofsm_stack_first;
-
-    if (idx == me->ofsm_stack_last) {
+    if (me->stack_len < 2) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_product(me) is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        msg(me->errstream, "ofsm_builder_product(me) is called for too small OFSM stack, stack_len = %u.", me->stack_len);
         verbose(me->logstream, "FAILED product.");
         return 1;
     }
 
-    struct ofsm * restrict ofsm1 = me->ofsm_stack[idx];
-
-    idx = (idx + 1) % OFSM_STACK_SZ;
-
-    if (idx == me->ofsm_stack_last) {
-        ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_product(me) is called for OFSM stack with one element, but at least two is required, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
-        verbose(me->logstream, "FAILED product.");
-        return 1;
-    }
-
-    struct ofsm * restrict ofsm2 = me->ofsm_stack[idx];
+    struct ofsm * restrict ofsm1 = me->stack[me->stack_len - 2];
+    struct ofsm * restrict ofsm2 = me->stack[me->stack_len - 1];
 
     unsigned int saved_qflakes1 = ofsm1->qflakes;
     const struct flake * const last1 = ofsm1->flakes + saved_qflakes1 - 1;
@@ -1745,9 +1726,7 @@ int ofsm_builder_product(struct ofsm_builder * restrict me)
     }
 
     free_ofsm(ofsm2);
-    me->ofsm_stack_first = (me->ofsm_stack_first + 1) % OFSM_STACK_SZ;
-    me->ofsm_stack[me->ofsm_stack_first] = ofsm1;
-
+    --me->stack_len;
 
     verbose(me->logstream, "DONE product.");
     return autoverify(me);
@@ -2320,8 +2299,8 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
 {
     verbose(me->logstream, "START verification.");
 
-    for (size_t i=me->ofsm_stack_first; i != me->ofsm_stack_last; i = (i+1) % OFSM_STACK_SZ) {
-        const struct ofsm * const ofsm= me->ofsm_stack[i];
+    for (size_t i=0; i < me->stack_len; ++i) {
+        const struct ofsm * const ofsm= me->stack[i];
         int status = ofsm_verify(ofsm, me->errstream);
         if (status != 0) {
             return status;

@@ -74,9 +74,8 @@ struct ofsm_builder
     int flags;
     FILE * logstream;
     FILE * errstream;
-    void * ofsm_stack[OFSM_STACK_SZ];
-    size_t ofsm_stack_first;
-    size_t ofsm_stack_last;
+    void * stack[OFSM_STACK_SZ];
+    unsigned int stack_len;
     void * user_data;
     struct choose_table choose;
 };
