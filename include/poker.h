@@ -92,4 +92,5 @@ int check_texas_7(void);
 int create_omaha_7(struct ofsm_builder * restrict ob);
 int check_omaha_7(void);
 
+int debug_something(void);
 #endif

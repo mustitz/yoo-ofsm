@@ -186,6 +186,11 @@ int main(int argc, char * argv[])
         return 0;
     }
 
+    if (debug_something() != 0) {
+        printf("Debug failed.\n");
+        return 1;
+    }
+
     if (first_arg >= argc) {
         print_table_names();
         return 0;

@@ -1224,3 +1224,12 @@ int check_omaha_7(void)
 {
     return 0;
 }
+
+
+
+/* Debug code */
+
+int debug_something()
+{
+    return 0;
+}
