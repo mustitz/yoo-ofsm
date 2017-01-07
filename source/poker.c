@@ -390,8 +390,8 @@ static void gen_omaha_perm_5_from_7(void)
         ptr[0] = extract_rbit32(&tmp);
         ptr[1] = extract_rbit32(&tmp);
         ptr[2] = extract_rbit32(&tmp);
-        ptr[4] = 5;
-        ptr[5] = 6;
+        ptr[3] = 5;
+        ptr[4] = 6;
         ptr += 5;
         mask = next_combination_mask(mask);
         ++qpermutations;
