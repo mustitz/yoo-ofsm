@@ -245,21 +245,23 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
 {
     pack_value_t result = 0;
 
-    unsigned int flash_mask[4] = { 0 };
-    unsigned int flash_stat[4] = { 0 };
+    unsigned int nominal_stat[13] = { 0 };
+    unsigned int flush_mask[4] = { 0 };
+    unsigned int flush_stat[4] = { 0 };
 
     for (int i=0; i<n; ++i) {
         const input_t card = path[i];
         const int suite = SUITE(card);
         const int nominal = NOMINAL(card);
-        flash_mask[suite] = 1 << nominal;
-        ++flash_stat[suite];
+        ++nominal_stat[nominal];
+        flush_mask[suite] |= 1 << nominal;
+        ++flush_stat[suite];
     }
 
     int suite_index = -1;
     unsigned int suite_mask = 0;
     for (int i=0; i<4; ++i) {
-        if (flash_stat[i] < qmin) {
+        if (flush_stat[i] < qmin) {
             continue;
         }
 
@@ -269,29 +271,12 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
         }
 
         suite_index = i;
-        suite_index = flash_mask[i];
+        suite_mask = flush_mask[i];
     }
 
     if (suite_index >= 0) {
         result |= suite_index << 13;
         result |= suite_mask;
-    }
-
-    unsigned int nominal_stat[13] = { 0 };
-    for (int i=0; i<n; ++i) {
-        const input_t card = path[i];
-        const int suite = SUITE(card);
-        if (suite == suite_index) {
-            continue;
-        }
-
-        const int nominal = NOMINAL(card);
-        if (nominal >= 13) {
-            fprintf(stderr, "Assertion failed: nominal overflow, value is %d, maximum is 12.\n", nominal);
-            abort();
-        }
-
-        ++nominal_stat[nominal];
     }
 
     int shift = 16;
@@ -301,7 +286,7 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
                 fprintf(stderr, "Assertion failed: shift overflow, value is %d, maximum is 60.\n", shift);
                 abort();
             }
-            result |= n << shift;
+            result |= (n+1) << shift;
             shift += 4;
         }
     }
@@ -1229,7 +1214,28 @@ int check_omaha_7(void)
 
 /* Debug code */
 
-int debug_something()
+int debug_forget_suites(void)
+{
+    input_t input[2];
+
+    uint64_t mask = 3;
+    const uint64_t last = 1ull << 52;
+    while (mask < last) {
+        uint64_t tmp = mask;
+        input[0] = extract_rbit64(&tmp);
+        input[1] = extract_rbit64(&tmp);
+        uint64_t test = forget_suites(2, input, 2);
+        unsigned int suite_mask = test & 0xFFFF;
+        unsigned int suite_index = suite_mask >> 13;
+        suite_mask &= 0x1FFF;
+
+        printf("%s %s - 0x%016lx %u 0x%04x\n", card52_str[input[0]], card52_str[input[1]], test >> 16, suite_index, suite_mask);
+        mask = next_combination_mask(mask);
+    }
+    return 1;
+}
+
+int debug_something(void)
 {
     return 0;
 }
