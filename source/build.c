@@ -54,28 +54,6 @@ static int create_ofsm(const struct poker_ofsm * const poker_ofsm)
 
 
 
-static int check_six_plus_5(void)
-{
-    return run_check_six_plus_5();
-}
-
-static int check_six_plus_7(void)
-{
-    return run_check_six_plus_7();
-}
-
-static int check_texas_5(void)
-{
-    return run_check_texas_5();
-}
-
-static int check_texas_7(void)
-{
-    return run_check_texas_7();
-}
-
-
-
 static void usage(void)
 {
     printf("%s",

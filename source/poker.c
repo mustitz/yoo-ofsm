@@ -964,7 +964,7 @@ static uint64_t eval_six_plus_rank5_via_fsm5_as64(void * user_data, const card_t
     return eval_six_plus_rank5_via_fsm5(cards);
 }
 
-int run_check_six_plus_5(void)
+int check_six_plus_5(void)
 {
     printf("Six plus 5 tests:\n");
 
@@ -1019,7 +1019,7 @@ static int quick_test_six_plus_eval_rank7(struct test_data * const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_deck36);
 }
 
-int run_check_six_plus_7(void)
+int check_six_plus_7(void)
 {
     printf("Six plus 7 tests:\n");
 
@@ -1072,7 +1072,7 @@ static int quick_test_texas_eval_rank5(struct test_data * restrict const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand5_for_deck52);
 }
 
-int run_check_texas_5(void)
+int check_texas_5(void)
 {
     printf("Texas 5 tests:\n");
 
@@ -1127,7 +1127,7 @@ static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(void * user_data, const ca
     return eval_via_perm(eval_texas_rank5_via_fsm5, cards, perm_5_from_7);
 }
 
-int run_check_texas_7(void)
+int check_texas_7(void)
 {
     printf("Six plus 7 tests:\n");
 
