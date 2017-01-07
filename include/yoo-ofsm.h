@@ -87,7 +87,7 @@ int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_l
 
 int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m);
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m);
-int ofsm_builder_do_product(struct ofsm_builder * restrict me);
+int ofsm_builder_product(struct ofsm_builder * restrict me);
 int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags);
 int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f);
 int ofsm_builder_verify(const struct ofsm_builder * const me);

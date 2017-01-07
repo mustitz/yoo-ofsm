@@ -1339,9 +1339,9 @@ int new_pow_41_pow_51_test(void)
         return 1;
     }
 
-    errcode = ofsm_builder_do_product(me);
+    errcode = ofsm_builder_product(me);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_do_product(me) failed with %d as error code.\n", errcode);
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
         return 1;
     }
 
@@ -1440,9 +1440,9 @@ int new_pow_41_comb_52_test(void)
         return 1;
     }
 
-    errcode = ofsm_builder_do_product(me);
+    errcode = ofsm_builder_product(me);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_do_product(me) failed with %d as error code.\n", errcode);
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
         return 1;
     }
 
@@ -1555,9 +1555,9 @@ int new_pack_test(void)
         return 1;
     }
 
-    errcode = ofsm_builder_do_product(me);
+    errcode = ofsm_builder_product(me);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_do_product(me) failed with %d as error code.\n", errcode);
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
         return 1;
     }
 
@@ -1673,9 +1673,9 @@ int new_pack_without_renum_test(void)
         return 1;
     }
 
-    errcode = ofsm_builder_do_product(me);
+    errcode = ofsm_builder_product(me);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_do_product(me) failed with %d as error code.\n", errcode);
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
         return 1;
     }
 
@@ -1780,9 +1780,9 @@ int new_optimize_test_with_hash(hash_func hash)
         return 1;
     }
 
-    errcode = ofsm_builder_do_product(me);
+    errcode = ofsm_builder_product(me);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_do_product(me) failed with %d as error code.\n", errcode);
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
         return 1;
     }
 

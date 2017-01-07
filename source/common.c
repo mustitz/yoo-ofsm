@@ -1675,7 +1675,7 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
 
 
 
-int ofsm_builder_do_product(struct ofsm_builder * restrict me)
+int ofsm_builder_product(struct ofsm_builder * restrict me)
 {
     verbose(me->logstream, "START product.");
 
@@ -1683,7 +1683,7 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
 
     if (idx == me->ofsm_stack_last) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_do_product(me) is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        msg(me->errstream, "ofsm_builder_product(me) is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
         verbose(me->logstream, "FAILED product.");
         return 1;
     }
@@ -1694,7 +1694,7 @@ int ofsm_builder_do_product(struct ofsm_builder * restrict me)
 
     if (idx == me->ofsm_stack_last) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_do_product(me) is called for OFSM stack with one element, but at least two is required, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
+        msg(me->errstream, "ofsm_builder_product(me) is called for OFSM stack with one element, but at least two is required, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
         verbose(me->logstream, "FAILED product.");
         return 1;
     }

@@ -550,7 +550,7 @@ int create_omaha_7(struct ofsm_builder * restrict ob)
         || ofsm_builder_pack(ob, calc_omaha_7_flake_5_pack, 0)
         || ofsm_builder_push_comb(ob, 52, 2)
         || ofsm_builder_pack(ob, calc_omaha_7_flake_2_pack, 0)
-        || ofsm_builder_do_product(ob)
+        || ofsm_builder_product(ob)
         || ofsm_builder_pack(ob, calc_omaha_7, PACK_FLAG__SKIP_RENUMERING)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
