@@ -403,6 +403,8 @@ int create_six_plus_5(struct ofsm_builder * restrict ob)
     ;
 }
 
+
+
 pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * input)
 {
     if (n != 7) {
@@ -439,6 +441,8 @@ int create_six_plus_7(struct ofsm_builder * restrict ob)
     ;
 }
 
+
+
 pack_value_t calc_texas_5(void * user_data, unsigned int n, const input_t * input)
 {
     if (n != 5) {
@@ -465,6 +469,8 @@ int create_texas_5(struct ofsm_builder * restrict ob)
         || ofsm_builder_optimize(ob, 5, 0, NULL)
     ;
 }
+
+
 
 pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * input)
 {
@@ -500,6 +506,13 @@ int create_texas_7(struct ofsm_builder * restrict ob)
         // || ofsm_builder_optimize(ob, 6, 1, calc_texas_7_flake_6_hash)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
+}
+
+
+
+int create_omaha_7(struct ofsm_builder * restrict ob)
+{
+    return 0;
 }
 
 
@@ -1159,5 +1172,14 @@ int check_texas_7(void)
     print_stats(&suite);
     printf("All texas 7 tests are successfully passed.\n");
 
+    return 0;
+}
+
+
+
+/* Omaha fsm7 tests */
+
+int check_omaha_7(void)
+{
     return 0;
 }

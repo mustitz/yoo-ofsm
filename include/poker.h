@@ -89,4 +89,7 @@ int check_texas_5(void);
 int create_texas_7(struct ofsm_builder * restrict ob);
 int check_texas_7(void);
 
+int create_omaha_7(struct ofsm_builder * restrict ob);
+int check_omaha_7(void);
+
 #endif

@@ -118,7 +118,7 @@ struct poker_ofsm poker_ofsms[] = {
     POKER_OFSM("six-plus-7", "OFSM Six Plus 7", 0, create_six_plus_7, check_six_plus_7),
     POKER_OFSM("texas-5", "OFSM Texas 5", 1, create_texas_5, check_texas_5),
     POKER_OFSM("texas-7", "OFSM Texas 7", 0, create_texas_7, check_texas_7),
-    // POKER_OFSM("omaha-7", "OFSM Omaha 7", 0, create_omaha_7,check_omaha_7),
+    POKER_OFSM("omaha-7", "OFSM Omaha 7", 0, create_omaha_7, check_omaha_7),
     { NULL, NULL, NULL, 0, NULL, NULL }
 };
 
