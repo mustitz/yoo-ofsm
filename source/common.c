@@ -1457,17 +1457,6 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
     }
 }
 
-const void * ofsm_builder_get_ofsm_as_void(const struct ofsm_builder * me)
-{
-    if (me->ofsm_stack_first == me->ofsm_stack_last) {
-        ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_get_ofsm_as_void is called for empty OFSM stack, ofsm_stack_first (%lu) == ofsm_stack_last (%lu).", me->ofsm_stack_first, me->ofsm_stack_last);
-        return NULL;
-    }
-
-    return me->ofsm_stack[me->ofsm_stack_first];
-}
-
 struct ofsm * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 {
     if (me->ofsm_stack_first == me->ofsm_stack_last) {
@@ -1477,6 +1466,11 @@ struct ofsm * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
     }
 
     return me->ofsm_stack[me->ofsm_stack_first];
+}
+
+const void * ofsm_builder_get_ofsm_as_void(const struct ofsm_builder * me)
+{
+    return ofsm_builder_get_ofsm(me);
 }
 
 int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
