@@ -71,6 +71,19 @@ static inline uint32_t eval_texas_rank7_via_fsm7(const card_t * cards)
     return current;
 }
 
+static inline uint32_t eval_omaha_rank7_via_fsm7(const card_t * cards)
+{
+    uint32_t current = 52;
+    current = omaha_fsm7[current + cards[0]];
+    current = omaha_fsm7[current + cards[1]];
+    current = omaha_fsm7[current + cards[2]];
+    current = omaha_fsm7[current + cards[3]];
+    current = omaha_fsm7[current + cards[4]];
+    current = omaha_fsm7[current + cards[5]];
+    current = omaha_fsm7[current + cards[6]];
+    return current;
+}
+
 
 
 /* Game data */
@@ -107,6 +120,15 @@ struct game_data texas_holdem = {
     .qranks = 7462,
     .qhand_categories = { 10, 156, 156, 1277, 10, 858, 858, 2860, 1277 },
     .expected_stat5 = { 40, 624, 3744, 5108, 10200, 54912, 123552, 1098240, 1302540 },
+    .hand_category_names = { "Straight-flush", "Four of a kind", "Full house", "Flush", "Straight", "Three of a kind", "Two pair", "One pair", "High card" },
+};
+
+struct game_data omaha = {
+    .name = "Omaha",
+    .qcards_in_deck = 52,
+    .qranks = 7462,
+    .qhand_categories = { 10, 156, 156, 1277, 10, 858, 858, 2860, 1277 },
+    .expected_stat5 = { -1, -1, -1, -1, -1, -1, -1, -1, -1 },
     .hand_category_names = { "Straight-flush", "Four of a kind", "Full house", "Flush", "Straight", "Three of a kind", "Two pair", "One pair", "High card" },
 };
 
@@ -1259,6 +1281,16 @@ int check_texas_7(void)
 
 /* Omaha fsm7 tests */
 
+static uint64_t eval_omaha_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
+{
+    return eval_omaha_rank7_via_fsm7(cards);
+}
+
+static uint64_t eval_omaha_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
+{
+    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
+}
+
 int check_omaha_7(void)
 {
     printf("Omaha 7 tests:\n");
@@ -1267,7 +1299,24 @@ int check_omaha_7(void)
     load_texas_fsm5();
     load_omaha_fsm7();
 
-    printf("All texas 7 tests are successfully passed.\n");
+    int hand_type_stats[9];
+    memset(hand_type_stats, 0, sizeof(hand_type_stats));
+
+    struct test_data suite = {
+        .game = &omaha,
+        .qcards_in_hand = 7,
+        .user_data = NULL,
+        .strict_equivalence = 1,
+        .eval_rank = eval_omaha_rank7_via_fsm7_as64,
+        .eval_rank_robust = eval_omaha_rank7_via_fsm5_brutte_as64,
+        .fsm = omaha_fsm7,
+        .fsm_sz = omaha_fsm7_sz,
+        .hand_type_stats = hand_type_stats
+    };
+
+    RUN_TEST(&suite, test_equivalence);
+
+    printf("All omaha 7 tests are successfully passed.\n");
     return 0;
 }
 
