@@ -15,11 +15,13 @@ const uint32_t * six_plus_fsm5;
 const uint32_t * six_plus_fsm7;
 const uint32_t * texas_fsm5;
 const uint32_t * texas_fsm7;
+const uint32_t * omaha_fsm7;
 
 uint64_t six_plus_fsm5_sz;
 uint64_t six_plus_fsm7_sz;
 uint64_t texas_fsm5_sz;
 uint64_t texas_fsm7_sz;
+uint64_t omaha_fsm7_sz;
 
 static inline uint32_t eval_six_plus_rank5_via_fsm5(const card_t * cards)
 {
@@ -235,6 +237,13 @@ static void load_texas_fsm7(void)
     if (texas_fsm7 != NULL) return;
 
     texas_fsm7 = load_fsm("texas-7.bin", "OFSM Texas 7", 52, 7, &texas_fsm7_sz);
+}
+
+static void load_omaha_fsm7(void)
+{
+    if (omaha_fsm7 != NULL) return;
+
+    omaha_fsm7 = load_fsm("omaha-7.bin", "OFSM Omaha 7", 52, 7, &omaha_fsm7_sz);
 }
 
 
@@ -1252,6 +1261,13 @@ int check_texas_7(void)
 
 int check_omaha_7(void)
 {
+    printf("Omaha 7 tests:\n");
+
+    gen_omaha_perm_5_from_7();
+    load_texas_fsm5();
+    load_omaha_fsm7();
+
+    printf("All texas 7 tests are successfully passed.\n");
     return 0;
 }
 
