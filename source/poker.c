@@ -74,6 +74,7 @@ static inline uint32_t eval_texas_rank7_via_fsm7(const card_t * cards)
 /* Game data */
 
 const int * perm_5_from_7;
+const int * omaha_perm_5_from_7;
 
 typedef uint64_t user_eval_rank_f(void * user_data, const card_t * cards);
 typedef uint64_t eval_rank_robust_f(const card_t * cards);
@@ -408,7 +409,7 @@ int create_six_plus_5(struct ofsm_builder * restrict ob)
 pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * input)
 {
     if (n != 7) {
-        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 7, but %u was passed.\n", n);
         abort();
     }
 
@@ -475,7 +476,7 @@ int create_texas_5(struct ofsm_builder * restrict ob)
 pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * input)
 {
     if (n != 7) {
-        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 5, but %u as passed.\n", n);
+        fprintf(stderr, "Assertion failed: calc_six_plus_5 requires n = 7, but %u was passed.\n", n);
         abort();
     }
 
@@ -510,9 +511,49 @@ int create_texas_7(struct ofsm_builder * restrict ob)
 
 
 
+pack_value_t calc_omaha_7_flake_5_pack(void * user_data, unsigned int n, const input_t * input)
+{
+    if (n != 5) {
+        fprintf(stderr, "Assertion failed: %s requires n = 5, but %u was passed.\n", __FUNCTION__, n);
+        abort();
+    }
+
+    return forget_suites(n, input, 3);
+}
+
+pack_value_t calc_omaha_7_flake_2_pack(void * user_data, unsigned int n, const input_t * input)
+{
+    if (n != 2) {
+        fprintf(stderr, "Assertion failed: %s requires n = 2, but %u was passed.\n", __FUNCTION__, n);
+        abort();
+    }
+
+    return forget_suites(n, input, 2);
+}
+
+pack_value_t calc_omaha_7(void * user_data, unsigned int n, const input_t * input)
+{
+    if (n != 7) {
+        fprintf(stderr, "Assertion failed: %s requires n = 7, but %u was passed.\n", __FUNCTION__, n);
+        abort();
+    }
+
+    card_t cards[n];
+    input_to_cards(n, input, cards);
+    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
+}
+
 int create_omaha_7(struct ofsm_builder * restrict ob)
 {
-    return 0;
+    return 0
+        || ofsm_builder_push_comb(ob, 52, 5)
+        || ofsm_builder_pack(ob, calc_omaha_7_flake_5_pack, 0)
+        || ofsm_builder_push_comb(ob, 52, 2)
+        || ofsm_builder_pack(ob, calc_omaha_7_flake_2_pack, 0)
+        || ofsm_builder_do_product(ob)
+        || ofsm_builder_pack(ob, calc_omaha_7, PACK_FLAG__SKIP_RENUMERING)
+        || ofsm_builder_optimize(ob, 7, 0, NULL)
+    ;
 }
 
 
