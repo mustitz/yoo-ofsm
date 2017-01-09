@@ -1112,7 +1112,7 @@ void print_stats(struct test_data * restrict const me)
                 me->hand_type_stats[i], 100.0 * me->hand_type_stats[i] / total
             );
         }
-        printf("   ----------------------------------\n");
+        printf("   ------------------------------------\n");
         printf("    Total            %10lu 100.0%%\n", total);
     }
 }
