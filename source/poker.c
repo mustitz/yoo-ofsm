@@ -88,10 +88,6 @@ static inline uint32_t eval_omaha_rank7_via_fsm7(const card_t * cards)
 
 /* Game data */
 
-const int * omaha_perm_5_from_7;
-
-
-
 typedef uint64_t user_eval_rank_f(void * user_data, const card_t * cards);
 typedef uint64_t eval_rank_robust_f(const card_t * cards);
 typedef uint32_t eval_rank_f(const card_t * cards);
@@ -377,10 +373,11 @@ static const int * get_perm_5_from_7(void)
     return result;
 }
 
-static void gen_omaha_perm_5_from_7(void)
+static const int * get_omaha_perm_5_from_7(void)
 {
-    if (omaha_perm_5_from_7 != NULL) {
-        return;
+    static const int * result = NULL;
+    if (result != NULL) {
+        return result;
     }
 
     size_t sz = 5 * 11 * sizeof(int);
@@ -390,7 +387,7 @@ static void gen_omaha_perm_5_from_7(void)
         abort();
     }
 
-    omaha_perm_5_from_7 = ptr;
+    result = ptr;
 
     int qpermutations = 0;
     unsigned int mask = 0x07;
@@ -417,6 +414,8 @@ static void gen_omaha_perm_5_from_7(void)
         fprintf(stderr, "Assertion failed, qpermutations = C(5,3) == %d != 10.\n", qpermutations);
         abort();
     }
+
+    return result;
 }
 
 static inline void input_to_cards(unsigned int n, const input_t * const input, card_t * restrict const cards)
@@ -606,7 +605,7 @@ pack_value_t calc_omaha_7(void * user_data, unsigned int n, const input_t * inpu
 
     card_t cards[n];
     input_to_cards(n, input, cards);
-    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
+    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_omaha_perm_5_from_7());
 }
 
 uint64_t calc_omaha_7_flake_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
@@ -616,7 +615,6 @@ uint64_t calc_omaha_7_flake_7_hash(void * user_data, const unsigned int qjumps, 
 
 int create_omaha_7(struct ofsm_builder * restrict ob)
 {
-    gen_omaha_perm_5_from_7();
     load_texas_fsm5();
 
     return 0
@@ -1302,14 +1300,13 @@ static uint64_t eval_omaha_rank7_via_fsm7_as64(void * user_data, const card_t * 
 
 static uint64_t eval_omaha_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
 {
-    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
+    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_omaha_perm_5_from_7());
 }
 
 int check_omaha_7(void)
 {
     printf("Omaha 7 tests:\n");
 
-    gen_omaha_perm_5_from_7();
     load_texas_fsm5();
     load_omaha_fsm7();
 
@@ -1414,7 +1411,6 @@ uint32_t debug_eval_via_perm(eval_rank_f eval, const card_t * const cards, const
 
 int debug_omaha_7(void)
 {
-    gen_omaha_perm_5_from_7();
     load_texas_fsm5();
     load_omaha_fsm7();
 
@@ -1485,7 +1481,7 @@ int debug_omaha_7(void)
 
     printf("Rank %u\n", debug_calc_omaha_7(cards));
 
-    uint32_t debug_rank = debug_eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
+    uint32_t debug_rank = debug_eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_omaha_perm_5_from_7());
     printf("Debug %u\n\n", debug_rank);
     return 1;
 }
