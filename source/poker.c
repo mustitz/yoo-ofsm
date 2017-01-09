@@ -606,6 +606,11 @@ pack_value_t calc_omaha_7(void * user_data, unsigned int n, const input_t * inpu
     return eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
 }
 
+uint64_t calc_omaha_7_flake_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return forget_suites(path_len, path, 4);
+}
+
 int create_omaha_7(struct ofsm_builder * restrict ob)
 {
     gen_omaha_perm_5_from_7();
@@ -616,10 +621,11 @@ int create_omaha_7(struct ofsm_builder * restrict ob)
         || ofsm_builder_pack(ob, calc_omaha_7_flake_5_pack, 0)
         || ofsm_builder_optimize(ob, 5, 0, NULL)
         || ofsm_builder_push_comb(ob, 52, 2)
-        || ofsm_builder_pack(ob, calc_omaha_7_flake_2_pack, 0)
-        || ofsm_builder_optimize(ob, 2, 0, NULL)
+    //    || ofsm_builder_pack(ob, calc_omaha_7_flake_2_pack, 0)
+    //    || ofsm_builder_optimize(ob, 2, 0, NULL)
         || ofsm_builder_product(ob)
         || ofsm_builder_pack(ob, calc_omaha_7, PACK_FLAG__SKIP_RENUMERING)
+        || ofsm_builder_optimize(ob, 7, 1, calc_omaha_7_flake_7_hash)
         || ofsm_builder_optimize(ob, 7, 0, NULL)
     ;
 }
