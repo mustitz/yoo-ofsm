@@ -1073,7 +1073,7 @@ typedef int test_function(struct test_data * restrict const);
 
 static inline int run_test(struct test_data * restrict const me, const char * name, test_function test)
 {
-    const int w = -128;
+    const int w = -66;
 
     const double start = get_app_age();
     printf("  Run %*s ", w, name);
