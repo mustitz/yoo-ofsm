@@ -627,7 +627,6 @@ static void do_pack(struct script * restrict me, const struct step_data_pack * a
 
 
 
-
     state_t new_qoutputs = 0;
 
     if (skip_renumering) {

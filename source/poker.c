@@ -820,7 +820,6 @@ int equivalence_check_rank(struct test_data * restrict const me, const card_t * 
 
 int test_equivalence(struct test_data * restrict const me)
 {
-    /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
     const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
 
     static uint64_t saved[9999];
