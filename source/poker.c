@@ -311,15 +311,20 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
     }
 
     int shift = 16;
-    for (int n=0; n<13; ++n) {
-        for (unsigned int i=0; i<nominal_stat[n]; ++i) {
+    for (int nominal=0; nominal<13; ++nominal) {
+        for (unsigned int i=0; i<nominal_stat[nominal]; ++i) {
             if (shift > 60) {
                 fprintf(stderr, "Assertion failed: shift overflow, value is %d, maximum is 60.\n", shift);
                 abort();
             }
-            result |= (n+1) << shift;
+            pack_value_t tmp = nominal + 1;
+            result |= tmp << shift;
             shift += 4;
         }
+    }
+
+    if (shift != 16 + 4*n) {
+        fprintf(stderr, "Assertion failed: illegal shift value %d, expected %d.\n", shift, 16 + 4 * n);
     }
 
     return result;
