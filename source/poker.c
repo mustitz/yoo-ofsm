@@ -776,22 +776,6 @@ int test_equivalence(struct test_data * restrict const me)
             return 1;
         }
 
-        if (saved[rank1] == 0) {
-            saved[rank1] = rank2;
-            continue;
-        }
-
-        uint64_t saved_rank = saved[rank1];
-        if (saved_rank != rank2) {
-            printf("[FAIL]\n");
-            printf("  Rank mismatch for hand");
-            print_hand(me, cards);
-            printf("\n");
-            printf("  Saved rank: %lu (0x%lX)\n", saved_rank, saved_rank);
-            printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
-            return 1;
-      }
-
         if (me->strict_equivalence) {
             if (rank1 != rank2) {
                 printf("[FAIL]\n");
@@ -800,6 +784,22 @@ int test_equivalence(struct test_data * restrict const me)
                 printf("\n");
                 printf("  Actual rank: %lu (0x%lX)\n", rank1, rank1);
                 printf("  Robust rank: %lu (0x%lX)\n", rank2, rank2);
+                return 1;
+            }
+        } else {
+            if (saved[rank1] == 0) {
+                saved[rank1] = rank2;
+                continue;
+            }
+
+            uint64_t saved_rank = saved[rank1];
+            if (saved_rank != rank2) {
+                printf("[FAIL]\n");
+                printf("  Rank mismatch for hand");
+                print_hand(me, cards);
+                printf("\n");
+                printf("  Saved rank: %lu (0x%lX)\n", saved_rank, saved_rank);
+                printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
                 return 1;
             }
         }
