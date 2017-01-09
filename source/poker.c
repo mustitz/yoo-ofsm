@@ -88,8 +88,9 @@ static inline uint32_t eval_omaha_rank7_via_fsm7(const card_t * cards)
 
 /* Game data */
 
-const int * perm_5_from_7;
 const int * omaha_perm_5_from_7;
+
+
 
 typedef uint64_t user_eval_rank_f(void * user_data, const card_t * cards);
 typedef uint64_t eval_rank_robust_f(const card_t * cards);
@@ -330,10 +331,12 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
     return result;
 }
 
-static void gen_perm_5_from_7(void)
+static const int * get_perm_5_from_7(void)
 {
-    if (perm_5_from_7 != NULL) {
-        return;
+    static const int * result = NULL;
+
+    if (result != NULL) {
+        return result;
     }
 
     size_t sz = 5 * 22 * sizeof(int);
@@ -343,7 +346,7 @@ static void gen_perm_5_from_7(void)
         abort();
     }
 
-    perm_5_from_7 = ptr;
+    result = ptr;
 
     int qpermutations = 0;
     unsigned int mask = 0x1F;
@@ -370,6 +373,8 @@ static void gen_perm_5_from_7(void)
         fprintf(stderr, "Assertion failed, qpermutations = C(7,5) == %d != 21.\n", qpermutations);
         abort();
     }
+
+    return result;
 }
 
 static void gen_omaha_perm_5_from_7(void)
@@ -478,7 +483,7 @@ pack_value_t calc_six_plus_7(void * user_data, unsigned int n, const input_t * i
 
     card_t cards[n];
     input_to_cards(n, input, cards);
-    return eval_via_perm(eval_six_plus_rank5_via_fsm5, cards, perm_5_from_7);
+    return eval_via_perm(eval_six_plus_rank5_via_fsm5, cards, get_perm_5_from_7());
 }
 
 uint64_t calc_six_plus_7_flake_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
@@ -493,7 +498,6 @@ uint64_t calc_six_plus_7_flake_6_hash(void * user_data, const unsigned int qjump
 
 int create_six_plus_7(struct ofsm_builder * restrict ob)
 {
-    gen_perm_5_from_7();
     load_six_plus_fsm5();
 
     return 0
@@ -545,7 +549,7 @@ pack_value_t calc_texas_7(void * user_data, unsigned int n, const input_t * inpu
 
     card_t cards[n];
     input_to_cards(n, input, cards);
-    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, perm_5_from_7);
+    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_perm_5_from_7());
 }
 
 uint64_t calc_texas_7_flake_7_hash(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
@@ -560,7 +564,6 @@ uint64_t calc_texas_7_flake_6_hash(void * user_data, const unsigned int qjumps, 
 
 int create_texas_7(struct ofsm_builder * restrict ob)
 {
-    gen_perm_5_from_7();
     load_texas_fsm5();
 
     return 0
@@ -1134,7 +1137,7 @@ static uint64_t eval_six_plus_rank7_via_fsm7_as64(void * user_data, const card_t
 
 static uint64_t eval_six_plus_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
 {
-    return eval_via_perm(eval_six_plus_rank5_via_fsm5, cards, perm_5_from_7);
+    return eval_via_perm(eval_six_plus_rank5_via_fsm5, cards, get_perm_5_from_7());
 }
 
 static int quick_test_six_plus_eval_rank7_robust(struct test_data * const me)
@@ -1151,7 +1154,6 @@ int check_six_plus_7(void)
 {
     printf("Six plus 7 tests:\n");
 
-    gen_perm_5_from_7();
     load_six_plus_fsm5();
     load_six_plus_fsm7();
 
@@ -1252,14 +1254,13 @@ static uint64_t eval_texas_rank7_via_fsm7_as64(void * user_data, const card_t * 
 
 static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(void * user_data, const card_t * cards)
 {
-    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, perm_5_from_7);
+    return eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_perm_5_from_7());
 }
 
 int check_texas_7(void)
 {
     printf("Six plus 7 tests:\n");
 
-    gen_perm_5_from_7();
     load_texas_fsm5();
     load_texas_fsm7();
 
@@ -1328,6 +1329,7 @@ int check_omaha_7(void)
     };
 
     RUN_TEST(&suite, test_equivalence);
+    RUN_TEST(&suite, test_permutations);
 
     printf("All omaha 7 tests are successfully passed.\n");
     return 0;
