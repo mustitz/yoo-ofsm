@@ -766,12 +766,12 @@ int test_equivalence(struct test_data * restrict const me)
     static uint64_t saved[9999];
     memset(saved, 0, sizeof(saved));
 
-    uint64_t mask = (1ull << qcards_in_hand) - 1;
-    uint64_t last = 1ull << me->game->qcards_in_deck;
+    uint64_t mask1 = (1ull << qcards_in_hand) - 1;
+    const uint64_t last1 = 1ull << me->game->qcards_in_deck;
 
-    for (; mask < last; mask = next_combination_mask(mask)) {
+    for (; mask1 < last1; mask1 = next_combination_mask(mask1)) {
         card_t cards[qcards_in_hand];
-        mask_to_cards(qcards_in_hand, mask, cards);
+        mask_to_cards(qcards_in_hand, mask1, cards);
 
         uint64_t rank1 = me->eval_rank(NULL, cards);
         uint64_t rank2 = me->eval_rank_robust(NULL, cards);
