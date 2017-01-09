@@ -999,7 +999,6 @@ int test_permutations(struct test_data * restrict const me)
 
 int test_stats(struct test_data * restrict const me)
 {
-    /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
     const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
 
     const int qranks = me->game->qranks;
@@ -1026,24 +1025,43 @@ int test_stats(struct test_data * restrict const me)
         return 1;
     }
 
-    uint64_t mask = (1ull << qcards_in_hand) - 1;
     const uint64_t last = 1ull << me->game->qcards_in_deck;
-    while (mask < last) {
-        card_t cards[qcards_in_hand];
-        mask_to_cards(qcards_in_hand, mask, cards);
-        uint32_t rank = me->eval_rank(NULL, cards);
-        if (rank < 0 || rank > qranks) {
-            printf("[FAIL]\n");
-            printf("Invalid rank = %u for hand:", rank);
-            print_hand(me, cards);
-            printf("\n");
-            return 1;
-        }
 
-        ++stats[rank];
-        ++me->counter;
-        mask = next_combination_mask(mask);
-    }
+    uint64_t mask2 = (1ull << me->qcards_in_hand2) - 1;
+    const uint64_t last2 = me->qcards_in_hand2 == 0 ? 0 : last;
+
+    do {
+
+        uint64_t mask1 = (1ull << me->qcards_in_hand1) - 1;
+        const uint64_t last1 = last;
+
+        do {
+
+            const uint64_t mask = mask1 | mask2;
+            if (pop_count64(mask) == qcards_in_hand) {
+
+                card_t cards[qcards_in_hand];
+                mask_to_cards(me->qcards_in_hand1, mask1, cards);
+                mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
+
+                uint32_t rank = me->eval_rank(NULL, cards);
+                if (rank < 0 || rank > qranks) {
+                    printf("[FAIL]\n");
+                    printf("Invalid rank = %u for hand:", rank);
+                    print_hand(me, cards);
+                    printf("\n");
+                    return 1;
+                }
+
+                ++stats[rank];
+                ++me->counter;
+            }
+
+            mask1 = next_combination_mask(mask1);
+        } while (mask1 < last1);
+
+        mask2 = next_combination_mask(mask2);
+    } while (mask2 < last2);
 
     if (qcards_in_hand == 5) {
         for (int i=1; i<=qranks; ++i) {
@@ -1089,13 +1107,13 @@ void print_stats(struct test_data * restrict const me)
     if (total > 0) {
         printf("  Stats:\n");
         for (int i=0; i<9; ++i) {
-            printf("    %*s %8d  %4.1f%%\n",
+            printf("    %*s %10d  %4.1f%%\n",
                 -16, me->game->hand_category_names[i],
                 me->hand_type_stats[i], 100.0 * me->hand_type_stats[i] / total
             );
         }
         printf("   ----------------------------------\n");
-        printf("    Total            %8lu 100.0%%\n", total);
+        printf("    Total            %10lu 100.0%%\n", total);
     }
 }
 
@@ -1397,7 +1415,9 @@ int check_omaha_7(void)
     RUN_TEST(&suite, quick_test_omaha_eval);
     RUN_TEST(&suite, test_equivalence);
     RUN_TEST(&suite, test_permutations);
+    RUN_TEST(&suite, test_stats);
 
+    print_stats(&suite);
     printf("All omaha 7 tests are successfully passed.\n");
     return 0;
 }
