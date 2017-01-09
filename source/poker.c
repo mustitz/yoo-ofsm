@@ -133,7 +133,8 @@ struct test_data
 {
     const struct game_data * game;
     int is_opencl;
-    int qcards_in_hand;
+    int qcards_in_hand1;
+    int qcards_in_hand2;
     int strict_equivalence;
     user_eval_rank_f * eval_rank;
     user_eval_rank_f * eval_rank_robust;
@@ -666,7 +667,8 @@ static inline void print_hand(const struct test_data * const me, const card_t * 
             return;
     }
 
-    for (int i=0; i<me->qcards_in_hand; ++i) {
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
+    for (int i=0; i<qcards_in_hand; ++i) {
         printf(" %s", card_str[cards[i]]);
     }
 }
@@ -693,7 +695,8 @@ static inline uint32_t eval_rank_via_fsm(const int qcards_in_hand, const card_t 
 
 static inline uint32_t test_data_eval_rank_via_fsm(const struct test_data * const me, const card_t * cards)
 {
-    return eval_rank_via_fsm(me->qcards_in_hand, cards, me->fsm, me->game->qcards_in_deck);
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
+    return eval_rank_via_fsm(qcards_in_hand, cards, me->fsm, me->game->qcards_in_deck);
 }
 
 pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * cards)
@@ -712,19 +715,21 @@ pack_value_t eval_rank5_via_robust_for_deck52_as64(void * user_data, const card_
 
 static int quick_test_for_eval_rank(const struct test_data * const me, const int is_robust, const card_t * const hands)
 {
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
+
     user_eval_rank_f * eval = is_robust ? me->eval_rank_robust : me->eval_rank;
 
     uint64_t prev_rank = 0;
 
     const card_t * current = hands;
-    for (; *current != 0xFF; current += me->qcards_in_hand) {
+    for (; *current != 0xFF; current += qcards_in_hand) {
         const uint64_t rank = eval(NULL, current);
         if (rank < prev_rank) {
             printf("[FAIL]\n");
             printf("  Wrong order!\n");
 
             printf("  Previous:");
-            print_hand(me, current - me->qcards_in_hand);
+            print_hand(me, current - qcards_in_hand);
             printf(" has rank %lu (0x%lX)\n", prev_rank, prev_rank);
 
             printf("  Current:");
@@ -755,15 +760,18 @@ static inline int quick_test(struct test_data * restrict const me, const card_t 
 
 int test_equivalence(struct test_data * restrict const me)
 {
+    /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
+
     static uint64_t saved[9999];
     memset(saved, 0, sizeof(saved));
 
-    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    uint64_t mask = (1ull << qcards_in_hand) - 1;
     uint64_t last = 1ull << me->game->qcards_in_deck;
 
     for (; mask < last; mask = next_combination_mask(mask)) {
-        card_t cards[me->qcards_in_hand];
-        mask_to_cards(me->qcards_in_hand, mask, cards);
+        card_t cards[qcards_in_hand];
+        mask_to_cards(qcards_in_hand, mask, cards);
 
         uint64_t rank1 = me->eval_rank(NULL, cards);
         uint64_t rank2 = me->eval_rank_robust(NULL, cards);
@@ -828,18 +836,21 @@ int test_equivalence(struct test_data * restrict const me)
 
 int test_permutations(struct test_data * restrict const me)
 {
-    const size_t qpermutations = factorial(me->qcards_in_hand);
-    const size_t len = me->qcards_in_hand * (qpermutations + 1);
+    /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
+
+    const size_t qpermutations = factorial(qcards_in_hand);
+    const size_t len = qcards_in_hand * (qpermutations + 1);
     int permutation_table[len];
 
-    const int q = gen_permutation_table(permutation_table, me->qcards_in_hand, len);
+    const int q = gen_permutation_table(permutation_table, qcards_in_hand, len);
     if (q != qpermutations) {
         printf("[FAIL]\n");
         printf("  Wrong permutation count %d, expected value is %d! = %lu.\n", q, q, qpermutations);
         return 1;
     }
 
-    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    uint64_t mask = (1ull << qcards_in_hand) - 1;
     const uint64_t last = 1ull << me->game->qcards_in_deck;
 
     if (opt_opencl) {
@@ -852,7 +863,7 @@ int test_permutations(struct test_data * restrict const me)
             packed_permutation_table[i] = permutation_table[i];
         }
 
-        const size_t qdata = calc_choose(me->game->qcards_in_deck, me->qcards_in_hand);
+        const size_t qdata = calc_choose(me->game->qcards_in_deck, qcards_in_hand);
         const size_t data_sz = qdata * sizeof(uint64_t);
         uint64_t * data = malloc(data_sz);
         if (data == NULL) {
@@ -884,7 +895,7 @@ int test_permutations(struct test_data * restrict const me)
         }
 
         int result = opencl__test_permutations(
-            me->qcards_in_hand, me->game->qcards_in_deck, qdata,
+            qcards_in_hand, me->game->qcards_in_deck, qdata,
             packed_permutation_table, packed_permutation_table_sz,
             me->fsm, me->fsm_sz,
             data, data_sz,
@@ -899,8 +910,8 @@ int test_permutations(struct test_data * restrict const me)
                     printf("  report[%u] = %u is nonzero.\n", i, ptr[i]);
                     printf("  data[%u] = 0x%016lx is nonzero.\n", i, data[i]);
 
-                    card_t cards[me->qcards_in_hand];
-                    mask_to_cards(me->qcards_in_hand, data[i], cards);
+                    card_t cards[qcards_in_hand];
+                    mask_to_cards(qcards_in_hand, data[i], cards);
                     uint32_t r = test_data_eval_rank_via_fsm(me, cards);
                     printf("  Base Hand:");
                     print_hand(me, cards);
@@ -918,15 +929,15 @@ int test_permutations(struct test_data * restrict const me)
     }
 
     while (mask < last) {
-        card_t cards[me->qcards_in_hand];
-        mask_to_cards(me->qcards_in_hand, mask, cards);
+        card_t cards[qcards_in_hand];
+        mask_to_cards(qcards_in_hand, mask, cards);
 
         uint32_t rank = test_data_eval_rank_via_fsm(me, cards);
 
         for (int i=0; i<qpermutations; ++i) {
-            const int * perm = permutation_table + me->qcards_in_hand * i;
-            card_t c[me->qcards_in_hand];
-            gen_perm(me->qcards_in_hand, c, cards, perm);
+            const int * perm = permutation_table + qcards_in_hand * i;
+            card_t c[qcards_in_hand];
+            gen_perm(qcards_in_hand, c, cards, perm);
             uint32_t r = test_data_eval_rank_via_fsm(me, cards);
 
             if (r != rank) {
@@ -955,6 +966,9 @@ int test_permutations(struct test_data * restrict const me)
 
 int test_stats(struct test_data * restrict const me)
 {
+    /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
+
     const int qranks = me->game->qranks;
 
     int stats[qranks+1];
@@ -979,11 +993,11 @@ int test_stats(struct test_data * restrict const me)
         return 1;
     }
 
-    uint64_t mask = (1ull << me->qcards_in_hand) - 1;
+    uint64_t mask = (1ull << qcards_in_hand) - 1;
     const uint64_t last = 1ull << me->game->qcards_in_deck;
     while (mask < last) {
-        card_t cards[me->qcards_in_hand];
-        mask_to_cards(me->qcards_in_hand, mask, cards);
+        card_t cards[qcards_in_hand];
+        mask_to_cards(qcards_in_hand, mask, cards);
         uint32_t rank = me->eval_rank(NULL, cards);
         if (rank < 0 || rank > qranks) {
             printf("[FAIL]\n");
@@ -997,7 +1011,7 @@ int test_stats(struct test_data * restrict const me)
         mask = next_combination_mask(mask);
     }
 
-    if (me->qcards_in_hand == 5) {
+    if (qcards_in_hand == 5) {
         for (int i=1; i<=qranks; ++i) {
             if (stats[i] == 0) {
                 printf("[FAIL]\n");
@@ -1018,7 +1032,7 @@ int test_stats(struct test_data * restrict const me)
         }
     }
 
-    if (me->qcards_in_hand == 5) {
+    if (qcards_in_hand == 5) {
         for (int i=0; i<9; ++i) {
             if (hand_type_stats[i] != me->game->expected_stat5[i]) {
                 printf("[FAIL]\n");
@@ -1111,7 +1125,8 @@ int check_six_plus_5(void)
 
     struct test_data suite = {
         .game = &six_plus_holdem,
-        .qcards_in_hand = 5,
+        .qcards_in_hand1 = 5,
+        .qcards_in_hand2 = 0,
         .strict_equivalence = 0,
         .eval_rank = eval_six_plus_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck36_as64,
@@ -1167,7 +1182,8 @@ int check_six_plus_7(void)
 
     struct test_data suite = {
         .game = &six_plus_holdem,
-        .qcards_in_hand = 7,
+        .qcards_in_hand1 = 7,
+        .qcards_in_hand2 = 0,
         .strict_equivalence = 1,
         .eval_rank = eval_six_plus_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_six_plus_rank7_via_fsm5_brutte_as64,
@@ -1217,7 +1233,8 @@ int check_texas_5(void)
 
     struct test_data suite = {
         .game = &texas_holdem,
-        .qcards_in_hand = 5,
+        .qcards_in_hand1 = 5,
+        .qcards_in_hand2 = 0,
         .strict_equivalence = 0,
         .eval_rank = eval_texas_rank5_via_fsm5_as64,
         .eval_rank_robust = eval_rank5_via_robust_for_deck52_as64,
@@ -1273,7 +1290,8 @@ int check_texas_7(void)
 
     struct test_data suite = {
         .game = &texas_holdem,
-        .qcards_in_hand = 7,
+        .qcards_in_hand1 = 7,
+        .qcards_in_hand2 = 0,
         .strict_equivalence = 1,
         .eval_rank = eval_texas_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_texas_rank7_via_fsm5_brutte_as64,
@@ -1320,7 +1338,8 @@ int check_omaha_7(void)
 
     struct test_data suite = {
         .game = &omaha,
-        .qcards_in_hand = 7,
+        .qcards_in_hand1 = 5,
+        .qcards_in_hand2 = 2,
         .strict_equivalence = 1,
         .eval_rank = eval_omaha_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_omaha_rank7_via_fsm5_brutte_as64,
