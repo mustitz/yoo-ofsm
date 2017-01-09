@@ -2154,7 +2154,7 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int 
             const state_t index = state_infos[old_state].index;
             const size_t new_path_index = index * path_len;
             const size_t old_path_index = old_state * path_len;
-            if (new_path[new_path_index] != INVALID_INPUT) {
+            if (new_path[new_path_index] == INVALID_INPUT) {
                 void * new_input = new_path + new_path_index;
                 const void * old_input = prev->paths[1] + old_path_index;
                 memcpy(new_input, old_input, path_sz);
