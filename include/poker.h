@@ -37,6 +37,7 @@ extern const card_t quick_ordered_hand5_for_deck36[];
 extern const card_t quick_ordered_hand7_for_deck36[];
 extern const card_t quick_ordered_hand5_for_deck52[];
 extern const card_t quick_ordered_hand7_for_deck52[];
+extern const card_t quick_ordered_hand7_for_omaha[];
 
 uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards);
 uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards);

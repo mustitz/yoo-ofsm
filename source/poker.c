@@ -1352,6 +1352,16 @@ int check_texas_7(void)
 
 /* Omaha fsm7 tests */
 
+static int quick_test_omaha_eval_robust(struct test_data * restrict const me)
+{
+    return quick_test_for_eval_rank(me, 1, quick_ordered_hand7_for_omaha);
+}
+
+static int quick_test_omaha_eval(struct test_data * restrict const me)
+{
+    return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_omaha);
+}
+
 static uint64_t eval_omaha_rank7_via_fsm7_as64(void * user_data, const card_t * cards)
 {
     return eval_omaha_rank7_via_fsm7(cards);
@@ -1384,6 +1394,8 @@ int check_omaha_7(void)
         .hand_type_stats = hand_type_stats
     };
 
+    RUN_TEST(&suite, quick_test_omaha_eval_robust);
+    RUN_TEST(&suite, quick_test_omaha_eval);
     RUN_TEST(&suite, test_equivalence);
     RUN_TEST(&suite, test_permutations);
 
