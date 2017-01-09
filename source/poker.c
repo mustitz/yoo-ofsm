@@ -327,6 +327,10 @@ pack_value_t forget_suites(unsigned int n, const input_t * path, unsigned int qm
     return result;
 }
 
+
+
+/* Permutation generation */
+
 static const int * get_perm_5_from_7(void)
 {
     static const int * result = NULL;
@@ -417,6 +421,75 @@ static const int * get_omaha_perm_5_from_7(void)
 
     return result;
 }
+
+
+
+/* Combination generation */
+
+struct combo_list
+{
+    size_t sz;
+    const input_t * data;
+};
+
+struct combo_list get_plain_combos(const int n, const int m)
+{
+    size_t qcombos = calc_choose(n, m);
+    struct combo_list result;
+    result.sz = (qcombos + 1) * sizeof(input_t);
+    input_t * restrict ptr = global_malloc(result.sz);
+    result.data = ptr;
+
+    uint64_t mask = (1ull << m) - 1;
+    uint64_t last = 1ull << n;
+    size_t q = 0;
+
+    while (mask < last) {
+        uint64_t tmp = mask;
+        for (int i=0; i<m; ++i) {
+            ptr[i] = extract_rbit64(&tmp);
+        }
+
+        mask = next_combination_mask(mask);
+        ptr += m;
+        ++q;
+    }
+
+    if (q != qcombos) {
+        fprintf(stderr, "Assertion failed, q = C(%d, %d) == %lu != %lu.\n", n, m, q, qcombos);
+        abort();
+    }
+
+    for (int i=0; i<m; ++i) {
+        ptr[i] = -1;
+    }
+
+    return result;
+}
+
+struct combo_list get_six_plus_combos(void)
+{
+    static struct combo_list result = { 0, NULL };
+    if (result.sz != 0 && result.data != 0) {
+        return result;
+    }
+
+    result = get_plain_combos(36, 7);
+}
+
+struct combo_list get_texas_combos(void)
+{
+    static struct combo_list result = { 0, NULL };
+    if (result.sz != 0 && result.data != 0) {
+        return result;
+    }
+
+    result = get_plain_combos(52, 7);
+}
+
+
+
+/* Utils */
 
 static inline void input_to_cards(unsigned int n, const input_t * const input, card_t * restrict const cards)
 {
