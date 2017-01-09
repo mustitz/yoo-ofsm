@@ -758,6 +758,64 @@ static inline int quick_test(struct test_data * restrict const me, const card_t 
 
 /* Equivalence test */
 
+int equivalence_check_rank(struct test_data * restrict const me, const card_t * const cards, uint64_t * restrict const saved)
+{
+    uint64_t rank1 = me->eval_rank(NULL, cards);
+    uint64_t rank2 = me->eval_rank_robust(NULL, cards);
+
+    if (rank1 <= 0 || rank1 > 9999) {
+        printf("[FAIL]\n");
+        printf("  Wrong rank (1)!\n");
+        printf("  Hand: ");
+        print_hand(me, cards);
+        printf("\n");
+        printf("  Rank 1: %lu\n", rank1);
+        printf("  Rank 2: %lu (0x%lX)\n", rank2, rank2);
+        return 1;
+    }
+
+    if (rank2 == 0) {
+        printf("[FAIL]\n");
+        printf("  Wrong rank (2)!\n");
+        printf("  Hand: ");
+        print_hand(me, cards);
+        printf("\n");
+        printf("  Rank 1: %lu\n", rank1);
+        printf("  Rank 2: %lu (0x%lX)\n", rank2, rank2);
+        return 1;
+    }
+
+    if (me->strict_equivalence) {
+        if (rank1 != rank2) {
+            printf("[FAIL]\n");
+            printf("  Strict equivalence rank mismatch for hand");
+            print_hand(me, cards);
+            printf("\n");
+            printf("  Actual rank: %lu (0x%lX)\n", rank1, rank1);
+            printf("  Robust rank: %lu (0x%lX)\n", rank2, rank2);
+            return 1;
+        }
+    } else {
+        if (saved[rank1] == 0) {
+            saved[rank1] = rank2;
+            return 0;
+        }
+
+        uint64_t saved_rank = saved[rank1];
+        if (saved_rank != rank2) {
+            printf("[FAIL]\n");
+            printf("  Rank mismatch for hand");
+            print_hand(me, cards);
+            printf("\n");
+            printf("  Saved rank: %lu (0x%lX)\n", saved_rank, saved_rank);
+            printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int test_equivalence(struct test_data * restrict const me)
 {
     /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
@@ -766,66 +824,36 @@ int test_equivalence(struct test_data * restrict const me)
     static uint64_t saved[9999];
     memset(saved, 0, sizeof(saved));
 
-    uint64_t mask1 = (1ull << qcards_in_hand) - 1;
-    const uint64_t last1 = 1ull << me->game->qcards_in_deck;
+    const uint64_t last = 1ull << me->game->qcards_in_deck;
 
-    for (; mask1 < last1; mask1 = next_combination_mask(mask1)) {
-        card_t cards[qcards_in_hand];
-        mask_to_cards(qcards_in_hand, mask1, cards);
+    uint64_t mask2 = (1ull << me->qcards_in_hand2) - 1;
+    const uint64_t last2 = me->qcards_in_hand2 == 0 ? 0 : last;
 
-        uint64_t rank1 = me->eval_rank(NULL, cards);
-        uint64_t rank2 = me->eval_rank_robust(NULL, cards);
+    do {
 
-        if (rank1 <= 0 || rank1 > 9999) {
-            printf("[FAIL]\n");
-            printf("  Wrong rank (1)!\n");
-            printf("  Hand: ");
-            print_hand(me, cards);
-            printf("\n");
-            printf("  Rank 1: %lu\n", rank1);
-            printf("  Rank 2: %lu (0x%lX)\n", rank2, rank2);
-            return 1;
-        }
+        uint64_t mask1 = (1ull << me->qcards_in_hand1) - 1;
+        const uint64_t last1 = last;
 
-        if (rank2 == 0) {
-            printf("[FAIL]\n");
-            printf("  Wrong rank (2)!\n");
-            printf("  Hand: ");
-            print_hand(me, cards);
-            printf("\n");
-            printf("  Rank 1: %lu\n", rank1);
-            printf("  Rank 2: %lu (0x%lX)\n", rank2, rank2);
-            return 1;
-        }
+        do {
 
-        if (me->strict_equivalence) {
-            if (rank1 != rank2) {
-                printf("[FAIL]\n");
-                printf("  Strict equivalence rank mismatch for hand");
-                print_hand(me, cards);
-                printf("\n");
-                printf("  Actual rank: %lu (0x%lX)\n", rank1, rank1);
-                printf("  Robust rank: %lu (0x%lX)\n", rank2, rank2);
-                return 1;
-            }
-        } else {
-            if (saved[rank1] == 0) {
-                saved[rank1] = rank2;
-                continue;
+            const uint64_t mask = mask1 | mask2;
+            if (pop_count64(mask) == qcards_in_hand) {
+
+                card_t cards[qcards_in_hand];
+                mask_to_cards(me->qcards_in_hand1, mask1, cards);
+                mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
+
+                int status = equivalence_check_rank(me, cards, saved);
+                if (status != 0) {
+                    return status;
+                }
             }
 
-            uint64_t saved_rank = saved[rank1];
-            if (saved_rank != rank2) {
-                printf("[FAIL]\n");
-                printf("  Rank mismatch for hand");
-                print_hand(me, cards);
-                printf("\n");
-                printf("  Saved rank: %lu (0x%lX)\n", saved_rank, saved_rank);
-                printf("  Caclulated: %lu (0x%lX)\n", rank2, rank2);
-                return 1;
-            }
-        }
-    }
+            mask1 = next_combination_mask(mask1);
+        } while (mask1 < last1);
+
+        mask2 = next_combination_mask(mask2);
+    } while (mask2 < last2);
 
     return 0;
 }
