@@ -1358,6 +1358,136 @@ int debug_forget_suites(void)
     return 1;
 }
 
+uint32_t debug_calc_omaha_7(const card_t * const cards)
+{
+    uint32_t current = 52;
+    current = omaha_fsm7[current + cards[0]];
+    current = omaha_fsm7[current + cards[1]];
+    current = omaha_fsm7[current + cards[2]];
+    current = omaha_fsm7[current + cards[3]];
+    current = omaha_fsm7[current + cards[4]];
+    current = omaha_fsm7[current + cards[5]];
+    current = omaha_fsm7[current + cards[6]];
+    return current;
+}
+
+uint32_t debug_calc_omaha_5(const card_t * const cards)
+{
+    uint32_t current = 52;
+    current = omaha_fsm7[current + cards[0]];
+    current = omaha_fsm7[current + cards[1]];
+    current = omaha_fsm7[current + cards[2]];
+    current = omaha_fsm7[current + cards[3]];
+    current = omaha_fsm7[current + cards[4]];
+    return current;
+}
+
+uint32_t debug_eval_via_perm(eval_rank_f eval, const card_t * const cards, const int * perm)
+{
+    uint32_t rank = 0;
+    card_t variant[5];
+
+    for (;; perm += 5) {
+        if (perm[0] == -1) {
+            return rank;
+        }
+
+        for (int i=0; i<5; ++i) {
+            variant[i] = cards[perm[i]];
+        }
+
+        const uint32_t tmp = eval(variant);
+        if (tmp > rank) {
+            rank = tmp;
+        }
+
+        printf("Hand:");
+        for (int i=0; i<5; ++i) {
+            printf(" %s", card52_str[variant[i]]);
+        }
+        printf(" - %4u\n", tmp);
+
+    }
+}
+
+int debug_omaha_7(void)
+{
+    gen_omaha_perm_5_from_7();
+    load_texas_fsm5();
+    load_omaha_fsm7();
+
+    const size_t qpermutations = factorial(5);
+    const size_t len = 5 * (qpermutations + 1);
+    int permutation_table[len];
+
+    const int q = gen_permutation_table(permutation_table, 5, len);
+    if (q != qpermutations) {
+        printf("[FAIL]\n");
+        printf("  Wrong permutation count %d, expected value is %d! = %lu.\n", q, q, qpermutations);
+        return 1;
+    }
+
+    card_t cards[7];
+    cards[4] = 0 * 4 + SUITE_H;
+    cards[3] = 1 * 4 + SUITE_H;
+    cards[2] = 2 * 4 + SUITE_D;
+    cards[1] = 3 * 4 + SUITE_D;
+    cards[0] = 4 * 4 + SUITE_D;
+    cards[5] = 4 * 4 + SUITE_D;
+    cards[6] = 4 * 4 + SUITE_H;
+
+    printf("Hand:");
+    for (int i=0; i<7; ++i) {
+        printf(" %s", card52_str[cards[i]]);
+    }
+    printf("\n");
+
+    uint32_t state_5 = debug_calc_omaha_5(cards);
+    printf("State 5 = %u\n", state_5);
+
+    uint64_t mask = 0x1F;
+    const uint64_t last = 1ull << 52;
+    int counter = 0;
+    while (mask < last) {
+        card_t tmp[5];
+        mask_to_cards(5, mask, tmp);
+        uint32_t current_state_5 = debug_calc_omaha_5(tmp);
+        if (current_state_5 == state_5) {
+            input_t input[5] = { tmp[0], tmp[1], tmp[2], tmp[3], tmp[4] };
+            pack_value_t pack_value = calc_omaha_7_flake_5_pack(NULL, 5, input);
+
+            printf("  S5 Hand:");
+            for (int i=0; i<5; ++i) {
+                printf(" %s", card52_str[tmp[i]]);
+            }
+            printf(" %016lX (%d)\n", pack_value, ++counter);
+
+            for (int i=0; i<qpermutations; ++i) {
+                const int * perm = permutation_table + 5*i;
+                card_t c[5];
+                gen_perm(5, c, tmp, perm);
+                input_t inp[5] = { c[0], c[1], c[2], c[3], c[4] };
+                pack_value_t perm_pack_value = calc_omaha_7_flake_5_pack(NULL, 5, inp);
+                if (perm_pack_value != pack_value) {
+                    printf("    Perm fail:");
+                    for (int i=0; i<5; ++i) {
+                        printf(" %s", card52_str[inp[i]]);
+                    }
+                    printf(" %016lX\n", perm_pack_value);
+                }
+            }
+
+        }
+        mask = next_combination_mask(mask);
+    }
+
+    printf("Rank %u\n", debug_calc_omaha_7(cards));
+
+    uint32_t debug_rank = debug_eval_via_perm(eval_texas_rank5_via_fsm5, cards, omaha_perm_5_from_7);
+    printf("Debug %u\n\n", debug_rank);
+    return 1;
+}
+
 int debug_something(void)
 {
     return 0;
