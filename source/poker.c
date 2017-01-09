@@ -134,7 +134,6 @@ struct test_data
     const struct game_data * game;
     int is_opencl;
     int qcards_in_hand;
-    void * user_data;
     int strict_equivalence;
     user_eval_rank_f * eval_rank;
     user_eval_rank_f * eval_rank_robust;
@@ -784,7 +783,7 @@ static int quick_test_for_eval_rank(const struct test_data * const me, const int
 
     const card_t * current = hands;
     for (; *current != 0xFF; current += me->qcards_in_hand) {
-        const uint64_t rank = eval(me->user_data, current);
+        const uint64_t rank = eval(NULL, current);
         if (rank < prev_rank) {
             printf("[FAIL]\n");
             printf("  Wrong order!\n");
@@ -831,8 +830,8 @@ int test_equivalence(struct test_data * restrict const me)
         card_t cards[me->qcards_in_hand];
         mask_to_cards(me->qcards_in_hand, mask, cards);
 
-        uint64_t rank1 = me->eval_rank(me->user_data, cards);
-        uint64_t rank2 = me->eval_rank_robust(me->user_data, cards);
+        uint64_t rank1 = me->eval_rank(NULL, cards);
+        uint64_t rank2 = me->eval_rank_robust(NULL, cards);
 
         if (rank1 <= 0 || rank1 > 9999) {
             printf("[FAIL]\n");
@@ -1234,7 +1233,6 @@ int check_six_plus_7(void)
     struct test_data suite = {
         .game = &six_plus_holdem,
         .qcards_in_hand = 7,
-        .user_data = NULL,
         .strict_equivalence = 1,
         .eval_rank = eval_six_plus_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_six_plus_rank7_via_fsm5_brutte_as64,
@@ -1341,7 +1339,6 @@ int check_texas_7(void)
     struct test_data suite = {
         .game = &texas_holdem,
         .qcards_in_hand = 7,
-        .user_data = NULL,
         .strict_equivalence = 1,
         .eval_rank = eval_texas_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_texas_rank7_via_fsm5_brutte_as64,
@@ -1389,7 +1386,6 @@ int check_omaha_7(void)
     struct test_data suite = {
         .game = &omaha,
         .qcards_in_hand = 7,
-        .user_data = NULL,
         .strict_equivalence = 1,
         .eval_rank = eval_omaha_rank7_via_fsm7_as64,
         .eval_rank_robust = eval_omaha_rank7_via_fsm5_brutte_as64,
