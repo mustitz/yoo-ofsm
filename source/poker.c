@@ -133,6 +133,7 @@ struct test_data
 {
     const struct game_data * game;
     int is_opencl;
+    size_t counter;
     int qcards_in_hand1;
     int qcards_in_hand2;
     int strict_equivalence;
@@ -713,7 +714,7 @@ pack_value_t eval_rank5_via_robust_for_deck52_as64(void * user_data, const card_
 
 /* Quick tests */
 
-static int quick_test_for_eval_rank(const struct test_data * const me, const int is_robust, const card_t * const hands)
+static int quick_test_for_eval_rank(struct test_data * restrict const me, const int is_robust, const card_t * const hands)
 {
     const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
 
@@ -739,6 +740,7 @@ static int quick_test_for_eval_rank(const struct test_data * const me, const int
             return 1;
         }
         prev_rank = rank;
+        ++me->counter;
     }
 
     return 0;
@@ -847,6 +849,8 @@ int test_equivalence(struct test_data * restrict const me)
                 if (status != 0) {
                     return status;
                 }
+
+                ++me->counter;
             }
 
             mask1 = next_combination_mask(mask1);
@@ -929,6 +933,8 @@ int test_permutations(struct test_data * restrict const me)
             data, data_sz,
             report, report_sz
         );
+
+        me->counter += qdata;
 
         if (result == 0) {
             const uint16_t * ptr = report;
@@ -1036,6 +1042,7 @@ int test_stats(struct test_data * restrict const me)
         }
 
         ++stats[rank];
+        ++me->counter;
         mask = next_combination_mask(mask);
     }
 
@@ -1108,12 +1115,13 @@ static inline int run_test(struct test_data * restrict const me, const char * na
     fflush(stdout);
 
     me->is_opencl = 0;
+    me->counter = 0;
     const int err = test(me);
     if (err) {
         return 1;
     }
     const double delta = get_app_age() - start;
-    printf("[ OK ] in %.2f s.%s\n", delta, me->is_opencl ? " (OpenCL)" : "");
+    printf("[ OK ] %lu in %.2f s.%s\n", me->counter, delta, me->is_opencl ? " (OpenCL)" : "");
     return 0;
 }
 
