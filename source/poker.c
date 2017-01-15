@@ -146,6 +146,77 @@ struct test_data
 
 
 
+/* Enumeration */
+
+static inline void init_enumeration(uint64_t * restrict const data, const int * const args)
+{
+    const size_t data_sz = args[0];
+    const int qitems = args[1];
+    const int qparts = args[2];
+    const int * const parts = args + 3;
+
+    const size_t required_data_len = 2*qparts + 1;
+    const size_t required_data_sz = required_data_len * sizeof(uint64_t);
+    if (data_sz < required_data_sz) {
+        fprintf(stderr, "Assertion failed: enumeration size %lu is not enought, %lu required\n", data_sz, required_data_sz);
+        abort();
+    }
+
+    const uint64_t last = 1ull << qitems;
+
+    uint64_t * restrict const masks = data + 1;
+    uint64_t * restrict const start = masks + qparts;
+    data[0] = qparts;
+    masks[0] = (1ull << parts[0]) - 1;
+    start[0] = 1ull << qitems;
+
+    for (int i=1; i<qparts; ++i) {
+        masks[i] = (1ull << parts[i]) - 1;
+        start[i] = masks[i];
+    }
+}
+
+static inline int next_enumeration(uint64_t * restrict const data)
+{
+    const uint64_t qparts = data[0];
+
+    uint64_t * restrict const masks = data + 1;
+    const uint64_t * start = masks + qparts;
+    const uint64_t last = start[0];
+
+    for (;;) {
+        for (int i = qparts - 1;;) {
+
+            masks[i] = next_combination_mask(masks[i]);
+            if (masks[i] < last) {
+                break;
+            }
+
+            masks[i] = start[i];
+            --i;
+
+            if (i < 0) {
+                return 1;
+            }
+        }
+
+        uint64_t total = masks[0];
+        int i=1;
+        for (; i<qparts; ++i) {
+            if (masks[i] & total) {
+                break;
+            }
+            total |= masks[i];
+        }
+
+        if (i == qparts) {
+            return 0;
+        }
+    }
+}
+
+
+
 /* Load OFSMs */
 
 static void * load_fsm(const char * filename, const char * signature, uint32_t start_from, uint32_t qflakes, uint64_t * fsm_sz)
@@ -825,38 +896,32 @@ int test_equivalence(struct test_data * restrict const me)
     static uint64_t saved[9999];
     memset(saved, 0, sizeof(saved));
 
-    const uint64_t last = 1ull << me->game->qcards_in_deck;
+    uint64_t enumeration[5];
+    const int qparts = me->qcards_in_hand2 == 0 ? 1 : 2;
+    int args[] = {
+        sizeof(enumeration),
+        me->game->qcards_in_deck,
+        qparts,
+        me->qcards_in_hand1, me->qcards_in_hand2 };
 
-    uint64_t mask2 = (1ull << me->qcards_in_hand2) - 1;
-    const uint64_t last2 = me->qcards_in_hand2 == 0 ? 0 : last;
+    const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
+    init_enumeration(enumeration, args);
 
-    do {
+    while (next_enumeration(enumeration) == 0) {
+        const uint64_t mask1 = enumeration[1];
+        const uint64_t mask2 = enumeration[2];
 
-        uint64_t mask1 = (1ull << me->qcards_in_hand1) - 1;
-        const uint64_t last1 = last;
+        card_t cards[qcards_in_hand];
+        mask_to_cards(me->qcards_in_hand1, mask1, cards);
+        mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
 
-        do {
+        int status = equivalence_check_rank(me, cards, saved);
+        if (status != 0) {
+            return status;
+        }
 
-            const uint64_t mask = mask1 | mask2;
-            if (pop_count64(mask) == qcards_in_hand) {
-
-                card_t cards[qcards_in_hand];
-                mask_to_cards(me->qcards_in_hand1, mask1, cards);
-                mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
-
-                int status = equivalence_check_rank(me, cards, saved);
-                if (status != 0) {
-                    return status;
-                }
-
-                ++me->counter;
-            }
-
-            mask1 = next_combination_mask(mask1);
-        } while (mask1 < last1);
-
-        mask2 = next_combination_mask(mask2);
-    } while (mask2 < last2);
+        ++me->counter;
+    }
 
     return 0;
 }
