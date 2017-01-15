@@ -907,7 +907,7 @@ int test_equivalence(struct test_data * restrict const me)
     const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
     init_enumeration(enumeration, args);
 
-    while (next_enumeration(enumeration) == 0) {
+    do {
         const uint64_t mask1 = enumeration[1];
         const uint64_t mask2 = enumeration[2];
 
@@ -921,7 +921,7 @@ int test_equivalence(struct test_data * restrict const me)
         }
 
         ++me->counter;
-    }
+    } while (next_enumeration(enumeration) == 0);
 
     return 0;
 }
