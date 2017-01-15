@@ -1090,43 +1090,38 @@ int test_stats(struct test_data * restrict const me)
         return 1;
     }
 
-    const uint64_t last = 1ull << me->game->qcards_in_deck;
+    uint64_t enumeration[5];
+    const int qparts = me->qcards_in_hand2 == 0 ? 1 : 2;
+    int args[] = {
+        sizeof(enumeration),
+        me->game->qcards_in_deck,
+        qparts,
+        me->qcards_in_hand1, me->qcards_in_hand2 };
 
-    uint64_t mask2 = (1ull << me->qcards_in_hand2) - 1;
-    const uint64_t last2 = me->qcards_in_hand2 == 0 ? 0 : last;
+    const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
+    init_enumeration(enumeration, args);
 
     do {
+        const uint64_t mask1 = enumeration[1];
+        const uint64_t mask2 = qparts >= 2 ? enumeration[2] : 0;
 
-        uint64_t mask1 = (1ull << me->qcards_in_hand1) - 1;
-        const uint64_t last1 = last;
+        card_t cards[qcards_in_hand];
+        mask_to_cards(me->qcards_in_hand1, mask1, cards);
+        mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
 
-        do {
+        uint32_t rank = me->eval_rank(NULL, cards);
+        if (rank < 0 || rank > qranks) {
+            printf("[FAIL]\n");
+            printf("Invalid rank = %u for hand:", rank);
+            print_hand(me, cards);
+            printf("\n");
+            return 1;
+        }
 
-            const uint64_t mask = mask1 | mask2;
-            if (pop_count64(mask) == qcards_in_hand) {
+        ++stats[rank];
+        ++me->counter;
 
-                card_t cards[qcards_in_hand];
-                mask_to_cards(me->qcards_in_hand1, mask1, cards);
-                mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
-
-                uint32_t rank = me->eval_rank(NULL, cards);
-                if (rank < 0 || rank > qranks) {
-                    printf("[FAIL]\n");
-                    printf("Invalid rank = %u for hand:", rank);
-                    print_hand(me, cards);
-                    printf("\n");
-                    return 1;
-                }
-
-                ++stats[rank];
-                ++me->counter;
-            }
-
-            mask1 = next_combination_mask(mask1);
-        } while (mask1 < last1);
-
-        mask2 = next_combination_mask(mask2);
-    } while (mask2 < last2);
+    } while (next_enumeration(enumeration) == 0);
 
     if (qcards_in_hand == 5) {
         for (int i=1; i<=qranks; ++i) {
