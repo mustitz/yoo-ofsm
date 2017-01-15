@@ -909,7 +909,7 @@ int test_equivalence(struct test_data * restrict const me)
 
     do {
         const uint64_t mask1 = enumeration[1];
-        const uint64_t mask2 = enumeration[2];
+        const uint64_t mask2 = qparts >= 2 ? enumeration[2] : 0;
 
         card_t cards[qcards_in_hand];
         mask_to_cards(me->qcards_in_hand1, mask1, cards);
