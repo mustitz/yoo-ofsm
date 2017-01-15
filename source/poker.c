@@ -1333,7 +1333,7 @@ static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(void * user_data, const ca
 
 int check_texas_7(void)
 {
-    printf("Six plus 7 tests:\n");
+    printf("Texas 7 tests:\n");
 
     load_texas_fsm5();
     load_texas_fsm7();
