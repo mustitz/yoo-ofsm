@@ -1008,7 +1008,8 @@ int test_permutations(struct test_data * restrict const me)
             return 1;
         }
 
-        int status = run_opencl_permutations(opencl_test, qdata, data, report);
+        uint64_t qerrors;
+        int status = run_opencl_permutations(opencl_test, qdata, data, report, &qerrors);
 
         free_opencl_permutations(opencl_test);
 
@@ -1019,6 +1020,7 @@ int test_permutations(struct test_data * restrict const me)
             for (uint32_t i=0; i<qdata; ++i) {
                 if (ptr[i] != 0) {
                     printf("[FAIL] (OpenCL)\n");
+                    printf("  qerrors = %lu\n", qerrors);
                     printf("  report[%u] = %u is nonzero.\n", i, ptr[i]);
                     printf("  data[%u] = 0x%016lx is nonzero.\n", i, data[i]);
 

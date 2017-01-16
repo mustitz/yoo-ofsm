@@ -358,7 +358,8 @@ int run_opencl_permutations(
     void * handle,
     uint64_t qdata,
     const uint64_t * const data,
-    uint16_t * restrict const report)
+    uint16_t * restrict const report,
+    uint64_t * restrict const qerrors)
 {
     struct opencl_permutations * restrict const me = handle;
 
@@ -452,6 +453,15 @@ int run_opencl_permutations(
 
     /* Get data */
 
+    status = clEnqueueReadBuffer(me->cmd_queue, me->scalar_mem, CL_TRUE, 0, me->scalar_sz, me->scalars, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueReadBuffer(cmd_queue, scalar_mem, CL_TRUE, 0, %lu, scalars, 0, NULL, NULL) fails with code %d.\n", me->scalar_sz, status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
     status = clEnqueueReadBuffer(me->cmd_queue, report_mem, CL_TRUE, 0, report_sz, report, 0, NULL, NULL);
     if (status != CL_SUCCESS) {
         printf("[FAIL] (OpenCL)\n");
@@ -461,6 +471,9 @@ int run_opencl_permutations(
         return 1;
     }
 
+    *qerrors = me->scalars[4];
+    clReleaseMemObject(data_mem);
+    clReleaseMemObject(report_mem);
     return 0;
 }
 

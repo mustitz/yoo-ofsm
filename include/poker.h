@@ -67,7 +67,8 @@ int run_opencl_permutations(
     void * handle,
     uint64_t qdata,
     const uint64_t * const data,
-    uint16_t * restrict const report
+    uint16_t * restrict const report,
+    uint64_t * restrict const qerrors
 );
 
 int opencl__test_permutations(
