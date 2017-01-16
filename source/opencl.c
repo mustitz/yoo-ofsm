@@ -5,6 +5,7 @@
 #include <CL/cl.h>
 
 #include <yoo-stdlib.h>
+#include <poker.h>
 
 struct opencl_state
 {
@@ -155,6 +156,315 @@ void test_permutations(\n\
     }\n\
 }\n\
 ";
+
+
+
+#define IF__CMD_QUEUE       1
+#define IF__SCALAR_MEM      2
+#define IF__PERM_TABLE_MEM  4
+#define IF__FSM_MEM         8
+#define IF__PROGRAM        16
+#define IF__KERNEL         32
+
+struct opencl_permutations
+{
+    const struct opencl_permunation_args * args;
+
+    cl_ulong scalars[5];
+    size_t scalar_sz;
+
+    int init_mask;
+    cl_command_queue cmd_queue;
+    cl_mem scalar_mem;
+    cl_mem perm_table_mem;
+    cl_mem fsm_mem;
+    cl_program program;
+    cl_kernel kernel;
+};
+
+cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
+{
+    cl_int status;
+
+    me->cmd_queue = clCreateCommandQueueWithProperties(opencl_state.context, opencl_state.device, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clCreateCommandQueueWithProperties(context, device, NULL, &status) fails with code %d.\n", status);
+        return 1;
+    }
+
+    me->init_mask |= IF__CMD_QUEUE;
+
+    /* Allocate memory on device */
+
+    me->scalar_sz = sizeof(me->args);
+    me->scalar_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_WRITE, me->scalar_sz, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  scalar_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_WRITE, %lu, NULL, &status) fails with code %d.\n", me->scalar_sz, status);
+        return 1;
+    }
+
+    me->init_mask |= IF__SCALAR_MEM;
+
+    me->perm_table_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_ONLY, me->args->perm_table_sz, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  perm_table_mem = clCreateBuffer(context, CL_MEM_READ_ONLY, %lu, NULL, &status) fails with code %d.\n", me->args->perm_table_sz, status);
+        return 1;
+    }
+
+    me->init_mask |= IF__PERM_TABLE_MEM;
+
+    me->fsm_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_ONLY, me->args->fsm_sz, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  fsm_mem = clCreateBuffer(context, CL_MEM_READ_ONLY, %lu, NULL, &status) fails with code %d.\n", me->args->fsm_sz, status);
+        return 1;
+    }
+
+    me->init_mask |= IF__FSM_MEM;
+
+    /* Copy memory from host to device */
+
+    status = clEnqueueWriteBuffer(me->cmd_queue, me->scalar_mem, CL_FALSE, 0, me->scalar_sz, me->scalars, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueWriteBuffer(cmd_queue, args_mem, CL_FALSE, 0, %lu, %p, 0, NULL, NULL) fails with code %d.\n", me->scalar_sz, me->scalars, status);
+        return 1;
+    }
+
+    status = clEnqueueWriteBuffer(me->cmd_queue, me->perm_table_mem, CL_FALSE, 0, me->args->perm_table_sz, me->args->perm_table, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueWriteBuffer(cmd_queue, perm_table_mem, CL_FALSE, 0, %lu, %p, 0, NULL, NULL) fails with code %d.\n", me->args->perm_table_sz, me->args->perm_table, status);
+        return 1;
+    }
+
+    status = clEnqueueWriteBuffer(me->cmd_queue, me->fsm_mem, CL_FALSE, 0, me->args->fsm_sz, me->args->fsm, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueWriteBuffer(cmd_queue, fsm_mem, CL_FALSE, 0, %lu, %p, 0, NULL, NULL) fails with code %d.\n", me->args->fsm_sz, me->args->fsm, status);
+        return 1;
+    }
+
+    /* Compile kernel */
+
+    me->program = clCreateProgramWithSource(opencl_state.context, 1, &test_permutations_source, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clCreateProgramWithSource(context, 1, src, NULL, &status) failed with code %d.\n", status);
+        printf("Source:\n%s\n", test_permutations_source);
+        return 1;
+    }
+
+    me->init_mask |= IF__PROGRAM;
+
+    status = clBuildProgram(me->program, 1, &opencl_state.device, NULL, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("Source:\n%s\n", test_permutations_source);
+        printf("  clBuildProgram failed: %d\n", status);
+
+        char msg[0x10000];
+        status = clGetProgramBuildInfo(me->program, opencl_state.device, CL_PROGRAM_BUILD_LOG, 0x10000, msg, NULL);
+        if (status == CL_SUCCESS) {
+            printf("\n%s\n", msg);
+        } else {
+            printf("  clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0x10000, msg, NULL) fails with code %d.", status);
+        }
+
+        return 1;
+    }
+
+    const char * kernel_name = "test_permutations";
+    me->kernel = clCreateKernel(me->program, kernel_name, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clCreateKernel(program, “%s”, &status) fails with code %d.\n", kernel_name, status);
+        return 1;
+    }
+
+    return 0;
+}
+
+void * create_opencl_permutations(const struct opencl_permunation_args * const args)
+{
+    if (!opencl_state.is_init) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  OpenCL is not init.\n");
+        return NULL;
+    }
+
+    size_t sz = sizeof(struct opencl_permutations);
+    void * ptr = malloc(sz);
+    if (ptr == NULL) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  malloc(%lu) failed with NULL as a result value.\n", sz);
+        return NULL;
+    }
+
+    struct opencl_permutations * restrict const me = ptr;
+    me->args = args;
+
+    me->scalars[0] = args->qdata;
+    me->scalars[1] = args->n;
+    me->scalars[2] = args->start_state;
+    me->scalars[3] = args->qparts;
+    me->scalars[4] = 0;
+
+    int status = opencl_permutations_init(me);
+    if (status != 0) {
+        free_opencl_permutations(me);
+        return NULL;
+    }
+
+    return me;
+
+}
+
+void free_opencl_permutations(void * handle)
+{
+    struct opencl_permutations * restrict const me = handle;
+
+    if (me->init_mask & IF__CMD_QUEUE) {
+        clReleaseCommandQueue(me->cmd_queue);
+    }
+
+    if (me->init_mask & IF__SCALAR_MEM) {
+        clReleaseMemObject(me->scalar_mem);
+    }
+
+    if (me->init_mask & IF__PERM_TABLE_MEM) {
+        clReleaseMemObject(me->perm_table_mem);
+    }
+
+    if (me->init_mask & IF__FSM_MEM) {
+        clReleaseMemObject(me->fsm_mem);
+    }
+
+    if (me->init_mask & IF__PROGRAM) {
+        clReleaseProgram(me->program);
+    }
+
+    if (me->init_mask & IF__KERNEL) {
+        clReleaseKernel(me->kernel);
+    }
+
+    free(handle);
+}
+
+int run_opencl_permutations(
+    void * handle,
+    uint64_t qdata,
+    const uint64_t * const data,
+    uint16_t * restrict const report)
+{
+    struct opencl_permutations * restrict const me = handle;
+
+    const uint64_t report_sz = qdata * sizeof(report[0]);
+    const uint64_t data_sz = me->args->qparts * qdata * sizeof(data[0]);
+
+    cl_int status;
+
+    cl_mem data_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_ONLY, data_sz, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY, %lu, NULL, &status) fails with code %d.\n", data_sz, status);
+        return 1;
+    }
+
+    cl_mem report_mem = clCreateBuffer(opencl_state.context, CL_MEM_WRITE_ONLY, report_sz, NULL, &status);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  report_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, %lu, NULL, &status) fails with code %d.\n", report_sz, status);
+        clReleaseMemObject(data_mem);
+        return 1;
+    }
+
+    status = clEnqueueWriteBuffer(me->cmd_queue, data_mem, CL_FALSE, 0, data_sz, data, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueWriteBuffer(cmd_queue, data_mem, CL_FALSE, 0, %lu, %p, 0, NULL, NULL) fails with code %d.\n", data_sz, data, status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    /* Set arguments */
+
+    status = clSetKernelArg(me->kernel, 0, sizeof(cl_mem), &me->scalar_mem);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clSetKernelArg(kernel, 0, %lu, &args_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    status = clSetKernelArg(me->kernel, 1, sizeof(cl_mem), &me->perm_table_mem);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clSetKernelArg(kernel, 1, %lu, &perm_table_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    status = clSetKernelArg(me->kernel, 2, sizeof(cl_mem), &me->fsm_mem);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clSetKernelArg(kernel, 2, %lu, &fsm_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    status = clSetKernelArg(me->kernel, 3, sizeof(cl_mem), &data_mem);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clSetKernelArg(kernel, 3, %lu, &data_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    status = clSetKernelArg(me->kernel, 4, sizeof(cl_mem), &report_mem);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clSetKernelArg(kernel, 4, %lu, &report_mem) fails with code %d.\n", sizeof(cl_mem), status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    /* Run */
+
+    cl_ulong global_work_sz[1] = { qdata };
+    status = clEnqueueNDRangeKernel(me->cmd_queue, me->kernel, 1, NULL, global_work_sz, NULL, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueNDRangeKernel(cmd_queue, kernel, 1, NULL, { %lu }, NULL, 0, NULL, NULL) fails with code %d.\n", global_work_sz[0], status);;
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    /* Get data */
+
+    status = clEnqueueReadBuffer(me->cmd_queue, report_mem, CL_TRUE, 0, report_sz, report, 0, NULL, NULL);
+    if (status != CL_SUCCESS) {
+        printf("[FAIL] (OpenCL)\n");
+        printf("  clEnqueueReadBuffer(cmd_queue, report_mem, CL_TRUE, 0, %lu, report, 0, NULL, NULL) fails with code %d.\n", report_sz, status);
+        clReleaseMemObject(data_mem);
+        clReleaseMemObject(report_mem);
+        return 1;
+    }
+
+    return 0;
+}
+
+
 
 int opencl__test_permutations(
     cl_ulong * restrict args,
@@ -373,6 +683,25 @@ int init_opencl(FILE * err)
 
 void free_opencl(void)
 {
+}
+
+void * create_opencl_permutations(const struct opencl_permunation_args * const args)
+{
+    return NULL;
+}
+
+void free_opencl_permutations(void * handle)
+{
+}
+
+int run_opencl_permutations(
+    void * handle,
+    uint64_t qdata,
+    const uint64_t * const data,
+    uint16_t * restrict const report
+)
+{
+    return 1;
 }
 
 int opencl__test_permutations(

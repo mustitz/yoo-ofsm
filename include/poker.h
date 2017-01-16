@@ -48,6 +48,28 @@ extern int opt_opencl;
 int init_opencl(FILE * err);
 void free_opencl(void);
 
+struct opencl_permunation_args {
+    uint64_t qdata;
+    uint64_t n;
+    uint64_t start_state;
+    uint64_t qparts;
+
+    const int8_t * const perm_table;
+    const uint32_t * const fsm;
+
+    const uint64_t perm_table_sz;
+    const uint64_t fsm_sz;
+};
+
+void * create_opencl_permutations(const struct opencl_permunation_args * const args);
+void free_opencl_permutations(void * handle);
+int run_opencl_permutations(
+    void * handle,
+    uint64_t qdata,
+    const uint64_t * const data,
+    uint16_t * restrict const report
+);
+
 int opencl__test_permutations(
     uint64_t * restrict args,
     const int8_t * const perm_table, const int64_t perm_table_sz,
