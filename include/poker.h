@@ -55,9 +55,9 @@ struct opencl_permunation_args {
     uint64_t qparts;
 
     const int8_t * const perm_table;
-    const uint32_t * const fsm;
-
     const uint64_t perm_table_sz;
+
+    const uint32_t * const fsm;
     const uint64_t fsm_sz;
 };
 

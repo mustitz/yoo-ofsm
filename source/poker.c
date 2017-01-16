@@ -990,24 +990,31 @@ int test_permutations(struct test_data * restrict const me)
             free(data);
         }
 
-        uint64_t args[5];
-        args[0] = qdata;
-        args[1] = qcards_in_hand;
-        args[2] = me->game->qcards_in_deck;
-        args[3] = 1;
-        args[4] = 0;
+        struct opencl_permunation_args args = {
+            .qdata = qdata,
+            .n = qcards_in_hand,
+            .start_state = me->game->qcards_in_deck,
+            .qparts = 1,
+            .perm_table = packed_permutation_table,
+            .perm_table_sz = packed_permutation_table_sz,
+            .fsm = me->fsm,
+            .fsm_sz = me->fsm_sz,
+        };
 
-        int result = opencl__test_permutations(
-            args,
-            packed_permutation_table, packed_permutation_table_sz,
-            me->fsm, me->fsm_sz,
-            data, data_sz,
-            report, report_sz
-        );
+        void * opencl_test = create_opencl_permutations(&args);
+        if (opencl_test == NULL) {
+            free(data);
+            free(report);
+            return 1;
+        }
+
+        int status = run_opencl_permutations(opencl_test, qdata, data, report);
+
+        free_opencl_permutations(opencl_test);
 
         me->counter += qdata;
 
-        if (result == 0) {
+        if (status == 0) {
             const uint16_t * ptr = report;
             for (uint32_t i=0; i<qdata; ++i) {
                 if (ptr[i] != 0) {
@@ -1022,7 +1029,7 @@ int test_permutations(struct test_data * restrict const me)
                     print_hand(me, cards);
                     printf(" has rank %u\n", r);
 
-                    result = 1;
+                    status = 1;
                     break;
                 }
             }
@@ -1030,7 +1037,7 @@ int test_permutations(struct test_data * restrict const me)
 
         free(data);
         free(report);
-        return result;
+        return status;
     }
 
     while (mask < last) {
