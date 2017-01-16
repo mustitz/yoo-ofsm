@@ -990,8 +990,15 @@ int test_permutations(struct test_data * restrict const me)
             free(data);
         }
 
+        uint64_t args[5];
+        args[0] = qdata;
+        args[1] = qcards_in_hand;
+        args[2] = me->game->qcards_in_deck;
+        args[3] = 1;
+        args[4] = 0;
+
         int result = opencl__test_permutations(
-            qcards_in_hand, me->game->qcards_in_deck, qdata,
+            args,
             packed_permutation_table, packed_permutation_table_sz,
             me->fsm, me->fsm_sz,
             data, data_sz,
