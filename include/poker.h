@@ -46,14 +46,14 @@ uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards);
 extern int opt_opencl;
 
 int init_opencl(FILE * err);
-int free_opencl(void);
+void free_opencl(void);
 
 int opencl__test_permutations(
     uint64_t * restrict args,
-    const int8_t * const perm_table, const uint64_t perm_table_sz,
-    const uint32_t * const fsm, const uint64_t fsm_sz,
-    const uint64_t * const data, const uint64_t data_sz,
-    uint16_t * restrict const report, const uint64_t report_sz
+    const int8_t * const perm_table, const int64_t perm_table_sz,
+    const uint32_t * const fsm, const int64_t fsm_sz,
+    const uint64_t * const data, const int64_t data_sz,
+    uint16_t * restrict const report, const int64_t report_sz
 );
 
 

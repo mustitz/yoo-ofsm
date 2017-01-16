@@ -157,11 +157,11 @@ void test_permutations(\n\
 ";
 
 int opencl__test_permutations(
-    cl_ulong * args,
+    cl_ulong * restrict args,
     const cl_char * const perm_table, const cl_long perm_table_sz,
     const cl_uint * const fsm, const cl_long fsm_sz,
     const cl_ulong * const data, const cl_long data_sz,
-    cl_short * restrict const report, const cl_long report_sz)
+    cl_ushort * restrict const report, const cl_long report_sz)
 {
     cl_ulong qdata = args[0];
     size_t args_sz = 5 * sizeof(cl_ulong);
