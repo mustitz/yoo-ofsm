@@ -206,8 +206,6 @@ static inline void init_enumeration(uint64_t * restrict const data, const int * 
         abort();
     }
 
-    const uint64_t last = 1ull << qitems;
-
     uint64_t * restrict const masks = data + 1;
     uint64_t * restrict const start = masks + qparts;
     data[0] = qparts;
@@ -233,7 +231,6 @@ static inline void test_data_init_enumeration(struct test_data * restrict const 
         qparts,
         me->qcards_in_hand1, me->qcards_in_hand2 };
 
-    const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
     init_enumeration(me->enumeration, args);
 }
 
