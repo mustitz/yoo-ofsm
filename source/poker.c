@@ -972,42 +972,29 @@ int test_permutations(struct test_data * restrict const me)
             packed_permutation_table[i] = permutation_table[i];
         }
 
-        const size_t qdata = calc_choose(me->game->qcards_in_deck, qcards_in_hand);
-        const size_t data_sz = qdata * sizeof(uint64_t);
-        uint64_t * data = malloc(data_sz);
-        if (data == NULL) {
+        test_data_init_enumeration(me);
+
+        const unsigned int qparts = me->enumeration[0];
+        const size_t datum_sz = sizeof(uint64_t) * qparts;
+        const size_t data_chunk_sz = 1024 * 1024 * 32; // 32 Mb
+        const size_t chunk_len = data_chunk_sz / datum_sz;
+        const size_t data_sz = chunk_len * datum_sz;
+        const size_t report_sz = chunk_len * sizeof(uint16_t);
+        const size_t sizes[3] = { 0, data_sz, report_sz };
+        void * ptrs[3];
+        multialloc(3, sizes, ptrs, 256);
+        if (ptrs[0] == NULL) {
             printf("[FAIL] (OpenCL)\n");
-            printf("  malloc(%lu) returns NULL.\n", data_sz);
+            printf("  multialloc(3, sizes, ptrs, 256) where sizes = { 0, %lu, %lu } failed with NULL as ptrs[0].\n", data_sz, report_sz);
             return 1;
         }
-
-        const size_t report_sz = qdata * sizeof(uint16_t);
-        uint16_t * restrict report = malloc(report_sz);
-        if (report == NULL) {
-            printf("[FAIL] (OpenCL)\n");
-            printf("  malloc(%lu) returns NULL.\n", report_sz);
-            free(data);
-            return 1;
-        }
-
-        uint64_t * restrict ptr = data;
-        while (mask < last) {
-            *ptr++ = mask;
-            mask = next_combination_mask(mask);
-        }
-
-        if (ptr - data != qdata) {
-            printf("[FAIL] (OpenCL)\n");
-            printf("  Invalid qdata = %lu, calculated value is %lu.\n", qdata, ptr - data);
-            free(report);
-            free(data);
-        }
+        uint16_t * restrict report = ptrs[2];
 
         struct opencl_permunation_args args = {
-            .qdata = qdata,
+            .qdata = 0,
             .n = qcards_in_hand,
             .start_state = me->game->qcards_in_deck,
-            .qparts = 1,
+            .qparts = qparts,
             .perm_table = packed_permutation_table,
             .perm_table_sz = packed_permutation_table_sz,
             .fsm = me->fsm,
@@ -1016,42 +1003,79 @@ int test_permutations(struct test_data * restrict const me)
 
         void * opencl_test = create_opencl_permutations(&args);
         if (opencl_test == NULL) {
-            free(data);
-            free(report);
+            free(ptrs[0]);
             return 1;
         }
 
-        uint64_t qerrors;
-        int status = run_opencl_permutations(opencl_test, qdata, data, report, &qerrors);
+        int status = 0;
+        int64_t qdata = 0;
+        uint64_t * restrict data = ptrs[1];
+        for (;;) {
+            memcpy(data, me->enumeration + 1, datum_sz);
+            data += qparts;
+            ++qdata;
 
-        free_opencl_permutations(opencl_test);
+            int enumeration_status = next_enumeration(me->enumeration);
 
-        me->counter += qdata;
+            if (qdata == chunk_len || enumeration_status != 0) {
 
-        if (status == 0) {
-            const uint16_t * ptr = report;
-            for (uint32_t i=0; i<qdata; ++i) {
-                if (ptr[i] != 0) {
+                data = ptrs[1];
+
+                uint64_t qerrors;
+                status = run_opencl_permutations(opencl_test, qdata, data, report, &qerrors);
+                if (status != 0) {
+                    break;
+                }
+
+                me->counter += qdata;
+
+                int64_t idx_report = -1;
+                for (uint32_t i=0; i<qdata; ++i) {
+                    if (report[i] != 0) {
+                        idx_report = i;
+                        break;
+                    }
+                }
+
+                if (idx_report >= 0 || qerrors > 0) {
                     printf("[FAIL] (OpenCL)\n");
                     printf("  qerrors = %lu\n", qerrors);
-                    printf("  report[%u] = %u is nonzero.\n", i, ptr[i]);
-                    printf("  data[%u] = 0x%016lx is nonzero.\n", i, data[i]);
 
-                    card_t cards[qcards_in_hand];
-                    mask_to_cards(qcards_in_hand, data[i], cards);
-                    uint32_t r = test_data_eval_rank_via_fsm(me, cards);
-                    printf("  Base Hand:");
-                    print_hand(me, cards);
-                    printf(" has rank %u\n", r);
+                    if (idx_report >= 0) {
+                        const int64_t idx_data = idx_report * qparts;
+                        printf("  report[%ld] = %u is nonzero.\n", idx_report, report[idx_report]);
+                        printf("  data[%ld] = 0x%016lx.\n", idx_data, data[idx_data]);
+                        if (qparts > 1) {
+                            printf("  data[%ld] = 0x%016lx.\n", idx_data+1, data[idx_data+1]);
+                        }
+
+                        card_t cards[qcards_in_hand];
+                        mask_to_cards(me->qcards_in_hand1, data[idx_data], cards);
+                        if (qparts > 1) {
+                            mask_to_cards(me->qcards_in_hand2, data[idx_data+1], cards + me->qcards_in_hand1);
+                        }
+
+                        uint32_t r = test_data_eval_rank_via_fsm(me, cards);
+                        printf("  Base Hand:");
+                        print_hand(me, cards);
+                        printf(" has rank %u\n", r);
+                    }
 
                     status = 1;
                     break;
                 }
+
+                qdata = 0;
             }
+
+            if (enumeration_status != 0) {
+                break;
+            }
+
         }
 
-        free(data);
-        free(report);
+        free_opencl_permutations(opencl_test);
+        free(ptrs[0]);
         return status;
     }
 
