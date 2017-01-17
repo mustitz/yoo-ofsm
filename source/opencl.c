@@ -197,7 +197,7 @@ cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
 
     /* Allocate memory on device */
 
-    me->scalar_sz = sizeof(me->args);
+    me->scalar_sz = sizeof(me->scalars);
     me->scalar_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_WRITE, me->scalar_sz, NULL, &status);
     if (status != CL_SUCCESS) {
         printf("[FAIL] (OpenCL)\n");
