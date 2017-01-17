@@ -141,6 +141,8 @@ struct test_data
     user_eval_rank_f * eval_rank_robust;
     const uint32_t * fsm;
     uint64_t fsm_sz;
+    int qparts;
+    uint64_t enumeration[5];
     int * hand_type_stats;
 };
 
@@ -174,6 +176,19 @@ static inline void init_enumeration(uint64_t * restrict const data, const int * 
         masks[i] = (1ull << parts[i]) - 1;
         start[i] = masks[i];
     }
+}
+
+static inline void test_data_init_enumeration(struct test_data * restrict const me)
+{
+    me->qparts = me->qcards_in_hand2 == 0 ? 1 : 2;
+    int args[] = {
+        sizeof(me->enumeration),
+        me->game->qcards_in_deck,
+        me->qparts,
+        me->qcards_in_hand1, me->qcards_in_hand2 };
+
+    const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
+    init_enumeration(me->enumeration, args);
 }
 
 static inline int next_enumeration(uint64_t * restrict const data)
@@ -896,20 +911,11 @@ int test_equivalence(struct test_data * restrict const me)
     static uint64_t saved[9999];
     memset(saved, 0, sizeof(saved));
 
-    uint64_t enumeration[5];
-    const int qparts = me->qcards_in_hand2 == 0 ? 1 : 2;
-    int args[] = {
-        sizeof(enumeration),
-        me->game->qcards_in_deck,
-        qparts,
-        me->qcards_in_hand1, me->qcards_in_hand2 };
-
-    const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
-    init_enumeration(enumeration, args);
+    test_data_init_enumeration(me);
 
     do {
-        const uint64_t mask1 = enumeration[1];
-        const uint64_t mask2 = qparts >= 2 ? enumeration[2] : 0;
+        const uint64_t mask1 = me->enumeration[1];
+        const uint64_t mask2 = me->qparts >= 2 ? me->enumeration[2] : 0;
 
         card_t cards[qcards_in_hand];
         mask_to_cards(me->qcards_in_hand1, mask1, cards);
@@ -921,7 +927,7 @@ int test_equivalence(struct test_data * restrict const me)
         }
 
         ++me->counter;
-    } while (next_enumeration(enumeration) == 0);
+    } while (next_enumeration(me->enumeration) == 0);
 
     return 0;
 }
@@ -1106,20 +1112,11 @@ int test_stats(struct test_data * restrict const me)
         return 1;
     }
 
-    uint64_t enumeration[5];
-    const int qparts = me->qcards_in_hand2 == 0 ? 1 : 2;
-    int args[] = {
-        sizeof(enumeration),
-        me->game->qcards_in_deck,
-        qparts,
-        me->qcards_in_hand1, me->qcards_in_hand2 };
-
-    const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
-    init_enumeration(enumeration, args);
+    test_data_init_enumeration(me);
 
     do {
-        const uint64_t mask1 = enumeration[1];
-        const uint64_t mask2 = qparts >= 2 ? enumeration[2] : 0;
+        const uint64_t mask1 = me->enumeration[1];
+        const uint64_t mask2 = me->qparts >= 2 ? me->enumeration[2] : 0;
 
         card_t cards[qcards_in_hand];
         mask_to_cards(me->qcards_in_hand1, mask1, cards);
@@ -1137,7 +1134,7 @@ int test_stats(struct test_data * restrict const me)
         ++stats[rank];
         ++me->counter;
 
-    } while (next_enumeration(enumeration) == 0);
+    } while (next_enumeration(me->enumeration) == 0);
 
     if (qcards_in_hand == 5) {
         for (int i=1; i<=qranks; ++i) {
