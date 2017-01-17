@@ -150,6 +150,49 @@ struct test_data
 
 /* Enumeration */
 
+static inline int is_valid(const int qparts, const uint64_t * const masks)
+{
+    uint64_t total = masks[0];
+    for (int i=1; i<qparts; ++i) {
+        if (masks[i] & total) {
+            return 0;
+        }
+        total |= masks[i];
+    }
+
+    return 1;
+}
+
+static inline int next_enumeration(uint64_t * restrict const data)
+{
+    const int qparts = data[0];
+
+    uint64_t * restrict const masks = data + 1;
+    const uint64_t * start = masks + qparts;
+    const uint64_t last = start[0];
+
+    for (;;) {
+        for (int i = qparts - 1;;) {
+
+            masks[i] = next_combination_mask(masks[i]);
+            if (masks[i] < last) {
+                break;
+            }
+
+            masks[i] = start[i];
+            --i;
+
+            if (i < 0) {
+                return 1;
+            }
+        }
+
+        if (is_valid(qparts, masks)) {
+            return 0;
+        }
+    }
+}
+
 static inline void init_enumeration(uint64_t * restrict const data, const int * const args)
 {
     const size_t data_sz = args[0];
@@ -176,6 +219,10 @@ static inline void init_enumeration(uint64_t * restrict const data, const int * 
         masks[i] = (1ull << parts[i]) - 1;
         start[i] = masks[i];
     }
+
+    if (!is_valid(qparts, masks)) {
+        next_enumeration(data);
+    }
 }
 
 static inline void test_data_init_enumeration(struct test_data * restrict const me)
@@ -189,45 +236,6 @@ static inline void test_data_init_enumeration(struct test_data * restrict const 
 
     const int parts[2] = { me->qcards_in_hand1, me->qcards_in_hand2 };
     init_enumeration(me->enumeration, args);
-}
-
-static inline int next_enumeration(uint64_t * restrict const data)
-{
-    const uint64_t qparts = data[0];
-
-    uint64_t * restrict const masks = data + 1;
-    const uint64_t * start = masks + qparts;
-    const uint64_t last = start[0];
-
-    for (;;) {
-        for (int i = qparts - 1;;) {
-
-            masks[i] = next_combination_mask(masks[i]);
-            if (masks[i] < last) {
-                break;
-            }
-
-            masks[i] = start[i];
-            --i;
-
-            if (i < 0) {
-                return 1;
-            }
-        }
-
-        uint64_t total = masks[0];
-        int i=1;
-        for (; i<qparts; ++i) {
-            if (masks[i] & total) {
-                break;
-            }
-            total |= masks[i];
-        }
-
-        if (i == qparts) {
-            return 0;
-        }
-    }
 }
 
 
