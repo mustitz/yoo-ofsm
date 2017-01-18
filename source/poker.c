@@ -764,13 +764,6 @@ static inline void print_hand(const struct test_data * const me, const card_t * 
     }
 }
 
-static inline void gen_perm(const int n, card_t * restrict const dest, const card_t * const src, const int * perm)
-{
-    for (int i=0; i<n; ++i) {
-        dest[i] = src[perm[i]];
-    }
-}
-
 
 
 /* Debug hand rank calculations */
@@ -940,34 +933,112 @@ int test_equivalence(struct test_data * restrict const me)
 
 /* Permutation test */
 
-int test_permutations(struct test_data * restrict const me)
+static size_t gen_perm_table(struct test_data * restrict const me, void * ptrs[])
 {
-    /* TODO: Enumerate accoriding qcards_in_hand 1 & 2 */
     const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
 
-    const size_t qpermutations = factorial(qcards_in_hand);
-    const size_t len = qcards_in_hand * (qpermutations + 1);
-    int permutation_table[len];
+    const size_t qperm1 = factorial(me->qcards_in_hand1);
+    const size_t qperm2 = factorial(me->qcards_in_hand2);
+    const size_t qpermutations = qperm1 * qperm2;
 
-    const int q = gen_permutation_table(permutation_table, qcards_in_hand, len);
-    if (q != qpermutations) {
+    const size_t sizes[4] = {
+        0, // Allign
+        (qpermutations+1) * qcards_in_hand * sizeof(int8_t), // It will be used
+        (qperm1+1) * me->qcards_in_hand1 * sizeof(int), // Help array 1
+        (qperm2+1) * me->qcards_in_hand2 * sizeof(int), // Help array 2
+    };
+
+    multialloc(4, sizes, ptrs, 256);
+    if (ptrs[0] == NULL) {
         printf("[FAIL]\n");
-        printf("  Wrong permutation count %d, expected value is %d! = %lu.\n", q, q, qpermutations);
-        return 1;
+        printf("  multialloc(4, sizes, ptrs, 256) with sizes = { %lu, %lu, %lu, %lu } fails with NULL as ptrs[0].\n", sizes[0], sizes[1], sizes[2], sizes[3]);
+        return 0;
     }
 
+    const int q1 = gen_permutation_table(ptrs[2], me->qcards_in_hand1, sizes[2]);
+    if (q1 != qperm1) {
+        printf("[FAIL]\n");
+        printf("  Wrong permutation count1 %d, expected value is %lu.\n", q1, qperm1);
+        free(ptrs[0]);
+        return 0;
+    }
+
+    if (me->qcards_in_hand2 > 0) {
+        const int q2 = gen_permutation_table(ptrs[3], me->qcards_in_hand2, sizes[3]);
+        if (q2 != qperm2) {
+            printf("[FAIL]\n");
+            printf("  Wrong permutation count2 %d, expected value is %lu.\n", q2, qperm2);
+            free(ptrs[0]);
+            return 0;
+        }
+    }
+
+    int8_t * restrict ptr = ptrs[1];
+    const int * perm1 = ptrs[2];
+    for (int i1=0; i1 < qperm1; ++i1) {
+
+        const int * perm2 = ptrs[3];
+        for (int i2=0; i2 < qperm2; ++i2) {
+
+            for (int i=0; i < me->qcards_in_hand1; ++i) {
+                *ptr++ = perm1[i];
+            }
+
+            for (int i=0; i < me->qcards_in_hand2; ++i) {
+                *ptr++ = perm2[i] + me->qcards_in_hand1;
+            }
+
+            perm2 += me->qcards_in_hand2;
+        }
+
+        perm1 += me->qcards_in_hand1;
+    }
+
+    for (int i=0; i<me->qcards_in_hand1; ++i) {
+        *ptr++ = -1;
+    }
+
+    for (int i=0; i<me->qcards_in_hand2; ++i) {
+        *ptr++ = -1;
+    }
+
+    size_t result = ptr_diff(ptrs[1], ptr);
+    if (result == 0) {
+        printf("[FAIL]\n");
+        printf("  Wrong result = 0.\n");
+        free(ptrs[0]);
+        return 0;
+    }
+
+    return result;
+}
+
+static inline void apply_perm(const int n, card_t * restrict const dest, const card_t * const src, const int8_t * const perm)
+{
+    for (int i=0; i<n; ++i) {
+        dest[i] = src[perm[i]];
+    }
+}
+
+int test_permutations(struct test_data * restrict const me)
+{
+    void * perm_ptrs[4];
+    const size_t perm_table_sz = gen_perm_table(me, perm_ptrs);
+    if (perm_table_sz == 0) {
+        return 1;
+    }
+    const int8_t * const perm_table = perm_ptrs[1];
+
+
+
+    const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
     uint64_t mask = (1ull << qcards_in_hand) - 1;
     const uint64_t last = 1ull << me->game->qcards_in_deck;
 
+
+
     if (opt_opencl) {
         me->is_opencl = 1;
-
-        int8_t packed_permutation_table[len];
-        const size_t packed_permutation_table_sz = sizeof(packed_permutation_table);
-
-        for (int i=0; i<len; ++i) {
-            packed_permutation_table[i] = permutation_table[i];
-        }
 
         test_data_init_enumeration(me);
 
@@ -983,6 +1054,7 @@ int test_permutations(struct test_data * restrict const me)
         if (ptrs[0] == NULL) {
             printf("[FAIL] (OpenCL)\n");
             printf("  multialloc(3, sizes, ptrs, 256) where sizes = { 0, %lu, %lu } failed with NULL as ptrs[0].\n", data_sz, report_sz);
+            free(perm_ptrs[0]);
             return 1;
         }
         uint16_t * restrict report = ptrs[2];
@@ -992,8 +1064,8 @@ int test_permutations(struct test_data * restrict const me)
             .n = qcards_in_hand,
             .start_state = me->game->qcards_in_deck,
             .qparts = qparts,
-            .perm_table = packed_permutation_table,
-            .perm_table_sz = packed_permutation_table_sz,
+            .perm_table = perm_table,
+            .perm_table_sz = perm_table_sz,
             .fsm = me->fsm,
             .fsm_sz = me->fsm_sz,
         };
@@ -1001,6 +1073,7 @@ int test_permutations(struct test_data * restrict const me)
         void * opencl_test = create_opencl_permutations(&args);
         if (opencl_test == NULL) {
             free(ptrs[0]);
+            free(perm_ptrs[0]);
             return 1;
         }
 
@@ -1073,6 +1146,7 @@ int test_permutations(struct test_data * restrict const me)
 
         free_opencl_permutations(opencl_test);
         free(ptrs[0]);
+        free(perm_ptrs[0]);
         return status;
     }
 
@@ -1082,10 +1156,10 @@ int test_permutations(struct test_data * restrict const me)
 
         uint32_t rank = test_data_eval_rank_via_fsm(me, cards);
 
-        for (int i=0; i<qpermutations; ++i) {
-            const int * perm = permutation_table + qcards_in_hand * i;
+        for (const int8_t * perm = perm_table; *perm >= 0; perm += qcards_in_hand) {
+
             card_t c[qcards_in_hand];
-            gen_perm(qcards_in_hand, c, cards, perm);
+            apply_perm(qcards_in_hand, c, cards, perm);
             uint32_t r = test_data_eval_rank_via_fsm(me, cards);
 
             if (r != rank) {
@@ -1098,6 +1172,7 @@ int test_permutations(struct test_data * restrict const me)
                 printf("  Current Hand: ");
                 print_hand(me, c);
                 printf(" has rank %u\n", r);
+                free(perm_ptrs[0]);
                 return 1;
             }
         }
@@ -1105,6 +1180,7 @@ int test_permutations(struct test_data * restrict const me)
         mask = next_combination_mask(mask);
     }
 
+    free(perm_ptrs[0]);
     return 0;
 }
 
