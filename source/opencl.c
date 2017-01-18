@@ -100,6 +100,7 @@ void test_permutations(\n\
     const uint start_state = args[2];\n\
     const uint qparts = args[3];\n\
     __global ulong * restrict qerror = args + 4;\n\
+    __global ulong * restrict debug = args + 5;\n\
 \n\
     const uint idx_report = get_global_id(0);\n\
     const uint idx_data = qparts * get_global_id(0);\n\
@@ -107,9 +108,9 @@ void test_permutations(\n\
     report[idx_report] = 0;\n\
 \n\
     uint cards0[12];\n\
+    int j = 0;\n\
     for (uint i=0; i<qparts; ++i) {\n\
         ulong mask = data[idx_data + i];\n\
-        int j = 0;\n\
         while (mask != 0) {\n\
             const ulong one_bit = mask & (-mask);\n\
             mask ^= one_bit;\n\
@@ -118,8 +119,8 @@ void test_permutations(\n\
     }\n\
 \n\
     uint rank0 = start_state;\n\
-    for (uint j=0; j<n; ++j) {\n\
-        rank0 = fsm[rank0 + cards0[j]];\n\
+    for (uint i=0; i<n; ++i) {\n\
+        rank0 = fsm[rank0 + cards0[i]];\n\
     }\n\
 \n\
     if (rank0 == 0) {\n\
@@ -137,13 +138,13 @@ void test_permutations(\n\
             break;\n\
         }\n\
 \n\
-        for (uint j=0; j<n; ++j) {\n\
-            cards[j] = cards0[perm[j]];\n\
+        for (uint i=0; i<n; ++i) {\n\
+            cards[i] = cards0[perm[i]];\n\
         }\n\
 \n\
         uint rank = start_state;\n\
-        for (uint j=0; j<n; ++j) {\n\
-            rank = fsm[rank + cards[j]];\n\
+        for (uint i=0; i<n; ++i) {\n\
+            rank = fsm[rank + cards[i]];\n\
         }\n\
 \n\
         if (rank != rank0) {\n\
@@ -474,6 +475,7 @@ int run_opencl_permutations(
     *qerrors = me->scalars[4];
     clReleaseMemObject(data_mem);
     clReleaseMemObject(report_mem);
+
     return 0;
 }
 

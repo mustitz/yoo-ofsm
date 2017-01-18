@@ -1591,7 +1591,7 @@ int check_omaha_7(void)
     RUN_TEST(&suite, quick_test_omaha_eval_robust);
     RUN_TEST(&suite, quick_test_omaha_eval);
     RUN_TEST(&suite, test_equivalence);
-    // RUN_TEST(&suite, test_permutations);
+    RUN_TEST(&suite, test_permutations);
     RUN_TEST(&suite, test_stats);
 
     print_stats(&suite);
