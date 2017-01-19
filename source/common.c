@@ -427,23 +427,6 @@ static const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int n
 
 
 
-state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs)
-{
-    return do_ofsm_execute(ofsm, n, inputs);
-}
-
-int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
-{
-    return do_ofsm_get_array(ofsm, delta_last, out);
-}
-
-const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output)
-{
-    return do_ofsm_get_path(ofsm, nflake, output);
-}
-
-
-
 static int autoverify(const struct ofsm_builder * const me)
 {
     return (me->flags & OBF__AUTO_VERIFY) ? ofsm_builder_verify(me) : 0;
@@ -504,11 +487,6 @@ static struct ofsm * do_ofsm_builder_get_ofsm(const struct ofsm_builder * me)
     }
 
     return me->stack[me->stack_len - 1];
-}
-
-const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
-{
-    return do_ofsm_builder_get_ofsm(me);
 }
 
 int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
@@ -1211,6 +1189,8 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
     return 0;
 }
 
+
+
 int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f)
 {
     struct ofsm * restrict ofsm = do_ofsm_builder_get_ofsm(me);
@@ -1250,6 +1230,8 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
 
     return autoverify(me);
 }
+
+
 
 static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
 {
@@ -1334,6 +1316,8 @@ static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
     return 0;
 }
 
+
+
 int ofsm_builder_verify(const struct ofsm_builder * const me)
 {
     verbose(me->logstream, "START verification.");
@@ -1348,6 +1332,28 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
 
     verbose(me->logstream, "DONE verification.");
     return 0;
+}
+
+
+
+state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs)
+{
+    return do_ofsm_execute(ofsm, n, inputs);
+}
+
+int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
+{
+    return do_ofsm_get_array(ofsm, delta_last, out);
+}
+
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+{
+    return do_ofsm_builder_get_ofsm(me);
+}
+
+const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output)
+{
+    return do_ofsm_get_path(ofsm, nflake, output);
 }
 
 
