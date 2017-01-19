@@ -1023,12 +1023,12 @@ int ofsm_builder_pack(struct ofsm_builder * restrict const me, pack_func f, cons
 
 
 
-static uint64_t get_first_jump(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+static uint64_t get_first_jump(void * const user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * const path)
 {
     return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
 }
 
-static int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
+static int merge(const unsigned int qinputs, state_t * const restrict a, state_t * restrict const b)
 {
     for (unsigned int i = 0; i < qinputs; ++i) {
         if (a[i] == INVALID_STATE) continue;
@@ -1045,20 +1045,18 @@ static int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict 
     return 1;
 }
 
-static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int nflake, struct flake * restrict flake, hash_func * f)
+static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict const me, const unsigned int nflake, struct flake * restrict const flake, hash_func * f)
 {
-    hash_func * hash = f != NULL ? f : get_first_jump;
-    state_t old_qstates = flake->qstates;
-    input_t qinputs = flake->qinputs;
+    hash_func * const hash = f != NULL ? f : get_first_jump;
+    const state_t old_qstates = flake->qstates;
+    const input_t qinputs = flake->qinputs;
 
 
-    size_t sizes[2];
-    sizes[0] = 0;
-    sizes[1] = old_qstates * sizeof(struct state_info);
+    const size_t sizes[2] = { 0, old_qstates * sizeof(struct state_info) };
 
     void * ptrs[2];
     multialloc(2, sizes, ptrs, 32);
-    void * ptr = ptrs[0];
+    void * const ptr = ptrs[0];
 
     if (ptr == NULL) {
         ERRLOCATION(me->errstream);
@@ -1066,7 +1064,7 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
         return 1;
     }
 
-    struct state_info * state_infos = ptrs[1];
+    struct state_info * const state_infos = ptrs[1];
 
 
 
@@ -1084,7 +1082,7 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
 
         const state_t * jumps = flake->jumps[1];
         struct state_info * restrict ptr = state_infos;
-        const struct state_info * end = state_infos + old_qstates;
+        const struct state_info * const end = state_infos + old_qstates;
         const input_t * path = prev_flake->paths[1];
         const unsigned int path_len = nflake - 1;
         state_t state = 0;
@@ -1095,9 +1093,9 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
             path += path_len;
 
             if ((++counter & 0xFF) == 0) {
-                double now = get_app_age();
+                const double now = get_app_age();
                 if (now - start > 10.0) {
-                    uint64_t processed = ptr - state_infos;
+                    const uint64_t processed = ptr - state_infos;
                     verbose(me->logstream, "    processed %5.2f%% (%lu of %u).", 100.0 * processed / old_qstates, processed, old_qstates);
                     start = now;
                 }
@@ -1120,7 +1118,7 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
         uint64_t counter = 0;
         uint64_t merged = 0;
 
-        const struct state_info * end = state_infos + old_qstates;
+        const struct state_info * const end = state_infos + old_qstates;
         struct state_info * left = state_infos;
 
         while (left != end) {
@@ -1145,7 +1143,7 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
                 left->new = left->old;
 
                 // Try to merge
-                for (struct state_info * ptr = base; ptr != left; ++ptr) {
+                for (const struct state_info * ptr = base; ptr != left; ++ptr) {
 
                     if (ptr->new != ptr->old) {
                         // This state was merged with another one, no sence to merge.
@@ -1153,9 +1151,9 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
                     }
 
                     // Try to merge
-                    state_t * a = flake->jumps[1] + ptr->old * qinputs;
-                    state_t * b = flake->jumps[1] + left->old * qinputs;
-                    int was_merged = merge(qinputs, a, b) != 0;
+                    state_t * const a = flake->jumps[1] + ptr->old * qinputs;
+                    state_t * const b = flake->jumps[1] + left->old * qinputs;
+                    const int was_merged = merge(qinputs, a, b) != 0;
 
                     if (was_merged) {
                         left->new = ptr->new;
@@ -1165,15 +1163,15 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
                 }
 
                 if ((++counter & 0xFFF) == 0) {
-                    double now = get_app_age();
+                    const double now = get_app_age();
                     if (now - start > 60.0) {
-                        uint64_t processed = left - state_infos;
-                        uint64_t total = old_qstates;
-                        double persent = 100.0 * processed / total;
+                        const uint64_t processed = left - state_infos;
+                        const uint64_t total = old_qstates;
+                        const double persent = 100.0 * processed / total;
 
-                        uint64_t chunk_processed = left - base;
-                        uint64_t chunk_total = right - base;
-                        double chunk_persent = 100.0 * chunk_processed / chunk_total;
+                        const uint64_t chunk_processed = left - base;
+                        const uint64_t chunk_total = right - base;
+                        const double chunk_persent = 100.0 * chunk_processed / chunk_total;
 
                         verbose(me->logstream, "    processed total %5.2f%%, this chunk %5.2f%%: total %lu/%lu, chunk %lu/%lu, merged = %lu.",
                             persent, chunk_persent, processed, total, chunk_processed, chunk_total, merged);
@@ -1289,9 +1287,9 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
     return 0;
 }
 
-int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f)
+int ofsm_builder_optimize(struct ofsm_builder * restrict const me, const unsigned int nflake, unsigned int qflakes, hash_func f)
 {
-    struct ofsm * restrict ofsm = do_ofsm_builder_get_ofsm(me);
+    struct ofsm * restrict const ofsm = do_ofsm_builder_get_ofsm(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "ofsm_builder_optimize(me) failed with NULL as error value.");
@@ -1307,20 +1305,20 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
     if (qflakes == 0) --qflakes;
 
     for (unsigned int i = 0; i < qflakes; ++i) {
-        unsigned int current_nflake = nflake - i;
+        const unsigned int current_nflake = nflake - i;
         if (current_nflake <= 0) {
             break;
         }
 
-        struct flake * restrict flake = ofsm->flakes + current_nflake;
+        struct flake * restrict const flake = ofsm->flakes + current_nflake;
         verbose(me->logstream, "START optimize flake %u.", current_nflake);
 
-        int errcode = ofsm_builder_optimize_flake(me, current_nflake, flake, f);
-        if (errcode == 0) {
+        const int status = ofsm_builder_optimize_flake(me, current_nflake, flake, f);
+        if (status == 0) {
             verbose(me->logstream, "DONE optimize flake %u.", current_nflake);
         } else {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "ofsm_builder_optimize_flake(me, flake, f) failed with %d as error code.\n", errcode);
+            msg(me->errstream, "ofsm_builder_optimize_flake(me, flake, f) failed with %d as error code.\n", status);
             verbose(me->logstream, "FAILED optimize flake %u.", current_nflake);
             return 1;
         }
