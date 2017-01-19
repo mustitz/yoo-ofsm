@@ -51,16 +51,6 @@ typedef uint64_t hash_func(void * user_data, const unsigned int qjumps, const st
 
 
 
-state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
-int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
-const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output);
-
-int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
-int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array);
-void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
-
-
-
 struct ofsm_builder
 {
     struct mempool * restrict mempool;
@@ -73,6 +63,8 @@ struct ofsm_builder
     struct choose_table choose;
 };
 
+
+
 struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream);
 void free_ofsm_builder(struct ofsm_builder * restrict me);
 int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out);
@@ -83,5 +75,20 @@ int ofsm_builder_product(struct ofsm_builder * restrict me);
 int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags);
 int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f);
 int ofsm_builder_verify(const struct ofsm_builder * const me);
+
+
+
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me);
+const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output);
+state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
+int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
+
+
+
+int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns);
+int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array);
+void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
+
+
 
 #endif
