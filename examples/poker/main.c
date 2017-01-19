@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <getopt.h>
 #include <string.h>
 
@@ -6,18 +7,27 @@
 
 
 
+#define MAX_PTR_TO_FREE 20
+
+
+
 int opt_check = 0;
 int opt_verbose = 0;
 int opt_help = 0;
 int opt_opencl = -1;
 
+static void * ptrs_to_free[MAX_PTR_TO_FREE];
+static int qptr_to_free = 0;
 
+
+
+/* Utils */
 
 static int create_ofsm(const struct poker_ofsm * const poker_ofsm)
 {
     int status;
 
-    struct ofsm_builder * restrict ob = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const ob = create_ofsm_builder(NULL, stderr);
     if (ob == NULL) {
         fprintf(stderr, "create_ofsm_builder(NULL, stderr) failed with NULL as result value.\n");
         return 1;
@@ -52,24 +62,76 @@ static int create_ofsm(const struct poker_ofsm * const poker_ofsm)
     return status;
 }
 
+void save_binary(const char * const file_name, const char * const name, const struct ofsm_array * const array)
+{
+    const char * const mode = "wb";
+    FILE * f = fopen(file_name, mode);
+    if (f == NULL) {
+        fprintf(stderr, "fopen(“%s”, “%s”) failed with NULL as return value\n", file_name, mode);
+        if (errno != 0) {
+            fprintf(stderr, "  errno = %d: %s\n", errno, strerror(errno));
+        }
+    }
 
+    int errcode = ofsm_array_save_binary(array, f, name);
+    if (errcode != 0) {
+        fprintf(stderr, "ofsm_array_save_binary_array(&array, f, “%s”) failed with %d as error code.\n", name, errcode);
+    }
+
+    if (ferror(f)) {
+        fprintf(stderr, "I/O during saving binary file, ferror(f) returns nonzero.\n");
+    }
+
+    fclose(f);
+}
+
+void * global_malloc(const size_t sz)
+{
+    void * const result = malloc(sz);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    if (qptr_to_free < MAX_PTR_TO_FREE) {
+        ptrs_to_free[qptr_to_free++] = result;
+    } else {
+        fprintf(stderr, "Warning: ptrs_to_free overflow, please increase MAX_PTR_TO_FREE define.\n");
+        fprintf(stderr, "Warning: Current value of MAX_PTR_TO_FREE define is %d.\n", MAX_PTR_TO_FREE);
+    }
+
+    return result;
+}
+
+void global_free(void)
+{
+    for (int i=0; i<qptr_to_free; ++i) {
+        free(ptrs_to_free[i]);
+    }
+}
+
+
+
+/* Parse command line */
 
 static void usage(void)
 {
     printf("%s",
         "USAGE: yoo-build-poker-ofsm [OPTION] table1 [table2 ... tableN]\n"
-        "  --help, -h      Print usage and terminate.\n"
-        "  --verbose, -v   Output an extended logging information to stderr.\n"
+        "  --check, -c       Run poker table verification no generation.\n"
+        "  --help, -h        Print usage and terminate.\n"
+        "  --enable-opencl   Use OpenCL for verification.\n"
+        "  --disable-opencl  Do not use OpenCL for verification.\n"
+        "  --verbose, -v     Output an extended logging information to stderr.\n"
     );
 }
 
 static int parse_command_line(int argc, char * argv[])
 {
-    static struct option long_options[] = {
-        { "enable-opencl", no_argument, &opt_opencl, 1},
-        { "disable-opencl", no_argument, &opt_opencl, 0},
+    static const struct option long_options[] = {
         { "check", no_argument, &opt_check, 1 },
         { "help",  no_argument, &opt_help, 1},
+        { "enable-opencl", no_argument, &opt_opencl, 1},
+        { "disable-opencl", no_argument, &opt_opencl, 0},
         { "verbose", no_argument, &opt_verbose, 1 },
         { NULL, 0, NULL, 0 }
     };
@@ -105,6 +167,8 @@ static int parse_command_line(int argc, char * argv[])
 
 
 
+/* Poker table to generate/check */
+
 #define POKER_OFSM(arg_name, arg_signature, arg_delta, arg_create, arg_check) { \
     .name = arg_name, \
     .file_name = arg_name ".bin", \
@@ -113,7 +177,7 @@ static int parse_command_line(int argc, char * argv[])
     .create = arg_create, \
     .check = arg_check }
 
-struct poker_ofsm poker_ofsms[] = {
+const struct poker_ofsm poker_ofsms[] = {
     POKER_OFSM("six-plus-5", "OFSM Six Plus 5", 1, create_six_plus_5, check_six_plus_5),
     POKER_OFSM("six-plus-7", "OFSM Six Plus 7", 0, create_six_plus_7, check_six_plus_7),
     POKER_OFSM("texas-5", "OFSM Texas 5", 1, create_texas_5, check_texas_5),
@@ -121,8 +185,6 @@ struct poker_ofsm poker_ofsms[] = {
     POKER_OFSM("omaha-7", "OFSM Omaha 7", 0, create_omaha_7, check_omaha_7),
     { NULL, NULL, NULL, 0, NULL, NULL }
 };
-
-
 
 static void print_table_names(void)
 {
@@ -145,8 +207,8 @@ static void print_table_names(void)
         }
 
         if (opt_opencl) {
-            int err = init_opencl(stderr);
-            if (err != 0) {
+            int status = init_opencl(stderr);
+            if (status != 0) {
                 fprintf(stderr, "OpenCL initialization error.\n");
                 opt_opencl = 0;
                 return 1;
@@ -224,7 +286,7 @@ int main(int argc, char * argv[])
     if (opt_check) {
         for (int j=0; j<qcalls; ++j) {
             check_func call = call_list[j]->check;
-            int status = call();
+            const int status = call();
             if (status != 0) {
                 exit_code = 1;
                 break;
@@ -232,14 +294,13 @@ int main(int argc, char * argv[])
         }
     } else {
         for (int j=0; j<qcalls; ++j) {
-            int status = create_ofsm(call_list[j]);
+            const int status = create_ofsm(call_list[j]);
             if (status != 0) {
                 exit_code = 1;
                 break;
             }
         }
     }
-
 
     global_free();
     free_opencl();
