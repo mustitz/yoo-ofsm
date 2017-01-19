@@ -34,6 +34,21 @@ struct ofsm
     struct flake * flakes;
 };
 
+struct ofsm_pack_decode {
+    state_t output;
+    pack_value_t value;
+};
+
+struct state_info
+{
+    state_t old;
+    state_t new;
+    uint64_t hash;
+    state_t index;
+};
+
+
+
 static const struct flake zero_flake = { 0, 0, 1, { NULL, NULL }, { NULL, NULL } };
 
 
@@ -227,11 +242,6 @@ static state_t calc_comb_index(const struct choose_table * ct, const input_t * i
     return result;
 }
 
-struct ofsm_pack_decode {
-    state_t output;
-    pack_value_t value;
-};
-
 static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
 {
     const struct ofsm_pack_decode * a = arg_a;
@@ -242,16 +252,6 @@ static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
     if (a->output > b->output) return +1;
     return 0;
 }
-
-
-
-struct state_info
-{
-    state_t old;
-    state_t new;
-    uint64_t hash;
-    state_t index;
-};
 
 static int cmp_state_info(const void * arg_a, const void * arg_b)
 {
