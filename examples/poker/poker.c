@@ -88,7 +88,7 @@ static inline uint32_t eval_omaha_rank7_via_fsm7(const card_t * const cards)
 
 /* Game data */
 
-typedef uint64_t user_eval_rank_f(void * user_data, const card_t * cards);
+typedef uint64_t user_eval_rank_f(const card_t * cards);
 typedef uint64_t eval_rank_robust_f(const card_t * cards);
 typedef uint32_t eval_rank_f(const card_t * cards);
 
@@ -784,12 +784,12 @@ static inline uint32_t test_data_eval_rank_via_fsm(const struct test_data * cons
     return eval_rank_via_fsm(qcards_in_hand, cards, me->fsm, me->game->qcards_in_deck);
 }
 
-pack_value_t eval_rank5_via_robust_for_deck36_as64(void * user_data, const card_t * const cards)
+pack_value_t eval_rank5_via_robust_for_deck36_as64(const card_t * const cards)
 {
     return eval_rank5_via_robust_for_deck36(cards);
 }
 
-pack_value_t eval_rank5_via_robust_for_deck52_as64(void * user_data, const card_t * const cards)
+pack_value_t eval_rank5_via_robust_for_deck52_as64(const card_t * const cards)
 {
     return eval_rank5_via_robust_for_deck52(cards);
 }
@@ -808,7 +808,7 @@ static int quick_test_for_eval_rank(struct test_data * restrict const me, const 
 
     const card_t * current = hands;
     for (; *current != 0xFF; current += qcards_in_hand) {
-        const uint64_t rank = eval(NULL, current);
+        const uint64_t rank = eval(current);
         if (rank < prev_rank) {
             printf("[FAIL]\n");
             printf("  Wrong order!\n");
@@ -846,8 +846,8 @@ static inline int quick_test(struct test_data * restrict const me, const card_t 
 
 int equivalence_check_rank(struct test_data * restrict const me, const card_t * const cards, uint64_t * restrict const saved)
 {
-    const uint64_t rank1 = me->eval_rank(NULL, cards);
-    const uint64_t rank2 = me->eval_rank_robust(NULL, cards);
+    const uint64_t rank1 = me->eval_rank(cards);
+    const uint64_t rank2 = me->eval_rank_robust(cards);
 
     if (rank1 <= 0 || rank1 > 9999) {
         printf("[FAIL]\n");
@@ -1227,7 +1227,7 @@ int test_stats(struct test_data * restrict const me)
         mask_to_cards(me->qcards_in_hand1, mask1, cards);
         mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
 
-        const uint32_t rank = me->eval_rank(NULL, cards);
+        const uint32_t rank = me->eval_rank(cards);
         if (rank < 0 || rank > qranks) {
             printf("[FAIL]\n");
             printf("Invalid rank = %u for hand:", rank);
@@ -1340,7 +1340,7 @@ static int quick_test_six_plus_eval_rank5(struct test_data * restrict const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand5_for_deck36);
 }
 
-static uint64_t eval_six_plus_rank5_via_fsm5_as64(void * const user_data, const card_t * const cards)
+static uint64_t eval_six_plus_rank5_via_fsm5_as64(const card_t * const cards)
 {
     return eval_six_plus_rank5_via_fsm5(cards);
 }
@@ -1391,12 +1391,12 @@ static int quick_test_six_plus_eval_rank7(struct test_data * restrict const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_deck36);
 }
 
-static uint64_t eval_six_plus_rank7_via_fsm7_as64(void * const user_data, const card_t * const cards)
+static uint64_t eval_six_plus_rank7_via_fsm7_as64(const card_t * const cards)
 {
     return eval_six_plus_rank7_via_fsm7(cards);
 }
 
-static uint64_t eval_six_plus_rank7_via_fsm5_brutte_as64(void * const user_data, const card_t * const cards)
+static uint64_t eval_six_plus_rank7_via_fsm5_brutte_as64(const card_t * const cards)
 {
     return eval_via_perm(eval_six_plus_rank5_via_fsm5, cards, get_perm_5_from_7());
 }
@@ -1448,7 +1448,7 @@ static int quick_test_texas_eval_rank5(struct test_data * restrict const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand5_for_deck52);
 }
 
-static uint64_t eval_texas_rank5_via_fsm5_as64(void * const user_data, const card_t * const cards)
+static uint64_t eval_texas_rank5_via_fsm5_as64(const card_t * const cards)
 {
     return eval_texas_rank5_via_fsm5(cards);
 }
@@ -1499,12 +1499,12 @@ static int quick_test_texas_eval_rank7(struct test_data * restrict const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_deck52);
 }
 
-static uint64_t eval_texas_rank7_via_fsm7_as64(void * const user_data, const card_t * const cards)
+static uint64_t eval_texas_rank7_via_fsm7_as64(const card_t * const cards)
 {
     return eval_texas_rank7_via_fsm7(cards);
 }
 
-static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(void * const user_data, const card_t * const cards)
+static uint64_t eval_texas_rank7_via_fsm5_brutte_as64(const card_t * const cards)
 {
     return eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_perm_5_from_7());
 }
@@ -1557,12 +1557,12 @@ static int quick_test_omaha_eval(struct test_data * restrict const me)
     return quick_test_for_eval_rank(me, 0, quick_ordered_hand7_for_omaha);
 }
 
-static uint64_t eval_omaha_rank7_via_fsm7_as64(void * const user_data, const card_t * cards)
+static uint64_t eval_omaha_rank7_via_fsm7_as64(const card_t * cards)
 {
     return eval_omaha_rank7_via_fsm7(cards);
 }
 
-static uint64_t eval_omaha_rank7_via_fsm5_brutte_as64(void * const user_data, const card_t * cards)
+static uint64_t eval_omaha_rank7_via_fsm5_brutte_as64(const card_t * cards)
 {
     return eval_via_perm(eval_texas_rank5_via_fsm5, cards, get_omaha_perm_5_from_7());
 }
