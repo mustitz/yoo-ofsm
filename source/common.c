@@ -757,7 +757,7 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict const me, const input_
 
 
 
-int ofsm_builder_product(struct ofsm_builder * restrict me)
+int ofsm_builder_product(struct ofsm_builder * restrict const me)
 {
     verbose(me->logstream, "START product.");
 
@@ -768,15 +768,15 @@ int ofsm_builder_product(struct ofsm_builder * restrict me)
         return 1;
     }
 
-    struct ofsm * restrict ofsm1 = me->stack[me->stack_len - 2];
-    struct ofsm * restrict ofsm2 = me->stack[me->stack_len - 1];
+    struct ofsm * restrict const ofsm1 = me->stack[me->stack_len - 2];
+    struct ofsm * restrict const ofsm2 = me->stack[me->stack_len - 1];
 
-    unsigned int saved_qflakes1 = ofsm1->qflakes;
+    const unsigned int saved_qflakes1 = ofsm1->qflakes;
     const struct flake * const last1 = ofsm1->flakes + saved_qflakes1 - 1;
 
     for (int nflake2 = 1; nflake2 < ofsm2->qflakes; ++nflake2) {
-        const struct flake * flake2 = ofsm2->flakes + nflake2;
-        struct flake * restrict flake1 = ofsm_create_flake(ofsm1, flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
+        const struct flake * const flake2 = ofsm2->flakes + nflake2;
+        struct flake * restrict const flake1 = ofsm_create_flake(ofsm1, flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
         if (flake1 == NULL) {
             ERRLOCATION(me->errstream);
             msg(me->errstream, "ofsm_create_flake(ofsm1, %u, %u, %u) failed with NULL as result.", flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
@@ -801,8 +801,8 @@ int ofsm_builder_product(struct ofsm_builder * restrict me)
         }
 
         input_t * path1 = flake1->paths[1];
-        unsigned int head_len = saved_qflakes1 - 1;
-        unsigned int tail_len = nflake2;
+        const unsigned int head_len = saved_qflakes1 - 1;
+        const unsigned int tail_len = nflake2;
 
         const input_t * head = last1->paths[1];
         for (unsigned int output1 = 0; output1 < last1->qoutputs; ++output1) {
