@@ -325,7 +325,7 @@ static state_t do_ofsm_execute(const struct ofsm * me, unsigned int n, const inp
 
 
 
-int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
+static int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
 {
     memset(out, 0, sizeof(struct ofsm_array));
 
@@ -452,7 +452,7 @@ int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array 
 
 
 
-const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, state_t output)
+static const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, state_t output)
 {
     if (nflake <= 0 || nflake >= ofsm->qflakes) {
         ERRLOCATION(stderr);
@@ -541,7 +541,7 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
     }
 }
 
-struct ofsm * do_ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+static struct ofsm * do_ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 {
     if (me->stack_len == 0) {
         ERRLOCATION(me->errstream);
@@ -1013,7 +1013,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 
 
 
-int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int nflake, struct flake * restrict flake, hash_func * f)
+static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int nflake, struct flake * restrict flake, hash_func * f)
 {
     hash_func * hash = f != NULL ? f : get_first_jump;
     state_t old_qstates = flake->qstates;
