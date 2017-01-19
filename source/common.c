@@ -144,21 +144,19 @@ static int calc_paths(const struct flake * const flake, const unsigned int nflak
 
 /* OFSM methods */
 
-static struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_flakes)
+static struct ofsm * create_ofsm(struct mempool * restrict const mempool, const unsigned int arg_max_flakes)
 {
-    if (max_flakes == 0) {
-        max_flakes = 32;
-    }
+    const unsigned int max_flakes = arg_max_flakes != 0 ? arg_max_flakes : 32;
 
-    struct ofsm * ofsm = mempool_alloc(mempool, sizeof(struct ofsm));
+    struct ofsm * restrict const ofsm = mempool_alloc(mempool, sizeof(struct ofsm));
     if (ofsm == NULL) {
         ERRLOCATION(stderr);
         msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct ofsm));
         return NULL;
     }
 
-    size_t sz = max_flakes * sizeof(struct flake);
-    struct flake * flakes = mempool_alloc(mempool, sz);
+    const size_t sz = max_flakes * sizeof(struct flake);
+    struct flake * restrict const flakes = mempool_alloc(mempool, sz);
     if (flakes == NULL) {
         ERRLOCATION(stderr);
         msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sz);
@@ -174,19 +172,18 @@ static struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int
     return ofsm;
 }
 
-static void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
+static void ofsm_truncate(struct ofsm * restrict const me, const unsigned int qflakes)
 {
-    void * ptr;
     for (unsigned int i=qflakes; i<me->qflakes; ++i) {
 
-        ptr = me->flakes[i].jumps[0];
-        if (ptr != NULL) {
-            free(ptr);
+        void * const jump_ptr = me->flakes[i].jumps[0];
+        if (jump_ptr != NULL) {
+            free(jump_ptr);
         }
 
-        ptr = me->flakes[i].paths[0];
-        if (ptr) {
-            free(ptr);
+        void * const path_ptr = me->flakes[i].paths[0];
+        if (path_ptr) {
+            free(path_ptr);
         }
     }
 
