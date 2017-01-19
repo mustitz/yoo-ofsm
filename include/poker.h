@@ -116,5 +116,7 @@ int check_texas_7(void);
 int create_omaha_7(struct ofsm_builder * restrict ob);
 int check_omaha_7(void);
 
+void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
 int debug_something(void);
+
 #endif
