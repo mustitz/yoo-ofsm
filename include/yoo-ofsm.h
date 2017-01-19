@@ -14,14 +14,18 @@
 #define state_t         uint32_t
 #define pack_value_t    uint64_t
 
-#define PACK_FLAG__SKIP_RENUMERING     1
-
 #define INVALID_INPUT ((input_t)(~0))
 #define INVALID_STATE ((state_t)(~0))
 #define INVALID_PACK_VALUE ((pack_value_t)(~0))
 #define INVALID_HASH (~0ull)
 
 #define OFSM_STACK_SZ   16
+
+#define PACK_FLAG__SKIP_RENUMERING     1
+
+#define OBF__OWN_MEMPOOL    1
+#define OBF__AUTO_VERIFY    2
+
 
 
 struct ofsm_array
@@ -39,6 +43,7 @@ struct array_header
     uint32_t qflakes;
     uint64_t len;
 };
+
 
 
 typedef void build_script_func(void * script);
@@ -64,9 +69,6 @@ int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array 
 void save_binary(const char * file_name, const char * name, const struct ofsm_array * array);
 
 
-
-#define OBF__OWN_MEMPOOL    1
-#define OBF__AUTO_VERIFY    2
 
 struct ofsm_builder
 {
