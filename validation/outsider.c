@@ -56,24 +56,24 @@ struct test_item tests[] = {
 
 struct test_item * current_test;
 
-void print_tests()
+static void print_tests(void)
 {
-    struct test_item * current = tests;
+    const struct test_item * current = tests;
     for (; current->name != NULL; ++current) {
         printf("%s\n", current->name);
     }
 }
 
-void run_test_item(const struct test_item * item)
+static void run_test_item(const struct test_item * const item)
 {
     printf("Run test “%s”.\n", item->name);
-    int code = (*item->func)();
-    if (code) {
-        exit(code);
+    const int status = (*item->func)();
+    if (status != 0) {
+        exit(status);
     }
 }
 
-void run_test(const char * name)
+static void run_test(const char * const name)
 {
     for (current_test = tests; current_test->name != NULL; ++current_test) {
         if (strcmp(name, current_test->name) == 0) {
@@ -106,7 +106,7 @@ int main(int argc, char * argv[])
 
 
 
-static void print_path(const char * prefix, const input_t * path, size_t len)
+static void print_path(const char * const prefix, const input_t * const path, const size_t len)
 {
     fprintf(stderr, "%s", prefix);
     for (size_t i=0; i<len; ++i) {
@@ -117,9 +117,9 @@ static void print_path(const char * prefix, const input_t * path, size_t len)
 
 
 
-static unsigned int run_array(const struct ofsm_array * array, const input_t * input)
+static unsigned int run_array(const struct ofsm_array * const array, const input_t * const input)
 {
-    unsigned int n = array->qflakes;
+    const unsigned int n = array->qflakes;
     unsigned int current = array->start_from;
     for (unsigned int i=0; i<n; ++i) {
         current = array->array[current + input[i]];
@@ -129,12 +129,12 @@ static unsigned int run_array(const struct ofsm_array * array, const input_t * i
 
 
 
-static pack_value_t mod7(void * user_data, unsigned int n, const input_t * path)
+static pack_value_t mod7(void * const user_data, const unsigned int n, const input_t * const path)
 {
     return ((3*path[0] + path[1] + path[2]) % 7) + 11;
 }
 
-static uint64_t rnd_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t rnd_hash(void * const user_data, const unsigned int qjumps, const state_t * const jumps, const unsigned int path_len, const input_t * const path)
 {
     uint64_t result = 0;
     for (unsigned int i = 0; i < 1; ++i) {
@@ -143,12 +143,12 @@ static uint64_t rnd_hash(void * user_data, unsigned int qjumps, const state_t * 
     return result % 2;
 }
 
-static uint64_t zero_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t zero_hash(void * const user_data, const unsigned int qjumps, const state_t * const jumps, const unsigned int path_len, const input_t * const path)
 {
     return 0;
 }
 
-static uint64_t invalid_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t invalid_hash(void * const user_data, const unsigned int qjumps, const state_t * const jumps, const unsigned int path_len, const input_t * const path)
 {
     return INVALID_HASH;
 }
@@ -157,8 +157,8 @@ static uint64_t invalid_hash(void * user_data, unsigned int qjumps, const state_
 
 int empty_builder_test(void)
 {
-    struct mempool * restrict mempool = create_mempool(2000);
-    struct ofsm_builder * restrict ofsm_builder = create_ofsm_builder(mempool, stderr);
+    struct mempool * restrict const mempool = create_mempool(2000);
+    struct ofsm_builder * restrict const ofsm_builder = create_ofsm_builder(mempool, stderr);
     free_ofsm_builder(ofsm_builder);
     free_mempool(mempool);
     return 0;
@@ -177,7 +177,7 @@ int pow_41_test(void)
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -198,12 +198,12 @@ int pow_41_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0]) {
-        state_t value = run_array(&array, c);
-        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        const state_t value = run_array(&array, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
         if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
@@ -223,13 +223,13 @@ int pow_41_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -265,7 +265,7 @@ int pow_42_test(void)
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -286,13 +286,13 @@ int pow_42_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
-        state_t value = run_array(&array, c);
-        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        const state_t value = run_array(&array, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
         if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
@@ -312,13 +312,13 @@ int pow_42_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -354,7 +354,7 @@ int comb_42_test(void)
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -375,13 +375,13 @@ int comb_42_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<4; ++c[1]) {
-        state_t value = run_array(&array, c);
-        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        const state_t value = run_array(&array, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
         if (c[0] == c[1]) {
             if (value != 0) {
@@ -417,13 +417,13 @@ int comb_42_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -459,7 +459,7 @@ int comb_55_test(void)
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -480,7 +480,7 @@ int comb_55_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<5; ++c[0])
@@ -488,10 +488,10 @@ int comb_55_test(void)
     for (c[2]=0; c[2]<5; ++c[2])
     for (c[3]=0; c[3]<5; ++c[3])
     for (c[4]=0; c[4]<5; ++c[4]) {
-        unsigned value = run_array(&array, c);
-        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        const unsigned int value = run_array(&array, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
-        unsigned int mask = 0
+        const unsigned int mask = 0
             | (1 << c[0])
             | (1 << c[1])
             | (1 << c[2])
@@ -533,13 +533,13 @@ int comb_55_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -575,7 +575,7 @@ int pow_41_pow_51_test(void)
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -608,13 +608,13 @@ int pow_41_pow_51_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1]) {
-        state_t value = run_array(&array, c);
-        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        const state_t value = run_array(&array, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
         if (value < DELTA || value >= QOUTS + DELTA) {
             fprintf(stderr, "Invalid value (%u) after run_array, out of range 1 - %u.\n", value, QOUTS);
@@ -634,13 +634,13 @@ int pow_41_pow_51_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -676,7 +676,7 @@ int pow_41_comb_52_test(void)
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -709,7 +709,7 @@ int pow_41_comb_52_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
@@ -752,13 +752,13 @@ int pow_41_comb_52_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -791,7 +791,7 @@ int pack_test(void)
 
     int status;
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -830,15 +830,15 @@ int pack_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        unsigned int value = run_array(&array, c);
+        const unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
             if (value != 0) {
                 fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
@@ -873,13 +873,13 @@ int pack_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -887,7 +887,7 @@ int pack_test(void)
             return 1;
         }
 
-        pack_value_t expected = (3*c[0] + c[1] + c[2]) % 7;
+        const pack_value_t expected = (3*c[0] + c[1] + c[2]) % 7;
         if (expected != state) {
             fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
@@ -909,7 +909,7 @@ int pack_without_renum_test(void)
 
     int status;
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -948,15 +948,15 @@ int pack_without_renum_test(void)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        unsigned int value = run_array(&array, c);
+        const unsigned int value = run_array(&array, c);
 
-        int state = ofsm_execute(ofsm, NFLAKE, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
         if (c[1] == c[2]) {
             if (value != 0) {
                 fprintf(stderr, "Invalid value (%u) after run_array: should be 0 via invalid path.", value);
@@ -979,13 +979,13 @@ int pack_without_renum_test(void)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -993,7 +993,7 @@ int pack_without_renum_test(void)
             return 1;
         }
 
-        pack_value_t expected = mod7(NULL, NFLAKE, c);
+        const pack_value_t expected = mod7(NULL, NFLAKE, c);
         if (expected != state) {
             fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
@@ -1016,7 +1016,7 @@ int optimize_test_with_hash(hash_func hash)
 
     int status;
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
@@ -1061,14 +1061,14 @@ int optimize_test_with_hash(hash_func hash)
         return 1;
     }
 
-    const void * ofsm = ofsm_builder_get_ofsm(me);
+    const void * const ofsm = ofsm_builder_get_ofsm(me);
 
     input_t c[NFLAKE];
     for (c[0]=0; c[0]<4; ++c[0])
     for (c[1]=0; c[1]<5; ++c[1])
     for (c[2]=0; c[2]<5; ++c[2]) {
-        state_t value = run_array(&array, c);
-        state_t state = ofsm_execute(ofsm, NFLAKE, c);
+        const unsigned int value = run_array(&array, c);
+        const state_t state = ofsm_execute(ofsm, NFLAKE, c);
 
         if (c[1] == c[2]) {
             continue;
@@ -1092,13 +1092,13 @@ int optimize_test_with_hash(hash_func hash)
             return 1;
         }
 
-        const input_t * path = ofsm_get_path(ofsm, NFLAKE, state);
+        const input_t * const path = ofsm_get_path(ofsm, NFLAKE, state);
         if (path == NULL) {
             fprintf(stderr, "ofsm_get_path(ofsm, %u) failed with NULL as result.\n", state);
             return 1;
         }
 
-        state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
+        const state_t state2 = ofsm_execute(ofsm, NFLAKE, path);
         if (state != state2) {
             fprintf(stderr, "Invalid path in OFSM, state = %u, state2 = %u.\n", state, state2);
             print_path("input =", c, NFLAKE);
@@ -1106,7 +1106,7 @@ int optimize_test_with_hash(hash_func hash)
             return 1;
         }
 
-        size_t expected = (3*c[0] + c[1] + c[2]) % 7;
+        const size_t expected = (3*c[0] + c[1] + c[2]) % 7;
         if (expected != state) {
             fprintf(stderr, "Unexpected state (%u) after script_execute: expected %lu.\n", state, expected);
             print_path("input =", c, NFLAKE);
@@ -1140,13 +1140,13 @@ int optimize_with_invalid_hash_test(void)
     return optimize_test_with_hash(invalid_hash);
 }
 
-pack_value_t sum_with_bonus(void * user_data, unsigned int n, const input_t * path)
+pack_value_t sum_with_bonus(void * const user_data, const unsigned int n, const input_t * const path)
 {
     unsigned int sum = 0;
     unsigned int mask = 0;
     for (int i=0; i<n; ++i) {
-        unsigned int value = path[i] / 2;
-        unsigned int type = path[i] % 2;
+        const unsigned int value = path[i] / 2;
+        const unsigned int type = path[i] % 2;
         mask |= 1 << type;
         sum += value;
     }
@@ -1158,13 +1158,13 @@ pack_value_t sum_with_bonus(void * user_data, unsigned int n, const input_t * pa
     return sum;
 }
 
-static uint64_t forget_hash(void * user_data, unsigned int qjumps, const state_t * jumps, unsigned int path_len, const input_t * path)
+static uint64_t forget_hash(void * const user_data, const unsigned int qjumps, const state_t * const jumps, const unsigned int path_len, const input_t * const path)
 {
     unsigned int sum = 0;
     unsigned int mask = 0;
     for (int i=0; i<path_len; ++i) {
-        unsigned int value = path[i] / 2;
-        unsigned int type = path[i] % 2;
+        const unsigned int value = path[i] / 2;
+        const unsigned int type = path[i] % 2;
         mask |= 1 << type;
         sum += value;
     }
@@ -1176,7 +1176,7 @@ int optimize_with_hash_path_test(void)
 {
     int status;
 
-    struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
+    struct ofsm_builder * restrict const me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
         fprintf(stderr, "create_ofsm_builder failed with NULL as a error value.");
         return 1;
