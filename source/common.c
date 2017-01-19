@@ -81,7 +81,7 @@ static int cmp_state_info(const void * const arg_a, const void * const arg_b)
 
 /* Utils */
 
-static int calc_paths(const struct flake * flake, unsigned int nflake)
+static int calc_paths(const struct flake * const flake, const unsigned int nflake)
 {
     const input_t qinputs = flake->qinputs;
     const state_t qstates = flake->qstates;
@@ -92,7 +92,7 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
         // To catch errors we fill data
 
         input_t * restrict ptr = flake->paths[1];
-        const input_t * end = ptr + nflake * qoutputs;
+        const input_t * const end = ptr + nflake * qoutputs;
         for (; ptr != end; ++ptr) {
             *ptr = INVALID_INPUT;
         }
@@ -110,18 +110,18 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
         return 1;
     }
 
-    const struct flake * prev = flake - 1;
+    const struct flake * const prev = flake - 1;
     const state_t * data_ptr = flake->jumps[1];
 
     if (nflake > 1) {
 
         // Common version
         for (state_t state=0; state<qstates; ++state) {
-            const input_t * base = prev->paths[1] + state * (nflake-1);
+            const input_t * const base = prev->paths[1] + state * (nflake-1);
             for (input_t input=0; input < qinputs; ++input) {
-                state_t output = *data_ptr++;
+                const state_t output = *data_ptr++;
                 if (output == INVALID_STATE) continue;
-                input_t * restrict ptr = flake->paths[1] + output * nflake;
+                input_t * restrict const ptr = flake->paths[1] + output * nflake;
                 memcpy(ptr, base, (nflake-1) * sizeof(input_t));
                 ptr[nflake-1] = input;
             }
@@ -131,8 +131,8 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
 
         // Optimized version, only one state, no copying previous paths
         for (input_t input=0; input < qinputs; ++input) {
-            state_t output = *data_ptr++;
-            input_t * restrict ptr = flake->paths[1] + output;
+            const state_t output = *data_ptr++;
+            input_t * restrict const ptr = flake->paths[1] + output;
             *ptr = input;
         }
     }
