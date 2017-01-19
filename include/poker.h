@@ -27,7 +27,7 @@ typedef uint32_t card_t;
 
 
 
-extern const char * suite_str;
+extern const char * const suite_str;
 extern const char * const card36_str[];
 extern const char * const nominal36_str;
 extern const char * const card52_str[];
@@ -39,8 +39,9 @@ extern const card_t quick_ordered_hand5_for_deck52[];
 extern const card_t quick_ordered_hand7_for_deck52[];
 extern const card_t quick_ordered_hand7_for_omaha[];
 
-uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards);
-uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards);
+uint64_t eval_rank5_via_robust_for_deck36(const card_t * const cards);
+uint64_t eval_rank5_via_robust_for_deck52(const card_t * const cards);
+
 
 
 extern int opt_opencl;
@@ -96,19 +97,19 @@ struct poker_ofsm
 
 
 
-int create_six_plus_5(struct ofsm_builder * restrict ob);
+int create_six_plus_5(struct ofsm_builder * restrict const ob);
 int check_six_plus_5(void);
 
-int create_six_plus_7(struct ofsm_builder * restrict ob);
+int create_six_plus_7(struct ofsm_builder * restrict const ob);
 int check_six_plus_7(void);
 
-int create_texas_5(struct ofsm_builder * restrict ob);
+int create_texas_5(struct ofsm_builder * restrict const ob);
 int check_texas_5(void);
 
-int create_texas_7(struct ofsm_builder * restrict ob);
+int create_texas_7(struct ofsm_builder * restrict const ob);
 int check_texas_7(void);
 
-int create_omaha_7(struct ofsm_builder * restrict ob);
+int create_omaha_7(struct ofsm_builder * restrict const ob);
 int check_omaha_7(void);
 
 int debug_something(void);
