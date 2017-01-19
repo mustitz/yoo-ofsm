@@ -406,32 +406,6 @@ static int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, 
 
 
 
-int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array)
-{
-    struct array_header header;
-    memset(header.name, 0, 16);
-    header.start_from = array->start_from;
-    header.qflakes = array->qflakes;
-    header.len = array->len;
-    strncpy(header.name, name, 16);
-
-    size_t sz = sizeof(struct array_header);
-    size_t written = fwrite(&header, 1, sz, f);
-    if (written != sz) {
-        return 1;
-    }
-
-    sz = header.len * sizeof(uint32_t);
-    written = fwrite(array->array, 1, sz, f);
-    if (written != sz) {
-        return 1;
-    }
-
-    return 0;
-}
-
-
-
 static const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int nflake, state_t output)
 {
     if (nflake <= 0 || nflake >= ofsm->qflakes) {
@@ -1394,6 +1368,30 @@ int ofsm_array_print(const struct ofsm_array * array, FILE * f, const char * nam
         fprintf(f, ",%s %u", delimeter, *ptr);
     }
     fprintf(f, "\n};\n");
+
+    return 0;
+}
+
+int ofsm_array_save_binary(const struct ofsm_array * array, FILE * f, const char * name)
+{
+    struct array_header header;
+    memset(header.name, 0, 16);
+    header.start_from = array->start_from;
+    header.qflakes = array->qflakes;
+    header.len = array->len;
+    strncpy(header.name, name, 16);
+
+    size_t sz = sizeof(struct array_header);
+    size_t written = fwrite(&header, 1, sz, f);
+    if (written != sz) {
+        return 1;
+    }
+
+    sz = header.len * sizeof(uint32_t);
+    written = fwrite(array->array, 1, sz, f);
+    if (written != sz) {
+        return 1;
+    }
 
     return 0;
 }

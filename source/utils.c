@@ -16,9 +16,9 @@ void save_binary(const char * file_name, const char * name, const struct ofsm_ar
         }
     }
 
-    int errcode = ofsm_save_binary_array(f, name, array);
+    int errcode = ofsm_array_save_binary(array, f, name);
     if (errcode != 0) {
-        fprintf(stderr, "ofsm_save_binary_array(f, &Array) failed with %d as error code.\n", errcode);
+        fprintf(stderr, "ofsm_array_save_binary_array(&array, f, “%s”) failed with %d as error code.\n", name, errcode);
     }
 
     if (ferror(f)) {
