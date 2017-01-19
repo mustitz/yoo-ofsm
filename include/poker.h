@@ -45,8 +45,6 @@ uint64_t eval_rank5_via_robust_for_deck52(const card_t * cards);
 
 extern int opt_opencl;
 
-int init_opencl(FILE * err);
-void free_opencl(void);
 
 struct opencl_permunation_args {
     uint64_t qdata;
@@ -61,11 +59,15 @@ struct opencl_permunation_args {
     const uint64_t fsm_sz;
 };
 
+int init_opencl(FILE * const err);
+void free_opencl(void);
+
 void * create_opencl_permutations(const struct opencl_permunation_args * const args);
-void free_opencl_permutations(void * handle);
+void free_opencl_permutations(void * const handle);
+
 int run_opencl_permutations(
-    void * handle,
-    uint64_t qdata,
+    void * const handle,
+    const uint64_t qdata,
     const uint64_t * const data,
     uint16_t * restrict const report,
     uint64_t * restrict const qerrors

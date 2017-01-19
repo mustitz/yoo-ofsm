@@ -7,82 +7,7 @@
 
 #include <CL/cl.h>
 
-struct opencl_state
-{
-    int is_init;
-    cl_device_id device;
-    cl_context context;
-};
 
-static struct opencl_state opencl_state;
-
-int init_opencl(FILE * err)
-{
-    if (opencl_state.is_init) {
-        return 0;
-    }
-
-    cl_int status;
-
-    cl_uint qplatforms = 0;
-    status = clGetPlatformIDs(0, NULL, &qplatforms);
-    if (status != CL_SUCCESS) {
-        msg(err, "OpenCL: clGetPlatformIDs(0, NULL, &qplatforms) fails with code %d.", status);
-        return 1;
-    }
-
-    if (qplatforms == 0) {
-        msg(err, "OpenCL: Platform is not found.");
-        return 1;
-    }
-
-    cl_platform_id platforms[qplatforms];
-
-    status = clGetPlatformIDs(qplatforms, platforms, NULL);
-    if (status != CL_SUCCESS) {
-        msg(err, "clGetPlatformIDs(%u, platforms, NULL) fails with code %d.", qplatforms, status);
-    }
-
-    cl_uint qdevices = 0;
-    status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &qdevices);
-    if (status != CL_SUCCESS) {
-        msg(err, "clGetDeviceIDs(id, CL_DEVICE_TYPE_GPU, 0, NULL, &qdevices) fails with code %d.", status);
-        return 1;
-    }
-
-    if (qdevices == 0) {
-        msg(err, "OpenCL: No GPU devices was found.");
-        return 1;
-    }
-
-    cl_device_id devices[qdevices];
-
-    status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, qdevices, devices, NULL);
-    if (status != CL_SUCCESS) {
-        msg(err, "clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, %u, devices, NULL) fails with code %d.", qdevices, status);
-        return 1;
-    }
-
-    opencl_state.device = devices[0];
-    opencl_state.context = clCreateContext(NULL, 1, devices, NULL, NULL, &status);
-    if (status != CL_SUCCESS) {
-        msg(err, "clCreateContext(NULL, 1, devices, NULL, NULL, &status) fails with code %d.", status);
-        return 1;
-    }
-
-    opencl_state.is_init = 1;
-    msg(stdout, "Open CL initialization complete.");
-    return 0;
-}
-
-void free_opencl(void)
-{
-    if (opencl_state.is_init) {
-        clReleaseContext(opencl_state.context);
-    }
-
-    opencl_state.is_init = 0;
-}
 
 const char * test_permutations_source = "\
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable\n\
@@ -167,6 +92,15 @@ void test_permutations(\n\
 #define IF__PROGRAM        16
 #define IF__KERNEL         32
 
+
+
+struct opencl_state
+{
+    int is_init;
+    cl_device_id device;
+    cl_context context;
+};
+
 struct opencl_permutations
 {
     const struct opencl_permunation_args * args;
@@ -183,7 +117,85 @@ struct opencl_permutations
     cl_kernel kernel;
 };
 
-cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
+
+
+static struct opencl_state opencl_state;
+
+
+
+int init_opencl(FILE * const err)
+{
+    if (opencl_state.is_init) {
+        return 0;
+    }
+
+    cl_int status;
+
+    cl_uint qplatforms = 0;
+    status = clGetPlatformIDs(0, NULL, &qplatforms);
+    if (status != CL_SUCCESS) {
+        msg(err, "OpenCL: clGetPlatformIDs(0, NULL, &qplatforms) fails with code %d.", status);
+        return 1;
+    }
+
+    if (qplatforms == 0) {
+        msg(err, "OpenCL: Platform is not found.");
+        return 1;
+    }
+
+    cl_platform_id platforms[qplatforms];
+
+    status = clGetPlatformIDs(qplatforms, platforms, NULL);
+    if (status != CL_SUCCESS) {
+        msg(err, "clGetPlatformIDs(%u, platforms, NULL) fails with code %d.", qplatforms, status);
+    }
+
+    cl_uint qdevices = 0;
+    status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &qdevices);
+    if (status != CL_SUCCESS) {
+        msg(err, "clGetDeviceIDs(id, CL_DEVICE_TYPE_GPU, 0, NULL, &qdevices) fails with code %d.", status);
+        return 1;
+    }
+
+    if (qdevices == 0) {
+        msg(err, "OpenCL: No GPU devices was found.");
+        return 1;
+    }
+
+    cl_device_id devices[qdevices];
+
+    status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, qdevices, devices, NULL);
+    if (status != CL_SUCCESS) {
+        msg(err, "clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, %u, devices, NULL) fails with code %d.", qdevices, status);
+        return 1;
+    }
+
+    opencl_state.device = devices[0];
+    opencl_state.context = clCreateContext(NULL, 1, devices, NULL, NULL, &status);
+    if (status != CL_SUCCESS) {
+        msg(err, "clCreateContext(NULL, 1, devices, NULL, NULL, &status) fails with code %d.", status);
+        return 1;
+    }
+
+    opencl_state.is_init = 1;
+    msg(stdout, "Open CL initialization complete.");
+    return 0;
+}
+
+
+
+void free_opencl(void)
+{
+    if (opencl_state.is_init) {
+        clReleaseContext(opencl_state.context);
+    }
+
+    opencl_state.is_init = 0;
+}
+
+
+
+static cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
 {
     cl_int status;
 
@@ -226,6 +238,8 @@ cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
 
     me->init_mask |= IF__FSM_MEM;
 
+
+
     /* Copy memory from host to device */
 
     status = clEnqueueWriteBuffer(me->cmd_queue, me->scalar_mem, CL_FALSE, 0, me->scalar_sz, me->scalars, 0, NULL, NULL);
@@ -248,6 +262,8 @@ cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
         printf("  clEnqueueWriteBuffer(cmd_queue, fsm_mem, CL_FALSE, 0, %lu, %p, 0, NULL, NULL) fails with code %d.\n", me->args->fsm_sz, me->args->fsm, status);
         return 1;
     }
+
+
 
     /* Compile kernel */
 
@@ -278,7 +294,7 @@ cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
         return 1;
     }
 
-    const char * kernel_name = "test_permutations";
+    const char * const kernel_name = "test_permutations";
     me->kernel = clCreateKernel(me->program, kernel_name, &status);
     if (status != CL_SUCCESS) {
         printf("[FAIL] (OpenCL)\n");
@@ -289,6 +305,8 @@ cl_int opencl_permutations_init(struct opencl_permutations * restrict const me)
     return 0;
 }
 
+
+
 void * create_opencl_permutations(const struct opencl_permunation_args * const args)
 {
     if (!opencl_state.is_init) {
@@ -297,8 +315,8 @@ void * create_opencl_permutations(const struct opencl_permunation_args * const a
         return NULL;
     }
 
-    size_t sz = sizeof(struct opencl_permutations);
-    void * ptr = malloc(sz);
+    const size_t sz = sizeof(struct opencl_permutations);
+    void * const ptr = malloc(sz);
     if (ptr == NULL) {
         printf("[FAIL] (OpenCL)\n");
         printf("  malloc(%lu) failed with NULL as a result value.\n", sz);
@@ -314,17 +332,16 @@ void * create_opencl_permutations(const struct opencl_permunation_args * const a
     me->scalars[3] = args->qparts;
     me->scalars[4] = 0;
 
-    int status = opencl_permutations_init(me);
+    const int status = opencl_permutations_init(me);
     if (status != 0) {
         free_opencl_permutations(me);
         return NULL;
     }
 
     return me;
-
 }
 
-void free_opencl_permutations(void * handle)
+void free_opencl_permutations(void * const handle)
 {
     struct opencl_permutations * restrict const me = handle;
 
@@ -355,9 +372,11 @@ void free_opencl_permutations(void * handle)
     free(handle);
 }
 
+
+
 int run_opencl_permutations(
-    void * handle,
-    uint64_t qdata,
+    void * const handle,
+    const uint64_t qdata,
     const uint64_t * const data,
     uint16_t * restrict const report,
     uint64_t * restrict const qerrors)
@@ -369,14 +388,14 @@ int run_opencl_permutations(
 
     cl_int status;
 
-    cl_mem data_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_ONLY, data_sz, NULL, &status);
+    const cl_mem data_mem = clCreateBuffer(opencl_state.context, CL_MEM_READ_ONLY, data_sz, NULL, &status);
     if (status != CL_SUCCESS) {
         printf("[FAIL] (OpenCL)\n");
         printf("  data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY, %lu, NULL, &status) fails with code %d.\n", data_sz, status);
         return 1;
     }
 
-    cl_mem report_mem = clCreateBuffer(opencl_state.context, CL_MEM_WRITE_ONLY, report_sz, NULL, &status);
+    const cl_mem report_mem = clCreateBuffer(opencl_state.context, CL_MEM_WRITE_ONLY, report_sz, NULL, &status);
     if (status != CL_SUCCESS) {
         printf("[FAIL] (OpenCL)\n");
         printf("  report_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, %lu, NULL, &status) fails with code %d.\n", report_sz, status);
@@ -392,6 +411,8 @@ int run_opencl_permutations(
         clReleaseMemObject(report_mem);
         return 1;
     }
+
+
 
     /* Set arguments */
 
@@ -440,9 +461,11 @@ int run_opencl_permutations(
         return 1;
     }
 
+
+
     /* Run */
 
-    cl_ulong global_work_sz[1] = { qdata };
+    const cl_ulong global_work_sz[1] = { qdata };
     status = clEnqueueNDRangeKernel(me->cmd_queue, me->kernel, 1, NULL, global_work_sz, NULL, 0, NULL, NULL);
     if (status != CL_SUCCESS) {
         printf("[FAIL] (OpenCL)\n");
@@ -485,7 +508,7 @@ int run_opencl_permutations(
 
 #include <stdint.h>
 
-int init_opencl(FILE * err)
+int init_opencl(FILE * const err)
 {
     return -1;
 }
@@ -499,31 +522,18 @@ void * create_opencl_permutations(const struct opencl_permunation_args * const a
     return NULL;
 }
 
-void free_opencl_permutations(void * handle)
+void free_opencl_permutations(void * const handle)
 {
 }
 
 int run_opencl_permutations(
-    void * handle,
-    uint64_t qdata,
+    void * const handle,
+    const uint64_t qdata,
     const uint64_t * const data,
     uint16_t * restrict const report,
     uint64_t * restrict const qerrors
 )
 {
-    return 1;
-}
-
-int opencl__test_permutations(
-    uint64_t * restrict args,
-    const int8_t * const perm_table, const int64_t perm_table_sz,
-    const uint32_t * const fsm, const int64_t fsm_sz,
-    const uint64_t * const data, const int64_t data_sz,
-    uint16_t * restrict const report, const int64_t report_sz
-)
-{
-    printf("[FAIL]\n");
-    printf("  Not implemented.\n");
     return 1;
 }
 
