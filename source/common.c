@@ -94,52 +94,6 @@ void free_ofsm(struct ofsm * restrict me)
 
 
 
-#define STEP__GROW_POW                     1
-#define STEP__GROW_COMB                    2
-#define STEP__PACK                         3
-#define STEP__OPTIMIZE                     4
-
-struct step_data_pow
-{
-    input_t qinputs;
-    unsigned int m;
-};
-
-struct step_data_comb
-{
-    input_t qinputs;
-    unsigned int m;
-};
-
-struct step_data_pack
-{
-    pack_func * f;
-    unsigned int flags;
-};
-
-struct step_data_optimize
-{
-    int nflake;
-    hash_func * f;
-};
-
-union step_data
-{
-    struct step_data_pow pow;
-    struct step_data_comb comb;
-    struct step_data_pack pack;
-    struct step_data_optimize optimize;
-};
-
-struct step
-{
-    int type;
-    struct step * next;
-    union step_data data;
-};
-
-
-
 static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs, uint64_t qoutputs, state_t qstates)
 {
     unsigned int nflake = ofsm->qflakes;
