@@ -5,19 +5,19 @@
 
 
 
-int new_optimize_with_hash_path_test(void);
-int new_optimize_with_invalid_hash_test(void);
-int new_optimize_with_zero_hash_test(void);
-int new_optimize_with_rnd_hash_test(void);
-int new_optimize_test(void);
-int new_pack_without_renum_test(void);
-int new_pack_test(void);
-int new_pow_41_comb_52_test(void);
-int new_pow_41_pow_51_test(void);
-int new_comb_55_test(void);
-int new_comb_42_test(void);
-int new_pow_42_test(void);
-int new_pow_41_test(void);
+int optimize_with_hash_path_test(void);
+int optimize_with_invalid_hash_test(void);
+int optimize_with_zero_hash_test(void);
+int optimize_with_rnd_hash_test(void);
+int optimize_test(void);
+int pack_without_renum_test(void);
+int pack_test(void);
+int pow_41_comb_52_test(void);
+int pow_41_pow_51_test(void);
+int comb_55_test(void);
+int comb_42_test(void);
+int pow_42_test(void);
+int pow_41_test(void);
 int empty_builder_test(void);
 int empty_test(void);
 
@@ -34,20 +34,19 @@ struct test_item
 #define TEST_ITEM(name) { #name, &name##_test }
 struct test_item tests[] = {
     TEST_ITEM(empty),
-
-    TEST_ITEM(new_optimize_with_hash_path),
-    TEST_ITEM(new_optimize_with_invalid_hash),
-    TEST_ITEM(new_optimize_with_zero_hash),
-    TEST_ITEM(new_optimize_with_rnd_hash),
-    TEST_ITEM(new_optimize),
-    TEST_ITEM(new_pack_without_renum),
-    TEST_ITEM(new_pack),
-    TEST_ITEM(new_pow_41_comb_52),
-    TEST_ITEM(new_pow_41_pow_51),
-    TEST_ITEM(new_comb_55),
-    TEST_ITEM(new_comb_42),
-    TEST_ITEM(new_pow_42),
-    TEST_ITEM(new_pow_41),
+    TEST_ITEM(optimize_with_hash_path),
+    TEST_ITEM(optimize_with_invalid_hash),
+    TEST_ITEM(optimize_with_zero_hash),
+    TEST_ITEM(optimize_with_rnd_hash),
+    TEST_ITEM(optimize),
+    TEST_ITEM(pack_without_renum),
+    TEST_ITEM(pack),
+    TEST_ITEM(pow_41_comb_52),
+    TEST_ITEM(pow_41_pow_51),
+    TEST_ITEM(comb_55),
+    TEST_ITEM(comb_42),
+    TEST_ITEM(pow_42),
+    TEST_ITEM(pow_41),
     TEST_ITEM(empty_builder),
     { NULL, NULL }
 };
@@ -171,7 +170,7 @@ int empty_builder_test(void)
 
 
 
-int new_pow_41_test(void)
+int pow_41_test(void)
 {
     static const unsigned int NFLAKE = 1;
     static const state_t QOUTS = 4;
@@ -259,7 +258,7 @@ int new_pow_41_test(void)
 
 
 
-int new_pow_42_test(void)
+int pow_42_test(void)
 {
     static const unsigned int NFLAKE = 2;
     static const state_t QOUTS = 16;
@@ -348,7 +347,7 @@ int new_pow_42_test(void)
 
 
 
-int new_comb_42_test(void)
+int comb_42_test(void)
 {
     static const unsigned int NFLAKE = 2;
     static const state_t QOUTS = 6;
@@ -453,7 +452,7 @@ int new_comb_42_test(void)
 
 
 
-int new_comb_55_test(void)
+int comb_55_test(void)
 {
     static const unsigned int NFLAKE = 5;
     static const unsigned int QOUTS = 1;
@@ -569,7 +568,7 @@ int new_comb_55_test(void)
 
 
 
-int new_pow_41_pow_51_test(void)
+int pow_41_pow_51_test(void)
 {
     static const unsigned int NFLAKE = 2;
     static const state_t QOUTS = 20;
@@ -670,7 +669,7 @@ int new_pow_41_pow_51_test(void)
 
 
 
-int new_pow_41_comb_52_test(void)
+int pow_41_comb_52_test(void)
 {
     static const unsigned int NFLAKE = 3;
     static const state_t QOUTS = 40;
@@ -788,7 +787,7 @@ int new_pow_41_comb_52_test(void)
 
 
 
-int new_pack_test(void)
+int pack_test(void)
 {
     static const unsigned int NFLAKE = 3;
     static const state_t QOUTS = 7;
@@ -907,7 +906,7 @@ int new_pack_test(void)
 
 
 
-int new_pack_without_renum_test(void)
+int pack_without_renum_test(void)
 {
     static const unsigned int NFLAKE = 3;
     static const unsigned int DELTA = 0;
@@ -1013,7 +1012,7 @@ int new_pack_without_renum_test(void)
 
 
 
-int new_optimize_test_with_hash(hash_func hash)
+int optimize_test_with_hash(hash_func hash)
 {
     static const unsigned int NFLAKE = 3;
     static const state_t QOUTS = 40;
@@ -1125,24 +1124,24 @@ int new_optimize_test_with_hash(hash_func hash)
     return 0;
 }
 
-int new_optimize_test(void)
+int optimize_test(void)
 {
-    return new_optimize_test_with_hash(NULL);
+    return optimize_test_with_hash(NULL);
 }
 
-int new_optimize_with_rnd_hash_test(void)
+int optimize_with_rnd_hash_test(void)
 {
-    return new_optimize_test_with_hash(rnd_hash);
+    return optimize_test_with_hash(rnd_hash);
 }
 
-int new_optimize_with_zero_hash_test(void)
+int optimize_with_zero_hash_test(void)
 {
-    return new_optimize_test_with_hash(zero_hash);
+    return optimize_test_with_hash(zero_hash);
 }
 
-int new_optimize_with_invalid_hash_test(void)
+int optimize_with_invalid_hash_test(void)
 {
-    return new_optimize_test_with_hash(invalid_hash);
+    return optimize_test_with_hash(invalid_hash);
 }
 
 pack_value_t sum_with_bonus(void * user_data, unsigned int n, const input_t * path)
@@ -1177,7 +1176,7 @@ static uint64_t forget_hash(void * user_data, unsigned int qjumps, const state_t
     return sum | (mask << 24);
 }
 
-int new_optimize_with_hash_path_test(void)
+int optimize_with_hash_path_test(void)
 {
     int errcode;
 
