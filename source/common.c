@@ -1335,7 +1335,7 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
 
     for (size_t i=0; i < me->stack_len; ++i) {
         const struct ofsm * const ofsm= me->stack[i];
-        int status = ofsm_verify(ofsm, me->errstream);
+        const int status = ofsm_verify(ofsm, me->errstream);
         if (status != 0) {
             return status;
         }
@@ -1347,41 +1347,39 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
 
 
 
-state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs)
-{
-    return do_ofsm_execute(ofsm, n, inputs);
-}
-
-int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out)
-{
-    return do_ofsm_get_array(ofsm, delta_last, out);
-}
-
-const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output)
-{
-    return do_ofsm_get_path(ofsm, nflake, output);
-}
-
-const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * const me)
 {
     return do_ofsm_builder_get_ofsm(me);
 }
 
-
-
-int ofsm_array_print(const struct ofsm_array * array, FILE * f, const char * name, unsigned int qcolumns)
+const input_t * ofsm_get_path(const void * const ofsm, const unsigned int nflake, const state_t output)
 {
-    if (qcolumns == 0) {
-        qcolumns = 30;
-    }
+    return do_ofsm_get_path(ofsm, nflake, output);
+}
+
+state_t ofsm_execute(const void * const ofsm, const unsigned int n, const input_t * const inputs)
+{
+    return do_ofsm_execute(ofsm, n, inputs);
+}
+
+int ofsm_get_array(const void * const ofsm, const unsigned int delta_last, struct ofsm_array * restrict const out)
+{
+    return do_ofsm_get_array(ofsm, delta_last, out);
+}
+
+
+
+int ofsm_array_print(const struct ofsm_array * const array, FILE * const f, const char * const name, const unsigned int arg_qcolumns)
+{
+    const unsigned int qcolumns = arg_qcolumns != 0 ? arg_qcolumns : 30;
 
     fprintf(f, "unsigned int %s[%lu] = {\n", name, array->len);
     const unsigned int * ptr = array->array;
-    const unsigned int * end = array->array + array->len;
+    const unsigned int * const end = array->array + array->len;
     int pos = 1;
     fprintf(f, "  %u",  *ptr++);
     for (; ptr != end; ++ptr) {
-        const char * delimeter = (pos++ % qcolumns) == 0 ? "\n " : "";
+        const char * const delimeter = (pos++ % qcolumns) == 0 ? "\n " : "";
         fprintf(f, ",%s %u", delimeter, *ptr);
     }
     fprintf(f, "\n};\n");
@@ -1389,7 +1387,7 @@ int ofsm_array_print(const struct ofsm_array * array, FILE * f, const char * nam
     return 0;
 }
 
-int ofsm_array_save_binary(const struct ofsm_array * array, FILE * f, const char * name)
+int ofsm_array_save_binary(const struct ofsm_array * const array, FILE * f, const char * const name)
 {
     struct array_header header;
     memset(header.name, 0, 16);
@@ -1398,15 +1396,15 @@ int ofsm_array_save_binary(const struct ofsm_array * array, FILE * f, const char
     header.len = array->len;
     strncpy(header.name, name, 16);
 
-    size_t sz = sizeof(struct array_header);
-    size_t written = fwrite(&header, 1, sz, f);
-    if (written != sz) {
+    const size_t header_sz = sizeof(struct array_header);
+    const size_t written1 = fwrite(&header, 1, header_sz, f);
+    if (written1 != header_sz) {
         return 1;
     }
 
-    sz = header.len * sizeof(uint32_t);
-    written = fwrite(array->array, 1, sz, f);
-    if (written != sz) {
+    const size_t sz = header.len * sizeof(uint32_t);
+    const size_t written2 = fwrite(array->array, 1, sz, f);
+    if (written2 != sz) {
         return 1;
     }
 

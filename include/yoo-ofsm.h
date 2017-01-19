@@ -78,15 +78,15 @@ int ofsm_builder_verify(const struct ofsm_builder * const me);
 
 
 
-const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me);
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * const me);
 const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output);
-state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
-int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
+state_t ofsm_execute(const void * const ofsm, const unsigned int n, const input_t * const inputs);
+int ofsm_get_array(const void * const ofsm, const unsigned int delta_last, struct ofsm_array * restrict const out);
 
 
 
-int ofsm_array_printy(const struct ofsm_array * array, FILE * f, const char * name, unsigned int qcolumns);
-int ofsm_array_save_binary(const struct ofsm_array * array, FILE * f, const char * name);
+int ofsm_array_printy(const struct ofsm_array * const array, FILE * const f, const char * const name, const unsigned int arg_qcolumns);
+int ofsm_array_save_binary(const struct ofsm_array * const array, FILE * f, const char * const name);
 
 
 
