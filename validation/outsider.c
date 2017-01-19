@@ -106,10 +106,6 @@ int main(int argc, char * argv[])
 
 
 
-const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me);
-
-
-
 static void print_path(const char * prefix, const input_t * path, size_t len)
 {
     fprintf(stderr, "%s", prefix);

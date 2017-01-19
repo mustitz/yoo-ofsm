@@ -264,7 +264,7 @@ static int cmp_state_info(const void * arg_a, const void * arg_b)
     return 0;
 }
 
-int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
+static int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
 {
     for (unsigned int i = 0; i < qinputs; ++i) {
         if (a[i] == INVALID_STATE) continue;
@@ -286,7 +286,7 @@ static uint64_t get_first_jump(void * user_data, const unsigned int qjumps, cons
     return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
 }
 
-state_t do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
+static state_t do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
 {
     if (n >= me->qflakes) {
         ERRLOCATION(stderr);
@@ -541,28 +541,28 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
     }
 }
 
-struct ofsm * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+struct ofsm * do_ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 {
     if (me->stack_len == 0) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_get_ofsm is called for empty OFSM stack.");
+        msg(me->errstream, "do_ofsm_builder_get_ofsm is called for empty OFSM stack.");
         return NULL;
     }
 
     return me->stack[me->stack_len - 1];
 }
 
-const void * ofsm_builder_get_ofsm_as_void(const struct ofsm_builder * me)
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
 {
-    return ofsm_builder_get_ofsm(me);
+    return do_ofsm_builder_get_ofsm(me);
 }
 
 int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
 {
-    const void * ofsm = ofsm_builder_get_ofsm_as_void(me);
+    const void * ofsm = do_ofsm_builder_get_ofsm(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_get_ofsm_as_void(me) failed with NULL as error value.");
+        msg(me->errstream, "do_ofsm_builder_get_ofsm_as_void(me) failed with NULL as error value.");
         return 1;
     }
 
@@ -823,10 +823,10 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 {
     verbose(me->logstream, "START packing.");
 
-    struct ofsm * restrict ofsm = ofsm_builder_get_ofsm(me);
+    struct ofsm * restrict ofsm = do_ofsm_builder_get_ofsm(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "ofsm_builder_get_ofsm(me) failed with NULL as error value.");
+        msg(me->errstream, "do_ofsm_builder_get_ofsm(me) failed with NULL as error value.");
         verbose(me->logstream, "FAILED packing.");
         return 1;
     }
@@ -1259,7 +1259,7 @@ int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int 
 
 int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f)
 {
-    struct ofsm * restrict ofsm = ofsm_builder_get_ofsm(me);
+    struct ofsm * restrict ofsm = do_ofsm_builder_get_ofsm(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "ofsm_builder_optimize(me) failed with NULL as error value.");
