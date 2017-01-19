@@ -38,7 +38,7 @@ static const struct flake zero_flake = { 0, 0, 1, { NULL, NULL }, { NULL, NULL }
 
 
 
-struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_flakes)
+static struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_flakes)
 {
     if (max_flakes == 0) {
         max_flakes = 32;
@@ -68,7 +68,7 @@ struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_fl
     return ofsm;
 }
 
-void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
+static void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
 {
     void * ptr;
     for (unsigned int i=qflakes; i<me->qflakes; ++i) {
@@ -87,7 +87,7 @@ void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
     me->qflakes = qflakes;
 }
 
-void free_ofsm(struct ofsm * restrict me)
+static void free_ofsm(struct ofsm * restrict me)
 {
     ofsm_truncate(me, 1);
 }
