@@ -1030,18 +1030,12 @@ int test_permutations(struct test_data * restrict const me)
     }
     const int8_t * const perm_table = perm_ptrs[1];
 
-
-
     const int qcards_in_hand = me->qcards_in_hand1 + me->qcards_in_hand2;
-    uint64_t mask = (1ull << qcards_in_hand) - 1;
-    const uint64_t last = 1ull << me->game->qcards_in_deck;
 
-
+    test_data_init_enumeration(me);
 
     if (opt_opencl) {
         me->is_opencl = 1;
-
-        test_data_init_enumeration(me);
 
         const unsigned int qparts = me->enumeration[0];
         const size_t datum_sz = sizeof(uint64_t) * qparts;
@@ -1151,14 +1145,17 @@ int test_permutations(struct test_data * restrict const me)
         return status;
     }
 
-    while (mask < last) {
+    do {
+        const uint64_t mask1 = me->enumeration[1];
+        const uint64_t mask2 = me->qcards_in_hand2 > 0 ? me->enumeration[2] : 0;
+
         card_t cards[qcards_in_hand];
-        mask_to_cards(qcards_in_hand, mask, cards);
+        mask_to_cards(me->qcards_in_hand1, mask1, cards);
+        mask_to_cards(me->qcards_in_hand2, mask2, cards + me->qcards_in_hand1);
 
         const uint32_t rank = test_data_eval_rank_via_fsm(me, cards);
 
         for (const int8_t * perm = perm_table; *perm >= 0; perm += qcards_in_hand) {
-
             card_t c[qcards_in_hand];
             apply_perm(qcards_in_hand, c, cards, perm);
             const uint32_t r = test_data_eval_rank_via_fsm(me, cards);
@@ -1178,8 +1175,9 @@ int test_permutations(struct test_data * restrict const me)
             }
         }
 
-        mask = next_combination_mask(mask);
-    }
+        ++me->counter;
+
+    } while (next_enumeration(me->enumeration) == 0);
 
     free(perm_ptrs[0]);
     return 0;
