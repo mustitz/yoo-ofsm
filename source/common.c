@@ -406,26 +406,6 @@ static int do_ofsm_get_array(const struct ofsm * ofsm, unsigned int delta_last, 
 
 
 
-int ofsm_print_array(FILE * f, const char * name, const struct ofsm_array * array, unsigned int qcolumns)
-{
-    if (qcolumns == 0) {
-        qcolumns = 30;
-    }
-
-    fprintf(f, "unsigned int %s[%lu] = {\n", name, array->len);
-    const unsigned int * ptr = array->array;
-    const unsigned int * end = array->array + array->len;
-    int pos = 1;
-    fprintf(f, "  %u",  *ptr++);
-    for (; ptr != end; ++ptr) {
-        const char * delimeter = (pos++ % qcolumns) == 0 ? "\n " : "";
-        fprintf(f, ",%s %u", delimeter, *ptr);
-    }
-    fprintf(f, "\n};\n");
-
-    return 0;
-}
-
 int ofsm_save_binary_array(FILE * f, const char * name, const struct ofsm_array * array)
 {
     struct array_header header;
@@ -1393,5 +1373,27 @@ int ofsm_builder_verify(const struct ofsm_builder * const me)
     }
 
     verbose(me->logstream, "DONE verification.");
+    return 0;
+}
+
+
+
+int ofsm_array_print(const struct ofsm_array * array, FILE * f, const char * name, unsigned int qcolumns)
+{
+    if (qcolumns == 0) {
+        qcolumns = 30;
+    }
+
+    fprintf(f, "unsigned int %s[%lu] = {\n", name, array->len);
+    const unsigned int * ptr = array->array;
+    const unsigned int * end = array->array + array->len;
+    int pos = 1;
+    fprintf(f, "  %u",  *ptr++);
+    for (; ptr != end; ++ptr) {
+        const char * delimeter = (pos++ % qcolumns) == 0 ? "\n " : "";
+        fprintf(f, ",%s %u", delimeter, *ptr);
+    }
+    fprintf(f, "\n};\n");
+
     return 0;
 }
