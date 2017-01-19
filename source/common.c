@@ -525,7 +525,7 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict const arg_me
 
 
 
-void free_ofsm_builder(struct ofsm_builder * restrict me)
+void free_ofsm_builder(struct ofsm_builder * restrict const me)
 {
     clear_choose_table(&me->choose);
 
@@ -540,9 +540,9 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
 
 
 
-int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
+int ofsm_builder_make_array(const struct ofsm_builder * const me, const unsigned int delta_last, struct ofsm_array * restrict const out)
 {
-    const void * ofsm = do_ofsm_builder_get_ofsm(me);
+    const void * const ofsm = do_ofsm_builder_get_ofsm(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "do_ofsm_builder_get_ofsm_as_void(me) failed with NULL as error value.");
@@ -554,9 +554,8 @@ int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_l
 
 
 
-int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
+int ofsm_builder_push_pow(struct ofsm_builder * restrict const me, const input_t qinputs, const unsigned int m)
 {
-    int errcode;
     verbose(me->logstream, "START push power OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
 
     if (me->stack_len == OFSM_STACK_SZ) {
@@ -566,7 +565,7 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
         return 1;
     }
 
-    struct ofsm * restrict ofsm = create_ofsm(me->mempool, 0);
+    struct ofsm * restrict const ofsm = create_ofsm(me->mempool, 0);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
@@ -585,11 +584,11 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
             return 1;
         }
 
-        state_t qstates = prev->qoutputs;
-        uint64_t qoutputs = qstates * qinputs;
+        const state_t qstates = prev->qoutputs;
+        const uint64_t qoutputs = qstates * qinputs;
 
-        unsigned int nflake = ofsm->qflakes;
-        const struct flake * flake = ofsm_create_flake(ofsm, qinputs, qoutputs, qstates);
+        const unsigned int nflake = ofsm->qflakes;
+        const struct flake * const flake = ofsm_create_flake(ofsm, qinputs, qoutputs, qstates);
 
         if (flake == NULL) {
             ERRLOCATION(me->errstream);
@@ -607,10 +606,10 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
             *jumps++ = output++;
         }
 
-        errcode = calc_paths(flake, nflake);
-        if (errcode != 0) {
+        int status = calc_paths(flake, nflake);
+        if (status != 0) {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+            msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, status);
             verbose(me->logstream, "FAILED push power.");
             free_ofsm(ofsm);
             return 1;
