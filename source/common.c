@@ -606,7 +606,7 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict const me, const input_t
             *jumps++ = output++;
         }
 
-        int status = calc_paths(flake, nflake);
+        const int status = calc_paths(flake, nflake);
         if (status != 0) {
             ERRLOCATION(me->errstream);
             msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, status);
@@ -625,7 +625,7 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict const me, const input_t
 
 
 
-static state_t calc_comb_index(const struct choose_table * ct, const input_t * inputs, unsigned int qinputs, unsigned int m)
+static state_t calc_comb_index(const struct choose_table * const ct, const input_t * const inputs, unsigned int qinputs, const unsigned int m)
 {
 
     if (qinputs > 64) {
@@ -636,7 +636,7 @@ static state_t calc_comb_index(const struct choose_table * ct, const input_t * i
 
     uint64_t mask = 0;
     for (unsigned int i=0; i<m; ++i) {
-        uint64_t new_one = 1ull << inputs[i];
+        const uint64_t new_one = 1ull << inputs[i];
         if (new_one & mask) return INVALID_STATE; // repetition
         mask |= new_one;
     }
@@ -654,9 +654,8 @@ static state_t calc_comb_index(const struct choose_table * ct, const input_t * i
     return result;
 }
 
-int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
+int ofsm_builder_push_comb(struct ofsm_builder * restrict const me, const input_t qinputs, const unsigned int m)
 {
-    int errcode;
     verbose(me->logstream, "START push compinatoric OFSM(%u, %u) to stack.", (unsigned int)qinputs, m);
 
     if (me->stack_len == OFSM_STACK_SZ) {
@@ -666,16 +665,16 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
         return 1;
     }
 
-    struct choose_table * restrict ct = &me->choose;
-    errcode = rebuild_choose_table(ct, qinputs, m);
-    if (errcode != 0) {
+    struct choose_table * restrict const ct = &me->choose;
+    const int status = rebuild_choose_table(ct, qinputs, m);
+    if (status != 0) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "rebuild_choose_table(ct, %u, %u, errstream) failed with %d as error code.", (unsigned int)qinputs, m, errcode);
+        msg(me->errstream, "rebuild_choose_table(ct, %u, %u, errstream) failed with %d as error code.", (unsigned int)qinputs, m, status);
         verbose(me->logstream, "FAILED push combinatoric.");
-        return errcode;
+        return status;
     }
 
-    struct ofsm * restrict ofsm = create_ofsm(me->mempool, 0);
+    struct ofsm * restrict const ofsm = create_ofsm(me->mempool, 0);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "create_ofsm(me->mempool, 0) failed with NULL as result value.");
@@ -697,8 +696,8 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
             return 1;
         }
 
-        state_t qstates = prev->qoutputs;
-        uint64_t qoutputs = qstates * nn / dd;
+        const state_t qstates = prev->qoutputs;
+        const uint64_t qoutputs = qstates * nn / dd;
 
         unsigned int nflake = ofsm->qflakes;
         const struct flake * flake = ofsm_create_flake(ofsm, qinputs, qoutputs, qstates);
@@ -715,7 +714,7 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
         if (i > 0) {
             for (state_t state = 0; state < qstates; ++state) {
                 input_t c[i+1];
-                const input_t * ptr = prev->paths[1] + (nflake-1) * (state+1) - i;
+                const input_t * const ptr = prev->paths[1] + (nflake-1) * (state+1) - i;
                 memcpy(c, ptr, i * sizeof(input_t));
 
                 for (input_t input = 0; input < qinputs; ++input) {
@@ -737,10 +736,10 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
             }
         }
 
-        int errcode = calc_paths(flake, nflake);
-        if (errcode != 0) {
+        const int status = calc_paths(flake, nflake);
+        if (status != 0) {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, errcode);
+            msg(me->errstream, "calc_paths(flake, %u) failed with %d as an error code.", nflake, status);
             verbose(me->logstream, "FAILED push combinatoric.");
             free_ofsm(ofsm);
             return 1;
