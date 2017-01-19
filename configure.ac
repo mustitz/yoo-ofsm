@@ -20,6 +20,8 @@ AC_CONFIG_FILES([
     include/Makefile
     source/Makefile 
     validation/Makefile
+    examples/Makefile
+    examples/poker/Makefile
 ])
 
 AC_CONFIG_FILES([

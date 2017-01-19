@@ -33,6 +33,6 @@ yooofsmlib.pc
 /validation/outsider
 /validation/validation.sh
 
-/source/yoo-build-poker-ofsm
+/examples/poker/yoo-build-poker-ofsm
 /yoo-ofsm-0.1.tar.bz2
 /yoo-ofsm-0.1.tar.gz
