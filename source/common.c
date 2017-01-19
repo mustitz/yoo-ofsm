@@ -55,10 +55,10 @@ static const struct flake zero_flake = { 0, 0, 1, { NULL, NULL }, { NULL, NULL }
 
 /* Sort order */
 
-static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
+static int cmp_ofsm_pack_decode(const void * const arg_a, const void * const arg_b)
 {
-    const struct ofsm_pack_decode * a = arg_a;
-    const struct ofsm_pack_decode * b = arg_b;
+    const struct ofsm_pack_decode * const a = arg_a;
+    const struct ofsm_pack_decode * const b = arg_b;
     if (a->value < b->value) return -1;
     if (a->value > b->value) return +1;
     if (a->output < b->output) return -1;
@@ -66,10 +66,10 @@ static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
     return 0;
 }
 
-static int cmp_state_info(const void * arg_a, const void * arg_b)
+static int cmp_state_info(const void * const arg_a, const void * const arg_b)
 {
-    const struct state_info * a = arg_a;
-    const struct state_info * b = arg_b;
+    const struct state_info * const a = arg_a;
+    const struct state_info * const b = arg_b;
     if (a->hash < b->hash) return -1;
     if (a->hash > b->hash) return +1;
     if (a->old < b->old) return -1;
