@@ -53,106 +53,33 @@ static const struct flake zero_flake = { 0, 0, 1, { NULL, NULL }, { NULL, NULL }
 
 
 
-static struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_flakes)
+/* Sort order */
+
+static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
 {
-    if (max_flakes == 0) {
-        max_flakes = 32;
-    }
-
-    struct ofsm * ofsm = mempool_alloc(mempool, sizeof(struct ofsm));
-    if (ofsm == NULL) {
-        ERRLOCATION(stderr);
-        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct ofsm));
-        return NULL;
-    }
-
-    size_t sz = max_flakes * sizeof(struct flake);
-    struct flake * flakes = mempool_alloc(mempool, sz);
-    if (flakes == NULL) {
-        ERRLOCATION(stderr);
-        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sz);
-        return NULL;
-    }
-
-    ofsm->qflakes = 1;
-    ofsm->max_flakes = max_flakes;
-    ofsm->flakes = flakes;
-
-    const size_t flake_sz = sizeof(struct flake);
-    memcpy(ofsm->flakes, &zero_flake, flake_sz);
-    return ofsm;
+    const struct ofsm_pack_decode * a = arg_a;
+    const struct ofsm_pack_decode * b = arg_b;
+    if (a->value < b->value) return -1;
+    if (a->value > b->value) return +1;
+    if (a->output < b->output) return -1;
+    if (a->output > b->output) return +1;
+    return 0;
 }
 
-static void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
+static int cmp_state_info(const void * arg_a, const void * arg_b)
 {
-    void * ptr;
-    for (unsigned int i=qflakes; i<me->qflakes; ++i) {
-
-        ptr = me->flakes[i].jumps[0];
-        if (ptr != NULL) {
-            free(ptr);
-        }
-
-        ptr = me->flakes[i].paths[0];
-        if (ptr) {
-            free(ptr);
-        }
-    }
-
-    me->qflakes = qflakes;
-}
-
-static void free_ofsm(struct ofsm * restrict me)
-{
-    ofsm_truncate(me, 1);
+    const struct state_info * a = arg_a;
+    const struct state_info * b = arg_b;
+    if (a->hash < b->hash) return -1;
+    if (a->hash > b->hash) return +1;
+    if (a->old < b->old) return -1;
+    if (a->old > b->old) return +1;
+    return 0;
 }
 
 
 
-static struct flake * create_flake(struct ofsm * restrict ofsm, input_t qinputs, uint64_t qoutputs, state_t qstates)
-{
-    unsigned int nflake = ofsm->qflakes;
-    if (nflake >= ofsm->max_flakes) {
-        ERRLOCATION(stderr);
-        msg(stderr, "Overflow maximum flake count (%u), qflakes = %u.", ofsm->max_flakes, ofsm->qflakes);
-        return NULL;
-    }
-
-    void * jump_ptrs[2];
-    void * path_ptrs[2];
-    size_t jump_sizes[2] = { 0, qinputs * qstates * sizeof(state_t) };
-    size_t path_sizes[2] = { 0, qoutputs * nflake * sizeof(input_t) };
-
-    multialloc(2, jump_sizes, jump_ptrs, 32);
-
-    if (jump_ptrs[0] == NULL) {
-        ERRLOCATION(stderr);
-        msg(stderr, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", jump_sizes[0], jump_sizes[1]);
-        return NULL;
-    }
-
-    multialloc(2, path_sizes, path_ptrs, 32);
-
-    if (path_ptrs[0] == NULL) {
-        ERRLOCATION(stderr);
-        msg(stderr, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", path_sizes[0], path_sizes[1]);
-        free(jump_ptrs[0]);
-        return NULL;
-    }
-
-    struct flake * restrict flake = ofsm->flakes + nflake;
-
-    flake->qinputs = qinputs;
-    flake->qoutputs = qoutputs;
-    flake->qstates = qstates;
-    flake->jumps[0] = jump_ptrs[0];
-    flake->jumps[1] = jump_ptrs[1];
-    flake->paths[0] = path_ptrs[0];
-    flake->paths[1] = path_ptrs[1];
-
-    ++ofsm->qflakes;
-    return flake;
-}
+/* Utils */
 
 static int calc_paths(const struct flake * flake, unsigned int nflake)
 {
@@ -213,78 +140,112 @@ static int calc_paths(const struct flake * flake, unsigned int nflake)
     return 0;
 }
 
-static state_t calc_comb_index(const struct choose_table * ct, const input_t * inputs, unsigned int qinputs, unsigned int m)
+
+
+/* OFSM methods */
+
+static struct ofsm * create_ofsm(struct mempool * restrict mempool, unsigned int max_flakes)
 {
-
-    if (qinputs > 64) {
-        ERRLOCATION(ct->errstream);
-        msg(ct->errstream, "Sorting of inputs more then 64 is not supported yet.");
-        return INVALID_STATE;
+    if (max_flakes == 0) {
+        max_flakes = 32;
     }
 
-    uint64_t mask = 0;
-    for (unsigned int i=0; i<m; ++i) {
-        uint64_t new_one = 1ull << inputs[i];
-        if (new_one & mask) return INVALID_STATE; // repetition
-        mask |= new_one;
+    struct ofsm * ofsm = mempool_alloc(mempool, sizeof(struct ofsm));
+    if (ofsm == NULL) {
+        ERRLOCATION(stderr);
+        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sizeof(struct ofsm));
+        return NULL;
     }
 
-    input_t sorted[m];
-    for (unsigned int i = 0; i<m; ++i) {
-        sorted[i] = extract_rbit64(&mask);
+    size_t sz = max_flakes * sizeof(struct flake);
+    struct flake * flakes = mempool_alloc(mempool, sz);
+    if (flakes == NULL) {
+        ERRLOCATION(stderr);
+        msg(stderr, "mempool_alloc(mempool, %lu) failed with NULL as return value.", sz);
+        return NULL;
     }
 
-    state_t result = 0;
-    for (unsigned int k = 0; k < m; ++k) {
-        result += choose(ct, sorted[k], k+1);
-    }
+    ofsm->qflakes = 1;
+    ofsm->max_flakes = max_flakes;
+    ofsm->flakes = flakes;
 
-    return result;
+    const size_t flake_sz = sizeof(struct flake);
+    memcpy(ofsm->flakes, &zero_flake, flake_sz);
+    return ofsm;
 }
 
-static int cmp_ofsm_pack_decode(const void * arg_a, const void * arg_b)
+static void ofsm_truncate(struct ofsm * restrict me, unsigned int qflakes)
 {
-    const struct ofsm_pack_decode * a = arg_a;
-    const struct ofsm_pack_decode * b = arg_b;
-    if (a->value < b->value) return -1;
-    if (a->value > b->value) return +1;
-    if (a->output < b->output) return -1;
-    if (a->output > b->output) return +1;
-    return 0;
-}
+    void * ptr;
+    for (unsigned int i=qflakes; i<me->qflakes; ++i) {
 
-static int cmp_state_info(const void * arg_a, const void * arg_b)
-{
-    const struct state_info * a = arg_a;
-    const struct state_info * b = arg_b;
-    if (a->hash < b->hash) return -1;
-    if (a->hash > b->hash) return +1;
-    if (a->old < b->old) return -1;
-    if (a->old > b->old) return +1;
-    return 0;
-}
+        ptr = me->flakes[i].jumps[0];
+        if (ptr != NULL) {
+            free(ptr);
+        }
 
-static int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
-{
-    for (unsigned int i = 0; i < qinputs; ++i) {
-        if (a[i] == INVALID_STATE) continue;
-        if (b[i] == INVALID_STATE) continue;
-        if (a[i] != b[i]) return 0;
-    }
-
-    for (unsigned int i = 0; i < qinputs; ++i) {
-        if (a[i] == INVALID_STATE) {
-            a[i] = b[i];
+        ptr = me->flakes[i].paths[0];
+        if (ptr) {
+            free(ptr);
         }
     }
 
-    return 1;
+    me->qflakes = qflakes;
 }
 
-static uint64_t get_first_jump(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+static void free_ofsm(struct ofsm * restrict me)
 {
-    return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
+    ofsm_truncate(me, 1);
 }
+
+
+
+static struct flake * ofsm_create_flake(struct ofsm * restrict ofsm, input_t qinputs, uint64_t qoutputs, state_t qstates)
+{
+    unsigned int nflake = ofsm->qflakes;
+    if (nflake >= ofsm->max_flakes) {
+        ERRLOCATION(stderr);
+        msg(stderr, "Overflow maximum flake count (%u), qflakes = %u.", ofsm->max_flakes, ofsm->qflakes);
+        return NULL;
+    }
+
+    void * jump_ptrs[2];
+    void * path_ptrs[2];
+    size_t jump_sizes[2] = { 0, qinputs * qstates * sizeof(state_t) };
+    size_t path_sizes[2] = { 0, qoutputs * nflake * sizeof(input_t) };
+
+    multialloc(2, jump_sizes, jump_ptrs, 32);
+
+    if (jump_ptrs[0] == NULL) {
+        ERRLOCATION(stderr);
+        msg(stderr, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", jump_sizes[0], jump_sizes[1]);
+        return NULL;
+    }
+
+    multialloc(2, path_sizes, path_ptrs, 32);
+
+    if (path_ptrs[0] == NULL) {
+        ERRLOCATION(stderr);
+        msg(stderr, "multialloc(2, {%lu, %lu}, ptrs, 32) failed for new flake.", path_sizes[0], path_sizes[1]);
+        free(jump_ptrs[0]);
+        return NULL;
+    }
+
+    struct flake * restrict flake = ofsm->flakes + nflake;
+
+    flake->qinputs = qinputs;
+    flake->qoutputs = qoutputs;
+    flake->qstates = qstates;
+    flake->jumps[0] = jump_ptrs[0];
+    flake->jumps[1] = jump_ptrs[1];
+    flake->paths[0] = path_ptrs[0];
+    flake->paths[1] = path_ptrs[1];
+
+    ++ofsm->qflakes;
+    return flake;
+}
+
+
 
 static state_t do_ofsm_execute(const struct ofsm * me, unsigned int n, const input_t * inputs)
 {
@@ -427,10 +388,112 @@ static const input_t * do_ofsm_get_path(const struct ofsm * ofsm, unsigned int n
 
 
 
+static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
+{
+    const size_t flake_sz = sizeof(struct flake);
+    if (memcmp(me->flakes, &zero_flake, flake_sz) != 0) {
+        ERRLOCATION(errstream);
+        msg(errstream, "Verification failed: invalid zero flake.\n");
+        return 1;
+    }
+
+    for (unsigned int nflake = 1; nflake < me->qflakes; ++nflake) {
+        const struct flake * const flake = me->flakes + nflake;
+        const struct flake * const prev = flake -1;
+        if (prev->qoutputs != flake->qstates) {
+            ERRLOCATION(errstream);
+            msg(errstream, "Verification failed: Mismatch flake->qstates = %u and prev->qoutputs = %u.\n", flake->qstates, prev->qoutputs);
+            return 1;
+        }
+
+        const state_t qoutputs = flake->qoutputs;
+
+        const state_t * jump = flake->jumps[1];
+        const state_t * const jump_last = jump + flake->qinputs * flake->qstates;
+        for (; jump != jump_last; ++jump) {
+            const state_t state = *jump;
+            if (state > qoutputs && state != INVALID_STATE) {
+                ERRLOCATION(errstream);
+                msg(errstream, "Verification failed: invalid state %u\n", state);
+                return 1;
+            }
+        }
+
+        const input_t * input = flake->paths[1];
+
+        for (state_t output=0; output<qoutputs; ++output) {
+
+            int is_invalid = 1;
+            for (unsigned int i=0; i<nflake; ++i) {
+                if (input[i] != INVALID_INPUT) {
+                    is_invalid = 0;
+                    break;
+                }
+            }
+
+            if (is_invalid) {
+                continue;
+            }
+
+            for (unsigned int i=1; i<=nflake; ++i) {
+                const struct flake * const current_flake = me->flakes + i;
+                if (input[i-1] >= current_flake->qinputs) {
+                    ERRLOCATION(errstream);
+                    msg(errstream, "Verification failed: in nflake %u invalid state input[%u] = %u, qinputs = %u.", nflake, i-1, input[i-1], current_flake->qinputs);
+                    fprintf(errstream, "Input:");
+                    for (unsigned int j=0; j<nflake; ++j) {
+                        fprintf(errstream, " %u", input[j]);
+                    }
+                    fprintf(errstream, "\n");
+                    return 1;
+                }
+            }
+
+            state_t state = ofsm_execute(me, nflake, input);
+            if (state != output) {
+                ERRLOCATION(errstream);
+                msg(errstream, "Verification failed: execution from path does not lead to output state.");
+                msg(errstream, "Output = %u, state = %u.", output, state);
+                fprintf(errstream, "Input:");
+                for (unsigned int j=0; j<nflake; ++j) {
+                    fprintf(errstream, " %u", input[j]);
+                }
+                fprintf(errstream, "\n");
+
+                return 1;
+            }
+
+            input += nflake;
+        }
+
+    }
+
+    return 0;
+}
+
+
+
+static struct ofsm * do_ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+{
+    if (me->stack_len == 0) {
+        ERRLOCATION(me->errstream);
+        msg(me->errstream, "do_ofsm_builder_get_ofsm is called for empty OFSM stack.");
+        return NULL;
+    }
+
+    return me->stack[me->stack_len - 1];
+}
+
+
+
+/* OFSM Builder */
+
 static int autoverify(const struct ofsm_builder * const me)
 {
     return (me->flags & OBF__AUTO_VERIFY) ? ofsm_builder_verify(me) : 0;
 }
+
+
 
 struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FILE * errstream)
 {
@@ -465,6 +528,8 @@ struct ofsm_builder * create_ofsm_builder(struct mempool * restrict mempool, FIL
     return result;
 }
 
+
+
 void free_ofsm_builder(struct ofsm_builder * restrict me)
 {
     clear_choose_table(&me->choose);
@@ -478,16 +543,7 @@ void free_ofsm_builder(struct ofsm_builder * restrict me)
     }
 }
 
-static struct ofsm * do_ofsm_builder_get_ofsm(const struct ofsm_builder * me)
-{
-    if (me->stack_len == 0) {
-        ERRLOCATION(me->errstream);
-        msg(me->errstream, "do_ofsm_builder_get_ofsm is called for empty OFSM stack.");
-        return NULL;
-    }
 
-    return me->stack[me->stack_len - 1];
-}
 
 int ofsm_builder_make_array(const struct ofsm_builder * me, unsigned int delta_last, struct ofsm_array * restrict out)
 {
@@ -538,11 +594,11 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
         uint64_t qoutputs = qstates * qinputs;
 
         unsigned int nflake = ofsm->qflakes;
-        const struct flake * flake = create_flake(ofsm, qinputs, qoutputs, qstates);
+        const struct flake * flake = ofsm_create_flake(ofsm, qinputs, qoutputs, qstates);
 
         if (flake == NULL) {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
+            msg(me->errstream, "ofsm_create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
             verbose(me->logstream, "FAILED push power.");
             free_ofsm(ofsm);
             return 1;
@@ -574,6 +630,35 @@ int ofsm_builder_push_pow(struct ofsm_builder * restrict me, input_t qinputs, un
 }
 
 
+
+static state_t calc_comb_index(const struct choose_table * ct, const input_t * inputs, unsigned int qinputs, unsigned int m)
+{
+
+    if (qinputs > 64) {
+        ERRLOCATION(ct->errstream);
+        msg(ct->errstream, "Sorting of inputs more then 64 is not supported yet.");
+        return INVALID_STATE;
+    }
+
+    uint64_t mask = 0;
+    for (unsigned int i=0; i<m; ++i) {
+        uint64_t new_one = 1ull << inputs[i];
+        if (new_one & mask) return INVALID_STATE; // repetition
+        mask |= new_one;
+    }
+
+    input_t sorted[m];
+    for (unsigned int i = 0; i<m; ++i) {
+        sorted[i] = extract_rbit64(&mask);
+    }
+
+    state_t result = 0;
+    for (unsigned int k = 0; k < m; ++k) {
+        result += choose(ct, sorted[k], k+1);
+    }
+
+    return result;
+}
 
 int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, unsigned int m)
 {
@@ -622,10 +707,10 @@ int ofsm_builder_push_comb(struct ofsm_builder * restrict me, input_t qinputs, u
         uint64_t qoutputs = qstates * nn / dd;
 
         unsigned int nflake = ofsm->qflakes;
-        const struct flake * flake = create_flake(ofsm, qinputs, qoutputs, qstates);
+        const struct flake * flake = ofsm_create_flake(ofsm, qinputs, qoutputs, qstates);
         if (flake == NULL) {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
+            msg(me->errstream, "ofsm_create_flake(me, %u, %lu, %u) faled with NULL as return value.", qinputs, qoutputs, qstates);
             verbose(me->logstream, "FAILED push combinatoric.");
             free_ofsm(ofsm);
             return 1;
@@ -698,10 +783,10 @@ int ofsm_builder_product(struct ofsm_builder * restrict me)
 
     for (int nflake2 = 1; nflake2 < ofsm2->qflakes; ++nflake2) {
         const struct flake * flake2 = ofsm2->flakes + nflake2;
-        struct flake * restrict flake1 = create_flake(ofsm1, flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
+        struct flake * restrict flake1 = ofsm_create_flake(ofsm1, flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
         if (flake1 == NULL) {
             ERRLOCATION(me->errstream);
-            msg(me->errstream, "create_flake(ofsm1, %u, %u, %u) failed with NULL as result.", flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
+            msg(me->errstream, "ofsm_create_flake(ofsm1, %u, %u, %u) failed with NULL as result.", flake2->qinputs, flake2->qoutputs * last1->qoutputs, flake2->qstates * last1->qoutputs);
             verbose(me->logstream, "FAILED product.");
             ofsm_truncate(ofsm1, saved_qflakes1);
             return 1;
@@ -881,10 +966,10 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 
 
     --ofsm->qflakes;
-    struct flake * restrict infant = create_flake(ofsm, oldman.qinputs, new_qoutputs, oldman.qstates);
+    struct flake * restrict infant = ofsm_create_flake(ofsm, oldman.qinputs, new_qoutputs, oldman.qstates);
     if (infant == NULL) {
         ERRLOCATION(me->errstream);
-        msg(me->errstream, "create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
+        msg(me->errstream, "ofsm_create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
         verbose(me->logstream, "FAILED packing.");
         free(ptr);
         return 1;
@@ -944,6 +1029,28 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 }
 
 
+
+static uint64_t get_first_jump(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path)
+{
+    return *jumps != INVALID_STATE ? *jumps : INVALID_HASH;
+}
+
+static int merge(unsigned int qinputs, state_t * restrict a, state_t * restrict b)
+{
+    for (unsigned int i = 0; i < qinputs; ++i) {
+        if (a[i] == INVALID_STATE) continue;
+        if (b[i] == INVALID_STATE) continue;
+        if (a[i] != b[i]) return 0;
+    }
+
+    for (unsigned int i = 0; i < qinputs; ++i) {
+        if (a[i] == INVALID_STATE) {
+            a[i] = b[i];
+        }
+    }
+
+    return 1;
+}
 
 static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsigned int nflake, struct flake * restrict flake, hash_func * f)
 {
@@ -1189,8 +1296,6 @@ static int ofsm_builder_optimize_flake(struct ofsm_builder * restrict me, unsign
     return 0;
 }
 
-
-
 int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake, unsigned int qflakes, hash_func f)
 {
     struct ofsm * restrict ofsm = do_ofsm_builder_get_ofsm(me);
@@ -1233,91 +1338,6 @@ int ofsm_builder_optimize(struct ofsm_builder * restrict me, unsigned int nflake
 
 
 
-static int ofsm_verify(const struct ofsm * const me, FILE * errstream)
-{
-    const size_t flake_sz = sizeof(struct flake);
-    if (memcmp(me->flakes, &zero_flake, flake_sz) != 0) {
-        ERRLOCATION(errstream);
-        msg(errstream, "Verification failed: invalid zero flake.\n");
-        return 1;
-    }
-
-    for (unsigned int nflake = 1; nflake < me->qflakes; ++nflake) {
-        const struct flake * const flake = me->flakes + nflake;
-        const struct flake * const prev = flake -1;
-        if (prev->qoutputs != flake->qstates) {
-            ERRLOCATION(errstream);
-            msg(errstream, "Verification failed: Mismatch flake->qstates = %u and prev->qoutputs = %u.\n", flake->qstates, prev->qoutputs);
-            return 1;
-        }
-
-        const state_t qoutputs = flake->qoutputs;
-
-        const state_t * jump = flake->jumps[1];
-        const state_t * const jump_last = jump + flake->qinputs * flake->qstates;
-        for (; jump != jump_last; ++jump) {
-            const state_t state = *jump;
-            if (state > qoutputs && state != INVALID_STATE) {
-                ERRLOCATION(errstream);
-                msg(errstream, "Verification failed: invalid state %u\n", state);
-                return 1;
-            }
-        }
-
-        const input_t * input = flake->paths[1];
-
-        for (state_t output=0; output<qoutputs; ++output) {
-
-            int is_invalid = 1;
-            for (unsigned int i=0; i<nflake; ++i) {
-                if (input[i] != INVALID_INPUT) {
-                    is_invalid = 0;
-                    break;
-                }
-            }
-
-            if (is_invalid) {
-                continue;
-            }
-
-            for (unsigned int i=1; i<=nflake; ++i) {
-                const struct flake * const current_flake = me->flakes + i;
-                if (input[i-1] >= current_flake->qinputs) {
-                    ERRLOCATION(errstream);
-                    msg(errstream, "Verification failed: in nflake %u invalid state input[%u] = %u, qinputs = %u.", nflake, i-1, input[i-1], current_flake->qinputs);
-                    fprintf(errstream, "Input:");
-                    for (unsigned int j=0; j<nflake; ++j) {
-                        fprintf(errstream, " %u", input[j]);
-                    }
-                    fprintf(errstream, "\n");
-                    return 1;
-                }
-            }
-
-            state_t state = ofsm_execute(me, nflake, input);
-            if (state != output) {
-                ERRLOCATION(errstream);
-                msg(errstream, "Verification failed: execution from path does not lead to output state.");
-                msg(errstream, "Output = %u, state = %u.", output, state);
-                fprintf(errstream, "Input:");
-                for (unsigned int j=0; j<nflake; ++j) {
-                    fprintf(errstream, " %u", input[j]);
-                }
-                fprintf(errstream, "\n");
-
-                return 1;
-            }
-
-            input += nflake;
-        }
-
-    }
-
-    return 0;
-}
-
-
-
 int ofsm_builder_verify(const struct ofsm_builder * const me)
 {
     verbose(me->logstream, "START verification.");
@@ -1346,14 +1366,14 @@ int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array
     return do_ofsm_get_array(ofsm, delta_last, out);
 }
 
-const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
-{
-    return do_ofsm_builder_get_ofsm(me);
-}
-
 const input_t * ofsm_get_path(const void * ofsm, unsigned int nflake, state_t output)
 {
     return do_ofsm_get_path(ofsm, nflake, output);
+}
+
+const void * ofsm_builder_get_ofsm(const struct ofsm_builder * me)
+{
+    return do_ofsm_builder_get_ofsm(me);
 }
 
 
