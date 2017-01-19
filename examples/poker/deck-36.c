@@ -70,8 +70,8 @@
 
 
 
-const char * nominal36_str = "6789TJQKA";
-const char * card36_str[] = {
+const char * const nominal36_str = "6789TJQKA";
+const char * const card36_str[] = {
     "6h", "6d", "6c", "6s",
     "7h", "7d", "7c", "7s",
     "8h", "8d", "8c", "8s",
@@ -85,25 +85,25 @@ const char * card36_str[] = {
 
 
 
-uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
+uint64_t eval_rank5_via_robust_for_deck36(const card_t * const cards)
 {
     int nominal_stat[9] = { 0 };
     uint64_t suite_mask = 0;
     uint64_t nominal_mask = 0;
 
     for (int i=0; i<5; ++i) {
-        card_t card = cards[i];
-        int nominal = NOMINAL(card);
-        int suite = SUITE(card);
+        const card_t card = cards[i];
+        const int nominal = NOMINAL(card);
+        const int suite = SUITE(card);
         ++nominal_stat[nominal];
         nominal_mask |= (1 << nominal);
         suite_mask |= (1 << suite);
     }
 
     suite_mask &= suite_mask - 1;
-    int is_flush = suite_mask == 0;
+    const int is_flush = suite_mask == 0;
 
-    int is_straight = 0
+    const int is_straight = 0
         || nominal_mask == NOMINAL_MASK_5(A,K,Q,J,T)
         || nominal_mask == NOMINAL_MASK_5(K,Q,J,T,9)
         || nominal_mask == NOMINAL_MASK_5(Q,J,T,9,8)
@@ -117,7 +117,7 @@ uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
             nominal_mask = NOMINAL_MASK_4(9,8,7,6);
         }
 
-        uint64_t prefix = is_flush ? PREFIX(STRAIGHT_FLUSH) : PREFIX(STRAIGHT);
+        const uint64_t prefix = is_flush ? PREFIX(STRAIGHT_FLUSH) : PREFIX(STRAIGHT);
         return prefix | nominal_mask;
     }
 
@@ -130,7 +130,7 @@ uint64_t eval_rank5_via_robust_for_deck36(const card_t * cards)
     for (int n=NOMINAL_6; n<=NOMINAL_A; ++n) {
         if (nominal_stat[n] == 0) continue;
         ++stats[nominal_stat[n]];
-        int shift = n + 9*nominal_stat[n] - 9;
+        const int shift = n + 9*nominal_stat[n] - 9;
         rank |= 1ull << shift;
     }
 

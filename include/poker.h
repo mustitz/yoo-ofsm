@@ -28,10 +28,10 @@ typedef uint32_t card_t;
 
 
 extern const char * suite_str;
-extern const char * card36_str[];
-extern const char * nominal36_str;
-extern const char * card52_str[];
-extern const char * nominal52_str;
+extern const char * const card36_str[];
+extern const char * const nominal36_str;
+extern const char * const card52_str[];
+extern const char * const nominal52_str;
 
 extern const card_t quick_ordered_hand5_for_deck36[];
 extern const card_t quick_ordered_hand7_for_deck36[];
