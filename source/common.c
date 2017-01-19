@@ -829,11 +829,11 @@ int ofsm_builder_product(struct ofsm_builder * restrict const me)
 
 
 
-int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned int flags)
+int ofsm_builder_pack(struct ofsm_builder * restrict const me, pack_func f, const unsigned int flags)
 {
     verbose(me->logstream, "START packing.");
 
-    struct ofsm * restrict ofsm = do_ofsm_builder_get_ofsm(me);
+    struct ofsm * restrict const ofsm = do_ofsm_builder_get_ofsm(me);
     if (ofsm == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "do_ofsm_builder_get_ofsm(me) failed with NULL as error value.");
@@ -848,19 +848,19 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
         return 1;
     }
 
-    int skip_renumering = (flags & PACK_FLAG__SKIP_RENUMERING) != 0;
-    unsigned int nflake = ofsm->qflakes - 1;
+    const int skip_renumering = (flags & PACK_FLAG__SKIP_RENUMERING) != 0;
+    const unsigned int nflake = ofsm->qflakes - 1;
     const struct flake oldman = ofsm->flakes[nflake];
-    uint64_t old_qoutputs = oldman.qoutputs;
+    const uint64_t old_qoutputs = oldman.qoutputs;
 
-    size_t sizes[3];
-    sizes[0] = 0;
-    sizes[1] = (1 + old_qoutputs) * sizeof(struct ofsm_pack_decode);
-    sizes[2] = old_qoutputs * sizeof(state_t);
+    const size_t sizes[3] = { 0,
+        (1 + old_qoutputs) * sizeof(struct ofsm_pack_decode),
+        old_qoutputs * sizeof(state_t),
+    };
 
     void * ptrs[3];
     multialloc(3, sizes, ptrs, 32);
-    void * ptr = ptrs[0];
+    void * const ptr = ptrs[0];
 
     if (ptr == NULL) {
         ERRLOCATION(me->errstream);
@@ -869,8 +869,8 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
         return 1;
     }
 
-    struct ofsm_pack_decode * decode_table = ptrs[1];
-    state_t * translate = ptrs[2];
+    struct ofsm_pack_decode * const decode_table = ptrs[1];
+    state_t * restrict const translate = ptrs[2];
 
 
 
@@ -910,7 +910,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
         new_qoutputs = max_value + 1;
 
         const struct ofsm_pack_decode * left = decode_table;
-        const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
+        const struct ofsm_pack_decode * const end = decode_table + old_qoutputs;
 
         while (left != end) {
 
@@ -919,7 +919,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
                 ++right;
             }
 
-            state_t new_output = left->value != INVALID_PACK_VALUE ? left->value : INVALID_STATE;
+            const state_t new_output = left->value != INVALID_PACK_VALUE ? left->value : INVALID_STATE;
             for (; left != right; ++left) {
                 translate[left->output] = new_output;
             }
@@ -932,7 +932,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
         verbose(me->logstream, "  --> calc output_translate table with renumering.");
 
         const struct ofsm_pack_decode * left = decode_table;
-        const struct ofsm_pack_decode * end = decode_table + old_qoutputs;
+        const struct ofsm_pack_decode * const end = decode_table + old_qoutputs;
 
         while (left != end) {
 
@@ -959,7 +959,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
 
 
     --ofsm->qflakes;
-    struct flake * restrict infant = ofsm_create_flake(ofsm, oldman.qinputs, new_qoutputs, oldman.qstates);
+    struct flake * restrict const infant = ofsm_create_flake(ofsm, oldman.qinputs, new_qoutputs, oldman.qstates);
     if (infant == NULL) {
         ERRLOCATION(me->errstream);
         msg(me->errstream, "ofsm_create_flake(me, %u, %u, %u) faled with NULL as return value in pack step.", oldman.qinputs, new_qoutputs, oldman.qstates);
@@ -973,7 +973,7 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
     { verbose(me->logstream, "  --> update data.");
 
         const state_t * old = oldman.jumps[1];
-        const state_t * end = old + oldman.qstates * oldman.qinputs;
+        const state_t * const end = old + oldman.qstates * oldman.qinputs;
         state_t * restrict new = infant->jumps[1];
 
         for (; old != end; ++old) {
@@ -991,13 +991,13 @@ int ofsm_builder_pack(struct ofsm_builder * restrict me, pack_func f, unsigned i
     { verbose(me->logstream, "  --> update paths.");
 
         input_t * restrict new_path = infant->paths[1];
-        const input_t * old_paths = oldman.paths[1];
+        const input_t * const old_paths = oldman.paths[1];
         const struct ofsm_pack_decode * decode = decode_table;
-        size_t sz = sizeof(input_t) * nflake;
+        const size_t sz = sizeof(input_t) * nflake;
         for (state_t output = 0; output < new_qoutputs; ++output) {
-            pack_value_t value = decode->value;
-            state_t old_output = decode->output;
-            state_t new_output = translate[old_output];
+            const pack_value_t value = decode->value;
+            const state_t old_output = decode->output;
+            const state_t new_output = translate[old_output];
             if (output == new_output) {
                 memcpy(new_path, old_paths + old_output * nflake, sz);
                 new_path += nflake;
