@@ -173,7 +173,7 @@ int pow_41_test(void)
     static const unsigned int DELTA = 1;
     static const int EXPECTED_STAT = 1;
 
-    int errcode;
+    int status;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -185,16 +185,16 @@ int pow_41_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -261,7 +261,7 @@ int pow_42_test(void)
     static const unsigned int DELTA = 1;
     static const int EXPECTED_STAT = 1;
 
-    int errcode;
+    int status;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -273,16 +273,16 @@ int pow_42_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 2) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 2) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -350,7 +350,7 @@ int comb_42_test(void)
     static const unsigned int DELTA = 1;
     static const int EXPECTED_STAT = 2;
 
-    int errcode;
+    int status;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -362,16 +362,16 @@ int comb_42_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_comb(me, 4, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 4, 2) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 4, 2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 4, 2) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -455,7 +455,7 @@ int comb_55_test(void)
     static const unsigned int DELTA = 1;
     static const int EXPECTED_STAT = 120;
 
-    int errcode;
+    int status;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -467,16 +467,16 @@ int comb_55_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_comb(me, 5, 5);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 5) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 5, 5);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 5) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -571,7 +571,7 @@ int pow_41_pow_51_test(void)
     static const unsigned int DELTA = 1;
     static const int EXPECTED_STAT = 1;
 
-    int errcode;
+    int status;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -583,28 +583,28 @@ int pow_41_pow_51_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_push_pow(me, 5, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 5, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 5, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 5, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_product(me);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_product(me);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -672,7 +672,7 @@ int pow_41_comb_52_test(void)
     static const unsigned int DELTA = 1;
     static const int EXPECTED_STAT = 2;
 
-    int errcode;
+    int status;
     int stat[QOUTS];
     memset(stat, 0, sizeof(stat));
 
@@ -684,28 +684,28 @@ int pow_41_comb_52_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_push_comb(me, 5, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 5, 2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_product(me);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_product(me);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -789,7 +789,7 @@ int pack_test(void)
     static const state_t QOUTS = 7;
     static const unsigned int DELTA = 1;
 
-    int errcode;
+    int status;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
@@ -799,34 +799,34 @@ int pack_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_push_comb(me, 5, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 5, 2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_product(me);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_product(me);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_pack(me, mod7, 0);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_pack(me, mod7, 0);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -907,7 +907,7 @@ int pack_without_renum_test(void)
     static const unsigned int NFLAKE = 3;
     static const unsigned int DELTA = 0;
 
-    int errcode;
+    int status;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
@@ -917,34 +917,34 @@ int pack_without_renum_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_push_comb(me, 5, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 5, 2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_product(me);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_product(me);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_pack(me, mod7, PACK_FLAG__SKIP_RENUMERING);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_pack(me, mod7, PACK_FLAG__SKIP_RENUMERING);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -1014,7 +1014,7 @@ int optimize_test_with_hash(hash_func hash)
     static const state_t QOUTS = 40;
     static const unsigned int DELTA = 0;
 
-    int errcode;
+    int status;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
@@ -1024,40 +1024,40 @@ int optimize_test_with_hash(hash_func hash)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_pow(me, 4, 1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_pow(me, 4, 1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_push_comb(me, 5, 2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 5, 2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_comb(me, 5, 2) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_product(me);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_product(me);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_product(me) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_pack(me, mod7, 0);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_pack(me, mod7, 0);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_optimize(me, 3, 1, hash);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_optimize(me, 3, 1, invalid_hash) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_optimize(me, 3, 1, hash);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_optimize(me, 3, 1, invalid_hash) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array;
-    errcode = ofsm_builder_make_array(me, DELTA, &array);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, DELTA, &array);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
@@ -1174,7 +1174,7 @@ static uint64_t forget_hash(void * user_data, unsigned int qjumps, const state_t
 
 int optimize_with_hash_path_test(void)
 {
-    int errcode;
+    int status;
 
     struct ofsm_builder * restrict me = create_ofsm_builder(NULL, stderr);
     if (me == NULL) {
@@ -1184,48 +1184,48 @@ int optimize_with_hash_path_test(void)
 
     me->flags |= OBF__AUTO_VERIFY;
 
-    errcode = ofsm_builder_push_comb(me, 10, 5);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_push_comb(me, 10, 5);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_push_pow(me, 4, 1) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_pack(me, sum_with_bonus, PACK_FLAG__SKIP_RENUMERING);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_pack(me, sum_with_bonus, PACK_FLAG__SKIP_RENUMERING);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_pack(me) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array1;
-    errcode = ofsm_builder_make_array(me, 0, &array1);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, 0, &array1);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_optimize(me, 5, 1, forget_hash);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_optimize(me, 5, 1, invalid_hash) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_optimize(me, 5, 1, forget_hash);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_optimize(me, 5, 1, invalid_hash) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array2;
-    errcode = ofsm_builder_make_array(me, 0, &array2);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, 0, &array2);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
-    errcode = ofsm_builder_optimize(me, 5, 0, NULL);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_optimize(me, 5, 0, NULL) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_optimize(me, 5, 0, NULL);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_optimize(me, 5, 0, NULL) failed with %d as error code.\n", status);
         return 1;
     }
 
     struct ofsm_array array3;
-    errcode = ofsm_builder_make_array(me, 0, &array3);
-    if (errcode != 0) {
-        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", errcode);
+    status = ofsm_builder_make_array(me, 0, &array3);
+    if (status != 0) {
+        fprintf(stderr, "ofsm_builder_get_array(me) failed with %d as error code.\n", status);
         return 1;
     }
 
