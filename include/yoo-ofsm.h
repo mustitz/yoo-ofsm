@@ -46,19 +46,10 @@ struct array_header
 
 
 
-typedef void build_script_func(void * script);
-typedef int check_ofsm_func(const void * ofsm);
 typedef pack_value_t pack_func(void * user_data, unsigned int n, const input_t * path);
 typedef uint64_t hash_func(void * user_data, const unsigned int qjumps, const state_t * jumps, const unsigned int path_len, const input_t * path);
 
 
-
-int execute(int argc, char * argv[], build_script_func build, check_ofsm_func check);
-
-void script_step_pow(void * restrict script, input_t qinputs, unsigned int m);
-void script_step_comb(void * restrict script, input_t qinputs, unsigned int m);
-void script_step_pack(void * restrict script, pack_func f, unsigned int flags);
-void script_step_optimize(void * restrict script, unsigned int nflake, hash_func f);
 
 state_t ofsm_execute(const void * ofsm, unsigned int n, const input_t * inputs);
 int ofsm_get_array(const void * ofsm, unsigned int delta_last, struct ofsm_array * restrict out);
