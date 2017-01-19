@@ -71,14 +71,6 @@ int run_opencl_permutations(
     uint64_t * restrict const qerrors
 );
 
-int opencl__test_permutations(
-    uint64_t * restrict args,
-    const int8_t * const perm_table, const int64_t perm_table_sz,
-    const uint32_t * const fsm, const int64_t fsm_sz,
-    const uint64_t * const data, const int64_t data_sz,
-    uint16_t * restrict const report, const int64_t report_sz
-);
-
 
 
 void * global_malloc(const size_t sz);
