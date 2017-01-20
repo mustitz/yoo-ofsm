@@ -1,4 +1,5 @@
 noinst_PROGRAMS = yoo-build-poker-ofsm
+noinst_HEADERS = poker.h
 
 
 

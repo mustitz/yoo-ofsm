@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include <yoo-stdlib.h>
-#include <poker.h>
+#include "yoo-stdlib.h"
+#include "poker.h"
 
 #ifdef HAS_OPENCL
 
