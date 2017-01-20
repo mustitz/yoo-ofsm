@@ -1,0 +1,8 @@
+Here is branch for binaries from yoo-ofsm project.
+
+Directories
+===========
+
+  ofsm      - Onion Finite State Machines for calculation poker rank.
+  deps      - Binaries of compile dependencies.
+  releases  - Releases.
