@@ -1,3 +1,7 @@
 FSM project. This project is required for solving SFM synthesis problem.
 
-2010-01-26    Start an empty project partially based on previous job.
+2016-01-21    First release, poker OFSM for Six Plus Hold`em (5 and 7 cards),
+              Texas Hold`em (5 amd 7 cards) and Omaha (7 cards) are generated
+              and verified.
+
+2016-01-26    Start an empty project partially based on previous job.

@@ -1,9 +1,74 @@
 This project is an implementation of finite state machine synthesis.
 
-To install application try following commands:
+
+
+What is yoo-ofsm?
+=================
+
+Sometimes you must optimize execution functions for discrete argument
+and discrete values. In some cases Finite State Machine (FSM) would be
+useful as a result for such optimization. Special kind of FSM whick
+I called Onion FSM (OFM) may be useful if discrete argument may be
+splitted into constant number of pieces. The yoo-ofsm library could
+be used for syntesis such Onion FSM.
+
+Originally I solved a task for hand rank calculation in poker variants.
+FSM is a fastest way for such calculation. But I developed a common
+solution whick would be useful in some another areas. At least I hope
+for it :)
+
+
+
+Building
+========
+
+To install library try following commands:
     ./configure
     make
     sudo make install
 
 To install from GIT repository run before
     autoreconf -vis
+
+Poker OFSM generation is placed in ./examples/poker/
+
+
+
+System requirements
+===================
+
+During developinh the library the following tools/libraries were used:
+  - Autotools;
+  - GNU C99 compiler with extensions;
+  - yoo-stdlib library is needed (may be found in binaries branch);
+  - Ubuntu Linux;
+  - Optional AMD OpenCL (for GPU poker table verifications);
+  - Optional valgrind (for tests).
+
+I did not put too much effort into building library under different
+environments. But generally library requires GNU C99 extensions and POSIX.
+So you can port it on most of UNIX systems. If you want to port library
+to another systems or you have troubles with it please contact author.
+
+
+
+Documentation
+=============
+
+Full documentation is under development, please wait. Or contact author.
+
+
+
+Poker FSM Binaries
+==================
+
+You can find poker FSM binaries in git branch binaries in ofsm directory.
+
+
+
+License
+=======
+
+I do not decide what kind of licence to select. By default GNU Public License
+is installed and you can use the library under it. If you want more please
+contact author.

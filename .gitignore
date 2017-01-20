@@ -14,6 +14,7 @@ Makefile
 Makefile.in
 yooofsmlib.pc
 
+/COPYING
 /INSTALL
 /aclocal.m4
 /autom4te.cache/
