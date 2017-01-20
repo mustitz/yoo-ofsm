@@ -34,5 +34,4 @@ yooofsmlib.pc
 /validation/validation.sh
 
 /examples/poker/yoo-build-poker-ofsm
-/yoo-ofsm-0.1.tar.bz2
-/yoo-ofsm-0.1.tar.gz
+/yoo-ofsm-*.tar.*
