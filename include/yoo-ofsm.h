@@ -85,7 +85,7 @@ int ofsm_get_array(const void * const ofsm, const unsigned int delta_last, struc
 
 
 
-int ofsm_array_printy(const struct ofsm_array * const array, FILE * const f, const char * const name, const unsigned int arg_qcolumns);
+int ofsm_array_print(const struct ofsm_array * const array, FILE * const f, const char * const name, const unsigned int arg_qcolumns);
 int ofsm_array_save_binary(const struct ofsm_array * const array, FILE * f, const char * const name);
 
 
